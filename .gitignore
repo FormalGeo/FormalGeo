@@ -1,0 +1,9 @@
+# Byte-compiled
+__pycache__
+
+# PyCharm
+.idea
+
+# packaging
+dist
+src/formalgeo.egg-info

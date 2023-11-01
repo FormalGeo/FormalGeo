@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "FormalGeo"
+version = "0.0.1"
+authors = [
+  { name="Xiaokai Zhang", email="xiaokaizhang1999@163.com" },
+]
+description = "Formal representation and solving for Euclidean plane geometry problems."
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+  "sympy>=1.10",
+  "func_timeout>=4.3",
+]
+[project.urls]
+"Homepage" = "https://github.com/BitSecret/FormalGeo"
+"Bug Tracker" = "https://github.com/BitSecret/FormalGeo/issues"

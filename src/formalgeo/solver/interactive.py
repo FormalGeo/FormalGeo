@@ -1,9 +1,9 @@
-from formalgeo import Problem
-from formalgeo import GDLParser, CDLParser
-from formalgeo import InverseParserM2F
-from formalgeo import EquationKiller as EqKiller
-from formalgeo import GeometryPredicateLogic as GeoLogic
-from formalgeo import rough_equal
+from formalgeo.problem import Problem
+from formalgeo.core import GeometryPredicateLogicExecutor as GPLExecutor
+from formalgeo.core import EquationKiller as EqKiller
+from formalgeo.parse import parse_predicate_gdl, parse_theorem_gdl, parse_problem_cdl
+from formalgeo.parse import get_equation_from_tree
+from formalgeo.tools import rough_equal
 import warnings
 import time
 
@@ -16,15 +16,17 @@ class Interactor:
         :param predicate_GDL: predicate GDL.
         :param theorem_GDL: theorem GDL.
         """
-        self.predicate_GDL = GDLParser.parse_predicate_gdl(predicate_GDL)
-        self.theorem_GDL = GDLParser.parse_theorem_gdl(theorem_GDL, self.predicate_GDL)
+        self.parsed_predicate_GDL = parse_predicate_gdl(predicate_GDL)
+        self.parsed_theorem_GDL = parse_theorem_gdl(theorem_GDL, self.parsed_predicate_GDL)
         self.problem = None
 
     def load_problem(self, problem_CDL):
         """Load problem through problem_CDL."""
         start_time = time.time()
         self.problem = Problem()
-        self.problem.load_problem_by_fl(self.predicate_GDL, CDLParser.parse_problem(problem_CDL))  # load problem
+        self.problem.load_problem_by_fl(self.parsed_predicate_GDL,
+                                        self.parsed_theorem_GDL,
+                                        parse_problem_cdl(problem_CDL))  # load problem
         EqKiller.solve_equations(self.problem)  # Solve the equations after initialization
         self.problem.step("init_problem", time.time() - start_time)  # save applied theorem and update step
 
@@ -39,19 +41,19 @@ class Interactor:
         if self.problem is None:
             e_msg = "Problem not loaded. Please run <load_problem> before run <apply_theorem>."
             raise Exception(e_msg)
-        if t_name not in self.theorem_GDL:
+        if t_name not in self.parsed_theorem_GDL:
             e_msg = "Theorem {} not defined in current GDL.".format(t_name)
             raise Exception(e_msg)
         if t_name.endswith("definition"):
             e_msg = "Theorem {} only used for backward reason.".format(t_name)
             raise Exception(e_msg)
-        if t_para is not None and len(t_para) != len(self.theorem_GDL[t_name]["vars"]):
+        if t_para is not None and len(t_para) != len(self.parsed_theorem_GDL[t_name]["vars"]):
             e_msg = "Theorem <{}> para length error. Expected {} but got {}.".format(
-                t_name, len(self.theorem_GDL[t_name]["vars"]), t_para)
+                t_name, len(self.parsed_theorem_GDL[t_name]["vars"]), t_para)
             raise Exception(e_msg)
-        if t_branch is not None and t_branch not in self.theorem_GDL[t_name]["body"]:
+        if t_branch is not None and t_branch not in self.parsed_theorem_GDL[t_name]["body"]:
             e_msg = "Theorem <{}> branch error. Expected {} but got {}.".format(
-                t_name, self.theorem_GDL[t_name]["body"].keys(), t_branch)
+                t_name, self.parsed_theorem_GDL[t_name]["body"].keys(), t_branch)
             raise Exception(e_msg)
 
         if t_para is None and t_branch is None:
@@ -78,19 +80,19 @@ class Interactor:
         """
         update = False
 
-        for branch in self.theorem_GDL[t_name]["body"]:
+        for branch in self.parsed_theorem_GDL[t_name]["body"]:
             timing = time.time()  # timing
-            gpl = self.theorem_GDL[t_name]["body"][branch]
+            gpl = self.parsed_theorem_GDL[t_name]["body"][branch]
 
-            conclusions = GeoLogic.run(gpl, self.problem)  # get gpl reasoned result
+            conclusions = GPLExecutor.run(gpl, self.problem)  # get gpl reasoned result
             if len(conclusions) == 0:
-                theorem = InverseParserM2F.inverse_parse_one_theorem(t_name, branch, None, self.theorem_GDL)
+                theorem = (t_name, branch, None)
                 self.problem.step(theorem, time.time() - timing)
                 continue
             avg_timing = (time.time() - timing) / len(conclusions)
             for letters, premise, conclusion in conclusions:
-                t_para = [letters[i] for i in self.theorem_GDL[t_name]["vars"]]
-                theorem = InverseParserM2F.inverse_parse_one_theorem(t_name, branch, t_para, self.theorem_GDL)
+                t_para = [letters[i] for i in self.parsed_theorem_GDL[t_name]["vars"]]
+                theorem = (t_name, branch, tuple(t_para))
                 for predicate, item in conclusion:  # add conclusion
                     update = self.problem.add(predicate, item, premise, theorem) or update
                 self.problem.step(theorem, avg_timing)
@@ -110,13 +112,13 @@ class Interactor:
         """
         update = False
         letters = {}  # used for vars-letters replacement
-        for i in range(len(self.theorem_GDL[t_name]["vars"])):
-            letters[self.theorem_GDL[t_name]["vars"][i]] = t_para[i]
+        for i in range(len(self.parsed_theorem_GDL[t_name]["vars"])):
+            letters[self.parsed_theorem_GDL[t_name]["vars"][i]] = t_para[i]
 
-        for branch in self.theorem_GDL[t_name]["body"]:
+        for branch in self.parsed_theorem_GDL[t_name]["body"]:
             timing = time.time()  # timing
-            theorem = InverseParserM2F.inverse_parse_one_theorem(t_name, branch, t_para, self.theorem_GDL)
-            gpl = self.theorem_GDL[t_name]["body"][branch]
+            theorem = (t_name, branch, t_para)
+            gpl = self.parsed_theorem_GDL[t_name]["body"][branch]
             premises = []
             passed = True
 
@@ -142,7 +144,7 @@ class Interactor:
                 oppose = False
                 if "~" in equal:
                     oppose = True
-                eq = CDLParser.get_equation_from_tree(self.problem, item, True, letters)
+                eq = get_equation_from_tree(self.problem, item, True, letters)
                 solved_eq = False
 
                 result, premise = EqKiller.solve_target(eq, self.problem)
@@ -160,7 +162,7 @@ class Interactor:
 
             for predicate, item in gpl["conclusions"]:
                 if predicate == "Equal":  # algebra conclusion
-                    eq = CDLParser.get_equation_from_tree(self.problem, item, True, letters)
+                    eq = get_equation_from_tree(self.problem, item, True, letters)
                     update = self.problem.add("Equation", eq, premises, theorem) or update
                 else:  # logic conclusion
                     item = tuple(letters[i] for i in item)
@@ -184,17 +186,17 @@ class Interactor:
         update = False
 
         timing = time.time()  # timing
-        gpl = self.theorem_GDL[t_name]["body"][t_branch]
+        gpl = self.parsed_theorem_GDL[t_name]["body"][t_branch]
 
-        conclusions = GeoLogic.run(gpl, self.problem)  # get gpl reasoned result
+        conclusions = GPLExecutor.run(gpl, self.problem)  # get gpl reasoned result
         if len(conclusions) == 0:
-            theorem = InverseParserM2F.inverse_parse_one_theorem(t_name, t_branch, None, self.theorem_GDL)
+            theorem = (t_name, t_branch, None)
             self.problem.step(theorem, time.time() - timing)
             return False
         avg_timing = (time.time() - timing) / len(conclusions)
         for letters, premise, conclusion in conclusions:
-            t_para = [letters[i] for i in self.theorem_GDL[t_name]["vars"]]
-            theorem = InverseParserM2F.inverse_parse_one_theorem(t_name, t_branch, t_para, self.theorem_GDL)
+            t_para = [letters[i] for i in self.parsed_theorem_GDL[t_name]["vars"]]
+            theorem = (t_name, t_branch, tuple(t_para))
 
             for predicate, item in conclusion:  # add conclusion
                 update = self.problem.add(predicate, item, premise, theorem) or update
@@ -216,13 +218,13 @@ class Interactor:
         """
         update = False
         timing = time.time()  # timing
-        theorem = InverseParserM2F.inverse_parse_one_theorem(t_name, t_branch, t_para, self.theorem_GDL)
+        theorem = (t_name, t_branch, t_para)
 
         letters = {}  # used for vars-letters replacement
-        for i in range(len(self.theorem_GDL[t_name]["vars"])):
-            letters[self.theorem_GDL[t_name]["vars"][i]] = t_para[i]
+        for i in range(len(self.parsed_theorem_GDL[t_name]["vars"])):
+            letters[self.parsed_theorem_GDL[t_name]["vars"][i]] = t_para[i]
 
-        gpl = self.theorem_GDL[t_name]["body"][t_branch]
+        gpl = self.parsed_theorem_GDL[t_name]["body"][t_branch]
         premises = []
 
         for predicate, item in gpl["products"] + gpl["logic_constraints"]:
@@ -243,7 +245,7 @@ class Interactor:
             oppose = False
             if "~" in equal:
                 oppose = True
-            eq = CDLParser.get_equation_from_tree(self.problem, item, True, letters)
+            eq = get_equation_from_tree(self.problem, item, True, letters)
             solved_eq = False
 
             result, premise = EqKiller.solve_target(eq, self.problem)
@@ -257,7 +259,7 @@ class Interactor:
 
         for predicate, item in gpl["conclusions"]:
             if predicate == "Equal":  # algebra conclusion
-                eq = CDLParser.get_equation_from_tree(self.problem, item, True, letters)
+                eq = get_equation_from_tree(self.problem, item, True, letters)
                 update = self.problem.add("Equation", eq, premises, theorem) or update
             else:  # logic conclusion
                 item = tuple(letters[i] for i in item)

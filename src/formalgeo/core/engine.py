@@ -1,8 +1,8 @@
 import copy
 from sympy import symbols, solve, Float
 from func_timeout import func_set_timeout, FunctionTimedOut
-from formalgeo import CDLParser
-from formalgeo import rough_equal
+from formalgeo.parse import get_equation_from_tree
+from formalgeo.tools import rough_equal
 import warnings
 
 
@@ -205,7 +205,7 @@ class EquationKiller:
                 else:
                     if target_sym in result:
                         problem.set_value_of_sym(target_sym, result[target_sym],
-                                                 tuple(problem.condition.simplified_equation[eq]), "solve_eq")
+                                                 tuple(problem.condition.simplified_equation[eq]))
                         remove_lists |= {eq}
 
             for eq in problem.condition.simplified_equation:  # value replace
@@ -394,7 +394,7 @@ class EquationKiller:
 
                 if eqs_for_cache in EquationKiller.cache_eqs:
                     for sym_str, value in EquationKiller.cache_eqs[eqs_for_cache]:
-                        problem.set_value_of_sym(str_to_sym[sym_str], value, premise, "solve_eq")
+                        problem.set_value_of_sym(str_to_sym[sym_str], value, premise)
                     continue
                 EquationKiller.cache_eqs[eqs_for_cache] = []
 
@@ -438,7 +438,7 @@ class EquationKiller:
                     premise = []
                     for eq in sym_mini_eqs:
                         premise += problem.condition.simplified_equation[eq]
-                    problem.set_value_of_sym(sym, solved_results[sym], premise, "solve_eq")
+                    problem.set_value_of_sym(sym, solved_results[sym], premise)
 
                     if EquationKiller.use_cache:
                         EquationKiller.cache_eqs[eqs_for_cache].append((str(sym), solved_results[sym]))
@@ -449,7 +449,7 @@ class EquationKiller:
                     premise += problem.condition.simplified_equation[eq]
 
                 for sym in solved_results:
-                    problem.set_value_of_sym(sym, solved_results[sym], premise, "solve_eq")
+                    problem.set_value_of_sym(sym, solved_results[sym], premise)
 
                 if EquationKiller.use_cache:
                     for sym in solved_results:
@@ -579,7 +579,7 @@ class EquationKiller:
                 warnings.warn(msg)
             else:
                 for sym in results:
-                    problem.set_value_of_sym(sym, results[sym], premise, "solve_eq")
+                    problem.set_value_of_sym(sym, results[sym], premise)
                     value_added = True
         if not value_added:
             problem.condition.add("Equation", target_expr - solved_target_value, premise, "solve_eq")
@@ -589,7 +589,7 @@ class EquationKiller:
         return solved_target_value, premise
 
 
-class GeometryPredicateLogic:
+class GeometryPredicateLogicExecutor:
 
     @staticmethod
     def run(gpl, problem, letters=None):
@@ -600,9 +600,9 @@ class GeometryPredicateLogic:
         :param letters: preset letters for para selection.
         :return results: <list> of <tuple>, [(letters, premises, conclusions)].
         """
-        r = GeometryPredicateLogic.run_logic(gpl, problem, letters)
-        r = GeometryPredicateLogic.run_algebra(r, gpl, problem)
-        return GeometryPredicateLogic.make_conclusion(r, gpl, problem)
+        r = GeometryPredicateLogicExecutor.run_logic(gpl, problem, letters)
+        r = GeometryPredicateLogicExecutor.run_algebra(r, gpl, problem)
+        return GeometryPredicateLogicExecutor.make_conclusion(r, gpl, problem)
 
     @staticmethod
     def run_logic(gpl, problem, letters=None):
@@ -631,7 +631,7 @@ class GeometryPredicateLogic:
                 r_items[i].pop(index)
 
         for i in range(1, len(products)):
-            r_ids, r_items, r_vars = GeometryPredicateLogic.product(
+            r_ids, r_items, r_vars = GeometryPredicateLogicExecutor.product(
                 (r_ids, r_items, r_vars), products[i], problem)
 
         if letters is not None:  # select result according to letters
@@ -646,7 +646,7 @@ class GeometryPredicateLogic:
                     r_ids.pop(i)
 
         for i in range(len(logic_constraints)):
-            r_ids, r_items, r_vars = GeometryPredicateLogic.constraint_logic(
+            r_ids, r_items, r_vars = GeometryPredicateLogicExecutor.constraint_logic(
                 (r_ids, r_items, r_vars), logic_constraints[i], problem)
 
         if letters is not None:  # select result according to letters
@@ -677,7 +677,7 @@ class GeometryPredicateLogic:
             return [], [], r_vars
 
         for i in range(len(algebra_constraints)):
-            r_ids, r_items, r_vars = GeometryPredicateLogic.constraint_algebra(
+            r_ids, r_items, r_vars = GeometryPredicateLogicExecutor.constraint_algebra(
                 (r_ids, r_items, r_vars), algebra_constraints[i], problem)
 
         return r_ids, r_items, r_vars
@@ -704,7 +704,7 @@ class GeometryPredicateLogic:
 
             for predicate, item in conclusions:
                 if predicate == "Equal":  # algebra conclusion
-                    eq = CDLParser.get_equation_from_tree(problem, item, True, letters)
+                    eq = get_equation_from_tree(problem, item, True, letters)
                     conclusion.append(("Equation", eq))
                 else:  # logic conclusion
                     item = tuple(letters[i] for i in item)
@@ -849,7 +849,7 @@ class GeometryPredicateLogic:
                 letters = {}
                 for j in range(len(r1_vars)):
                     letters[r1_vars[j]] = r1_items[i][j]
-                eq = CDLParser.get_equation_from_tree(problem, r2_algebra[1], True, letters)
+                eq = get_equation_from_tree(problem, r2_algebra[1], True, letters)
                 try:
                     result, premise = EquationKiller.solve_target(eq, problem)
                 except FunctionTimedOut:
@@ -866,7 +866,7 @@ class GeometryPredicateLogic:
                 letters = {}
                 for j in range(len(r1_vars)):
                     letters[r1_vars[j]] = r1_items[i][j]
-                eq = CDLParser.get_equation_from_tree(problem, r2_algebra[1], True, letters)
+                eq = get_equation_from_tree(problem, r2_algebra[1], True, letters)
                 try:
                     result, premise = EquationKiller.solve_target(eq, problem)
                 except FunctionTimedOut:

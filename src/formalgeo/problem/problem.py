@@ -2,218 +2,56 @@ import time
 import copy
 import warnings
 from itertools import combinations
-from sympy.parsing import parse_expr
 from sympy import symbols
-from formalgeo import CDLParser
-from formalgeo import rough_equal
-from formalgeo import EquationKiller as EqKiller
-
-
-class Condition:
-    def __init__(self):
-        """All conditions of one problem."""
-        self.id_count = 0  # <int>
-        self.step_count = 0  # <int>
-        self.fix_length_predicates = None  # <list> of <str>
-        self.variable_length_predicates = None  # <list> of <str>
-
-        self.items = []  # <list> of <tuple>, [(predicate, item, premise, theorem, step)]
-        self.items_group = {}  # <dict>, [predicate: [item]], such as {'Angle':[('A', 'B', 'C')]}
-
-        self.id_of_item = {}  # <dict>, {(predicate, item): id}, such as {('Angle', ('A', 'B', 'C')): 0}
-        self.ids_of_predicate = {}  # <dict>, {predicate: [id]}, such as {'Angle': [0, 1, 2]}
-        self.ids_of_step = {}  # <dict>, {step: [id]}, such as {0: [0, 1, 2]}
-
-        self.sym_of_attr = {}  # <dict>, {(attr, paras): sym}, such as {('LengthOfLine', ('A', 'B')): l_ab}
-        self.attr_of_sym = {}  # <dict>, {sym: (attr, (paras))}, such as {l_ab: ('LengthOfLine', (('A', 'B'),))}
-        self.value_of_sym = {}  # <dict>, {sym: value}, such as {l_ab: 3}
-        self.simplified_equation = {}  # <dict>, {simplified_equation: premises}, such as {a + b - 2: [1, 2, 3]}
-        self.eq_solved = True  # <bool>, record whether the equation is solved
-
-    def init_by_fl(self, fix_length_predicates, variable_length_predicates):
-        """
-        Initial condition by formal language.
-        :param fix_length_predicates: List of predicates that has fix parameter length.
-        :param variable_length_predicates: List of predicates that has variable parameter length.
-        """
-        self.fix_length_predicates = fix_length_predicates
-        self.variable_length_predicates = variable_length_predicates
-        self.ids_of_step[self.step_count] = []
-        for predicate in self.fix_length_predicates + self.variable_length_predicates:
-            self.items_group[predicate] = []
-            self.ids_of_predicate[predicate] = []
-
-    def init_by_copy(self, condition):
-        """
-        Initial condition by copy other condition.
-        :param condition: <Condition>.
-        """
-        self.id_count = condition.id_count
-        self.step_count = condition.step_count
-        self.fix_length_predicates = copy.deepcopy(condition.fix_length_predicates)
-        self.variable_length_predicates = copy.deepcopy(condition.variable_length_predicates)
-        self.items = copy.deepcopy(condition.items)
-        self.items_group = copy.deepcopy(condition.items_group)
-        self.id_of_item = copy.deepcopy(condition.id_of_item)
-        self.ids_of_predicate = copy.deepcopy(condition.ids_of_predicate)
-        self.ids_of_step = copy.deepcopy(condition.ids_of_step)
-        self.sym_of_attr = copy.deepcopy(condition.sym_of_attr)
-        self.attr_of_sym = copy.deepcopy(condition.attr_of_sym)
-        self.value_of_sym = copy.deepcopy(condition.value_of_sym)
-        self.simplified_equation = copy.deepcopy(condition.simplified_equation)
-        self.eq_solved = condition.eq_solved
-
-    def add(self, predicate, item, premise, theorem):
-        """
-        Add one condition and guarantee no redundancy.
-        :param predicate: <str>, predicate of condition.
-        :param item: <tuple> of <str> or <equation>, body of condition, logic relation or equation.
-        :param premise: <tuple> of <int>, premise of condition, no redundancy.
-        :param theorem: <str>, theorem of condition.
-        :return added: <bool>, indicate whether the addition was successful.
-        :return _id: <int>, id of condition, if not added, return None.
-        """
-
-        if not self.has(predicate, item):
-            self.items.append((predicate, item, tuple(sorted(list(set(premise)))), theorem, self.step_count))
-            self.items_group[predicate].append(item)
-            self.ids_of_predicate[predicate].append(self.id_count)
-            self.ids_of_step[self.step_count].append(self.id_count)
-
-            if predicate == "Equation" and theorem != "solve_eq":
-                self.simplified_equation[item] = [self.id_count]
-                self.eq_solved = False
-
-            if predicate == "Equation":
-                item = str(item)
-            self.id_of_item[(predicate, item)] = self.id_count
-            self.id_count += 1
-
-            return True, self.id_count - 1
-
-        return False, None
-
-    def has(self, predicate, item):
-        """
-        Check if this condition exists.
-        :param predicate: <str>, predicate of condition.
-        :param item: <tuple> of <str> or symbols, body of condition, logic relation or equation.
-        :return exist: <bool>, indicate whether the addition was successful.
-        """
-        if predicate == "Equation":
-            return item in self.items_group["Equation"] or -item in self.items_group["Equation"]
-        else:
-            return item in self.items_group[predicate]
-
-    def step(self):
-        self.step_count += 1
-        self.ids_of_step[self.step_count] = []
-
-    def get_id_by_predicate_and_item(self, predicate, item):
-        if predicate == "Equation":
-            item = str(item)
-        return self.id_of_item[(predicate, item)]
-
-    def get_items_by_predicate(self, predicate):
-        return copy.copy(self.items_group[predicate])
-
-    def get_ids_and_items_by_predicate_and_variable(self, predicate, variable=None):
-        ids = []
-        items = []
-        if variable is not None and predicate in self.variable_length_predicates:
-            l = len(variable)
-            for item in self.items_group[predicate]:
-                if len(item) != l:
-                    continue
-                items.append(item)
-                ids.append([self.id_of_item[(predicate, item)]])
-        else:
-            for item in self.items_group[predicate]:
-                items.append(item)
-                ids.append([self.id_of_item[(predicate, item)]])
-        return ids, items
-
-    def get_premise_by_predicate_and_item(self, predicate, item):
-        return self.items[self.get_id_by_predicate_and_item(predicate, item)][2]
-
-    def get_theorem_by_predicate_and_item(self, predicate, item):
-        return self.items[self.get_id_by_predicate_and_item(predicate, item)][3]
-
-
-class Goal:
-    def __init__(self):
-        """Goal of one problem."""
-        self.type = None  # <str>, such as: 'algebra', 'logic'.
-        self.item = None  # <equation> or predicate, such as: a - b, 'ParallelBetweenLine'
-        self.answer = None  # <number> or <tuple> of <str>, such as: 0, ('A', 'B', 'C', 'D')
-        self.solved = False  # <bool>
-        self.solved_answer = None  # <number>, only used in 'algebra' and 'equal'
-        self.premise = None  # <tuple> of <int>
-        self.theorem = None  # <str>
-
-    def init_by_fl(self, problem, goal_CDL):
-        """Initial goal by formal language."""
-        if goal_CDL["type"] == "value":
-            self.type = "algebra"
-            self.item = CDLParser.get_expr_from_tree(problem, goal_CDL["item"][1])
-            self.answer = parse_expr(goal_CDL["answer"])
-        elif goal_CDL["type"] == "equal":
-            self.type = "algebra"
-            self.item = CDLParser.get_equation_from_tree(problem, goal_CDL["item"][1])
-            self.answer = 0
-        elif goal_CDL["type"] == "logic":
-            self.type = "logic"
-            self.item = goal_CDL["item"]
-            self.answer = tuple(goal_CDL["answer"])
-
-    def init_by_copy(self, goal):
-        """Initial goal by copy."""
-        self.type = goal.type
-        self.item = goal.item
-        self.answer = goal.answer
-        self.solved = goal.solved
-        self.solved_answer = goal.solved_answer
-        self.premise = copy.copy(goal.premise)
-        self.theorem = goal.theorem
+from formalgeo.problem.condition import Condition, Goal
+from formalgeo.parse import parse_expr, get_equation_from_tree
+from formalgeo.tools import rough_equal
+from formalgeo.core import EquationKiller as EqKiller
 
 
 class Problem:
     def __init__(self):
         """Problem conditions, goal, and solving message."""
-        self.predicate_GDL = None
-        self.problem_CDL = None
+        self.parsed_predicate_GDL = None
+        self.parsed_theorem_GDL = None
+        self.parsed_problem_CDL = None
         self.condition = None  # <Condition>, all conditions of current problem.
         self.goal = None  # <Goal>, problem goal.
         self.timing = {}  # <dict>, {step: (theorem, timing)}, such as {0: ('init_problem', 0.00325)}.
 
-    def load_problem_by_fl(self, predicate_GDL, problem_CDL):
+    def load_problem_by_fl(self, parsed_predicate_GDL, parsed_theorem_GDL, parsed_problem_CDL):
         """Load problem through problem CDL."""
-        self.predicate_GDL = predicate_GDL  # gdl
-        self.problem_CDL = problem_CDL  # cdl
-        fix_length_predicates = list(self.predicate_GDL["FixLength"])
-        fix_length_predicates += list(self.predicate_GDL["Entity"])
-        fix_length_predicates += list(self.predicate_GDL["Relation"])
-        variable_length_predicates = list(self.predicate_GDL["VariableLength"])
+        self.parsed_predicate_GDL = parsed_predicate_GDL  # gdl
+        self.parsed_theorem_GDL = parsed_theorem_GDL  # gdl
+        self.parsed_problem_CDL = parsed_problem_CDL  # cdl
+        fix_length_predicates = list(self.parsed_predicate_GDL["Preset"]["FixLength"])
+        fix_length_predicates += list(self.parsed_predicate_GDL["Entity"])
+        fix_length_predicates += list(self.parsed_predicate_GDL["Relation"])
+        variable_length_predicates = list(self.parsed_predicate_GDL["Preset"]["VariableLength"])
         self.condition = Condition()
         self.condition.init_by_fl(fix_length_predicates, variable_length_predicates)
 
         self._construction_init()  # start construction
 
-        for predicate, item in problem_CDL["parsed_cdl"]["text_and_image_cdl"]:  # conditions of text_and_image
+        # conditions of text_and_image
+        for predicate, item in self.parsed_problem_CDL["parsed_cdl"]["text_and_image_cdl"]:
             if predicate == "Equal":
-                self.add("Equation", CDLParser.get_equation_from_tree(self, item), (-1,), "prerequisite")
+                self.add("Equation", get_equation_from_tree(self, item),
+                         (-1,), ("prerequisite", None, None))
             elif predicate == "Equation":
-                self.add("Equation", CDLParser.parse_expr(self, item), (-1,), "prerequisite")
+                self.add("Equation", parse_expr(self, item),
+                         (-1,), ("prerequisite", None, None))
             else:
-                self.add(predicate, tuple(item), (-1,), "prerequisite")
+                self.add(predicate, tuple(item), (-1,), ("prerequisite", None, None))
 
         self.goal = Goal()  # set goal
-        self.goal.init_by_fl(self, problem_CDL["parsed_cdl"]["goal"])
+        self.goal.init_by_fl(self, self.parsed_problem_CDL["parsed_cdl"]["goal"])
 
     def load_problem_by_copy(self, problem):
         """Load problem through copying existing problem."""
-        self.predicate_GDL = problem.predicate_GDL  # gdl
-        self.problem_CDL = problem.problem_CDL  # cdl
+        self.parsed_predicate_GDL = problem.parsed_predicate_GDL  # gdl
+        self.parsed_theorem_GDL = problem.parsed_theorem_GDL  # gdl
+        self.parsed_problem_CDL = problem.parsed_problem_CDL  # cdl
         self.condition = Condition()  # copy all msg of problem
         self.condition.init_by_copy(problem.condition)
         self.timing = copy.deepcopy(problem.timing)
@@ -230,8 +68,9 @@ class Problem:
         5.Angle expand (collinear).
         6.Angle expand (vertical angle).
         """
+
         # 1.Collinear expand.
-        for predicate, item in self.problem_CDL["parsed_cdl"]["construction_cdl"]:  # Collinear
+        for predicate, item in self.parsed_problem_CDL["parsed_cdl"]["construction_cdl"]:  # Collinear
             if predicate != "Collinear":
                 continue
             if not self.fv_check("Collinear", item):  # FV check
@@ -239,20 +78,20 @@ class Problem:
                 warnings.warn(w_msg)
                 continue
 
-            added, _id = self.condition.add(predicate, tuple(item), (-1,), "prerequisite")
+            added, _id = self.condition.add(predicate, tuple(item), (-1,), ("prerequisite", None, None))
             if not added:
                 continue
 
-            self.condition.add(predicate, tuple(item[::-1]), (_id,), "extended")
-            self.add("Line", (item[0], item[-1]), (_id,), "extended")
+            self.condition.add(predicate, tuple(item[::-1]), (_id,), ("extend", None, None))
+            self.add("Line", (item[0], item[-1]), (_id,), ("extend", None, None))
             for extended_item in combinations(item, 3):  # l=3 is enough
-                self.condition.add("Collinear", extended_item, (_id,), "extended")
-                self.condition.add("Collinear", extended_item[::-1], (_id,), "extended")
-                self.add("Angle", extended_item, (_id,), "extended")
-                self.add("Angle", extended_item[::-1], (_id,), "extended")
+                self.condition.add("Collinear", extended_item, (_id,), ("extend", None, None))
+                self.condition.add("Collinear", extended_item[::-1], (_id,), ("extend", None, None))
+                self.add("Angle", extended_item, (_id,), ("extend", None, None))
+                self.add("Angle", extended_item[::-1], (_id,), ("extend", None, None))
 
         # 2.Cocircular expand.
-        for predicate, item in self.problem_CDL["parsed_cdl"]["construction_cdl"]:  # Cocircular
+        for predicate, item in self.parsed_problem_CDL["parsed_cdl"]["construction_cdl"]:  # Cocircular
             if predicate != "Cocircular":
                 continue
             if not self.fv_check("Cocircular", item):  # FV check
@@ -260,12 +99,12 @@ class Problem:
                 warnings.warn(w_msg)
                 continue
 
-            added, _id = self.condition.add(predicate, tuple(item), (-1,), "prerequisite")
+            added, _id = self.condition.add(predicate, tuple(item), (-1,), ("prerequisite", None, None))
             if not added:
                 continue
 
             circle = item[0]
-            self.add("Circle", (circle,), (_id,), "extended")
+            self.add("Circle", (circle,), (_id,), ("extend", None, None))
             if len(item) == 1:
                 continue
 
@@ -273,18 +112,20 @@ class Problem:
             for com in range(1, len(item) + 1):  # extend cocircular
                 for extended_item in combinations(item, com):
                     if com == 2:
-                        self.condition.add("Arc", (circle, extended_item[0], extended_item[-1]), (_id,), "extended")
-                        self.condition.add("Arc", (circle, extended_item[-1], extended_item[0]), (_id,), "extended")
+                        self.condition.add("Arc", (circle, extended_item[0], extended_item[-1]),
+                                           (_id,), ("extend", None, None))
+                        self.condition.add("Arc", (circle, extended_item[-1], extended_item[0]),
+                                           (_id,), ("extend", None, None))
                     cocircular = list(extended_item)
                     l = len(cocircular)
                     for bias in range(l):
                         extended_item = tuple([circle] + [cocircular[(i + bias) % l] for i in range(l)])
-                        self.condition.add("Cocircular", extended_item, (_id,), "extended")
+                        self.condition.add("Cocircular", extended_item, (_id,), ("extend", None, None))
 
         # 3.Shape expand.
         jigsaw_unit = {}  # shape's jigsaw
         shape_unit = []  # mini shape unit
-        for predicate, item in self.problem_CDL["parsed_cdl"]["construction_cdl"]:  # Shape
+        for predicate, item in self.parsed_problem_CDL["parsed_cdl"]["construction_cdl"]:  # Shape
             if predicate != "Shape":
                 continue
             if not self.fv_check("Shape", item):  # FV check
@@ -294,15 +135,15 @@ class Problem:
 
             if len(item) == 1:  # point or line
                 if len(item[0]) == 1:
-                    self.add("Point", tuple(item[0]), (-1,), "prerequisite")
+                    self.add("Point", tuple(item[0]), (-1,), ("prerequisite", None, None))
                 else:
-                    self.add("Line", tuple(item[0]), (-1,), "prerequisite")
+                    self.add("Line", tuple(item[0]), (-1,), ("prerequisite", None, None))
                 continue
             elif len(item) == 2 and len(item[0]) == 2 and len(item[1]) == 2:  # angle
-                self.add("Angle", tuple(item[0] + item[1][1]), (-1,), "prerequisite")
+                self.add("Angle", tuple(item[0] + item[1][1]), (-1,), ("prerequisite", None, None))
                 continue
 
-            added, all_forms = self._add_shape(tuple(item), (-1,), "prerequisite")  # shape
+            added, all_forms = self._add_shape(tuple(item), (-1,), ("prerequisite", None, None))  # shape
             if not added:
                 continue
 
@@ -370,7 +211,7 @@ class Problem:
                     premise = (self.condition.get_id_by_predicate_and_item("Shape", unit),
                                self.condition.get_id_by_predicate_and_item("Shape", comb))
 
-                    added, all_forms = self._add_shape(new_shape, premise, "extended")  # add shape
+                    added, all_forms = self._add_shape(new_shape, premise, ("extended", None, None))  # add shape
                     if not added:  # ensure added
                         continue
 
@@ -415,7 +256,8 @@ class Problem:
 
                     premise = (self.condition.get_id_by_predicate_and_item("Angle", unit),
                                self.condition.get_id_by_predicate_and_item("Angle", comb))
-                    added, _ = self.condition.add("Angle", new_angle, premise, "extended")  # need to expand line
+                    added, _ = self.condition.add("Angle", new_angle, premise,
+                                                  ("extended", None, None))  # need to expand line
                     if not added:
                         continue
 
@@ -431,7 +273,7 @@ class Problem:
             a, v, b = angle
             a_collinear = None
             b_collinear = None
-            for predicate, item in self.problem_CDL["parsed_cdl"]["construction_cdl"]:
+            for predicate, item in self.parsed_problem_CDL["parsed_cdl"]["construction_cdl"]:
                 if predicate == "Collinear" and v in item:
                     if a in item:
                         a_collinear = item
@@ -471,12 +313,12 @@ class Problem:
             for a_point in a_points:
                 for b_point in b_points:
                     premise = (self.condition.get_id_by_predicate_and_item("Angle", angle),)
-                    self.add("Angle", (a_point, v, b_point), premise, "extended")
+                    self.add("Angle", (a_point, v, b_point), premise, ("extended", None, None))
 
         # 6.Angle expand (vertical angle).
         for angle in self.condition.get_items_by_predicate("Angle"):
             premise = (self.condition.get_id_by_predicate_and_item("Angle", angle),)
-            self.add("Angle", (angle[2], angle[1], angle[0]), premise, "extended")
+            self.add("Angle", (angle[2], angle[1], angle[0]), premise, ("extended", None, None))
 
     def _add_shape(self, shape, premise, theorem):
         """pass"""
@@ -488,7 +330,7 @@ class Problem:
         l = len(shape)
         for bias in range(1, l):  # all forms
             new_item = tuple([shape[(i + bias) % l] for i in range(l)])
-            self.condition.add("Shape", new_item, (_id,), "extended")
+            self.condition.add("Shape", new_item, (_id,), ("extended", None, None))
             all_forms.append(new_item)
 
         shape = list(shape)
@@ -497,7 +339,8 @@ class Problem:
         has_arc = False
         while i < len(shape):
             if len(shape[i]) == 2:
-                self.add("Line", (shape[i][0], shape[i][1]), (-1,), "prerequisite")
+                self.add("Line", (shape[i][0], shape[i][1]),
+                         (-1,), ("prerequisite", None, None))
             else:
                 has_arc = True
                 i += 1
@@ -505,7 +348,8 @@ class Problem:
 
             j = (i + 1) % len(shape)
             if len(shape[j]) == 2:
-                self.add("Angle", (shape[i][0], shape[i][1], shape[j][1]), (-1,), "prerequisite")  # extend angle
+                self.add("Angle", (shape[i][0], shape[i][1], shape[j][1]),
+                         (-1,), ("prerequisite", None, None))  # extend angle
                 if (shape[i][0], shape[i][1], shape[j][1]) in col:
                     shape[i] = shape[i][0] + shape[j][1]
                     shape.pop(j)
@@ -521,7 +365,8 @@ class Problem:
                     valid = False
                 i += 1
             if valid:
-                self.add("Polygon", tuple([item[0] for item in shape]), (-1,), "prerequisite")
+                self.add("Polygon", tuple([item[0] for item in shape]),
+                         (-1,), ("prerequisite", None, None))
 
         return True, set(all_forms)
 
@@ -536,7 +381,7 @@ class Problem:
         a, v, b = angle
         a_collinear = None
         b_collinear = None
-        for predicate, item in self.problem_CDL["parsed_cdl"]["construction_cdl"]:
+        for predicate, item in self.parsed_problem_CDL["parsed_cdl"]["construction_cdl"]:
             if predicate == "Collinear" and v in item:
                 if a in item:
                     a_collinear = item
@@ -591,7 +436,7 @@ class Problem:
         :param predicate: Construction, Entity, Relation or Equation.
         :param item: <tuple> or equation.
         :param premise: tuple of <int>, premise of item.
-        :param theorem: <str>, theorem of item.
+        :param theorem: <tuple>, (t_name, t_branch, t_para).
         :param skip_check: <bool>, set to True when you are confident that the format of item must be legal.
         :return: True or False.
         """
@@ -603,28 +448,30 @@ class Problem:
             if predicate == "Equation":  # preset Equation
                 return True
 
-            if predicate in self.predicate_GDL["BasicEntity"]:  # preset BasicEntity
+            if predicate in self.parsed_predicate_GDL["Preset"]["BasicEntity"]:  # preset BasicEntity
                 if predicate == "Line":
-                    self.condition.add("Line", item[::-1], (_id,), "extended")
-                    self.condition.add("Point", (item[0],), (_id,), "extended")
-                    self.condition.add("Point", (item[1],), (_id,), "extended")
+                    self.condition.add("Line", item[::-1], (_id,), ("extended", None, None))
+                    self.condition.add("Point", (item[0],), (_id,), ("extended", None, None))
+                    self.condition.add("Point", (item[1],), (_id,), ("extended", None, None))
                 elif predicate == "Arc":
-                    self.condition.add("Point", (item[1],), (_id,), "extended")
-                    self.condition.add("Point", (item[2],), (_id,), "extended")
+                    self.condition.add("Point", (item[1],), (_id,), ("extended", None, None))
+                    self.condition.add("Point", (item[2],), (_id,), ("extended", None, None))
                 elif predicate == "Angle":
-                    self.add("Line", (item[0], item[1]), (_id,), "extended", skip_check=True)
-                    self.add("Line", (item[1], item[2]), (_id,), "extended", skip_check=True)
+                    self.add("Line", (item[0], item[1]),
+                             (_id,), ("extended", None, None), skip_check=True)
+                    self.add("Line", (item[1], item[2]),
+                             (_id,), ("extended", None, None), skip_check=True)
                 elif predicate == "Polygon":
                     l = len(item)
                     for bias in range(1, l):  # all forms
                         new_item = tuple([item[(i + bias) % l] for i in range(l)])
-                        self.condition.add("Polygon", new_item, (_id,), "extended")
+                        self.condition.add("Polygon", new_item, (_id,), ("extended", None, None))
                 return True  # Point and Circle no need to extend
 
-            if predicate in self.predicate_GDL["Entity"]:  # user defined Entity
-                item_GDL = self.predicate_GDL["Entity"][predicate]
+            if predicate in self.parsed_predicate_GDL["Entity"]:  # user defined Entity
+                item_GDL = self.parsed_predicate_GDL["Entity"][predicate]
             else:  # user defined Relation
-                item_GDL = self.predicate_GDL["Relation"][predicate]
+                item_GDL = self.parsed_predicate_GDL["Relation"][predicate]
 
             predicate_vars = item_GDL["vars"]
             letters = {}  # used for vars-letters replacement
@@ -632,14 +479,15 @@ class Problem:
                 letters[predicate_vars[i]] = item[i]
 
             for para_list in item_GDL["multi"]:  # multi
-                self.condition.add(predicate, tuple(letters[i] for i in para_list), (_id,), "extended")
+                self.condition.add(predicate, tuple(letters[i] for i in para_list), (_id,), ("extended", None, None))
 
             for extended_predicate, para in item_GDL["extend"]:  # extended
                 if extended_predicate == "Equal":
-                    self.add("Equation", CDLParser.get_equation_from_tree(self, para, True, letters),
+                    self.add("Equation", get_equation_from_tree(self, para, True, letters),
                              (_id,), "extended")
                 else:
-                    self.add(extended_predicate, tuple(letters[i] for i in para), (_id,), "extended")
+                    self.add(extended_predicate, tuple(letters[i] for i in para),
+                             (_id,), ("extended", None, None))
 
             return True
 
@@ -671,17 +519,17 @@ class Problem:
     def ee_check(self, predicate, item):
         """Entity Existence check."""
 
-        if predicate == "Equation" or predicate in self.predicate_GDL["BasicEntity"] \
-                or predicate in self.predicate_GDL["Construction"]:
+        if predicate == "Equation" or predicate in self.parsed_predicate_GDL["Preset"]["BasicEntity"] \
+                or predicate in self.parsed_predicate_GDL["Preset"]["Construction"]:
             return True
-        elif predicate in self.predicate_GDL["Entity"]:
-            item_GDL = self.predicate_GDL["Entity"][predicate]
-        elif predicate in self.predicate_GDL["Relation"]:
-            item_GDL = self.predicate_GDL["Relation"][predicate]
+        elif predicate in self.parsed_predicate_GDL["Entity"]:
+            item_GDL = self.parsed_predicate_GDL["Entity"][predicate]
+        elif predicate in self.parsed_predicate_GDL["Relation"]:
+            item_GDL = self.parsed_predicate_GDL["Relation"][predicate]
         elif predicate == "Free":
             return True
         else:
-            item_GDL = self.predicate_GDL["Attribution"][predicate]
+            item_GDL = self.parsed_predicate_GDL["Attribution"][predicate]
 
         letters = {}  # used for vars-letters replacement
         for i in range(len(item_GDL["vars"])):
@@ -699,7 +547,7 @@ class Problem:
             if item is None or item == 0:
                 return False
             return True
-        elif predicate in self.predicate_GDL["Construction"]:
+        elif predicate in self.parsed_predicate_GDL["Preset"]["Construction"]:
             if predicate == "Shape":
                 if len(item) != len(set(item)):  # default check 1: mutex points
                     return False
@@ -713,7 +561,7 @@ class Problem:
                 return True
             else:
                 return len(item) == len(set(item))  # default check 1: mutex points
-        elif predicate in self.predicate_GDL["BasicEntity"]:
+        elif predicate in self.parsed_predicate_GDL["Preset"]["BasicEntity"]:
             if len(item) != len(set(item)):  # default check 1: mutex points
                 return False
             if predicate == "Point" and len(item) != 1:
@@ -729,16 +577,16 @@ class Problem:
             elif predicate == "Circle" and len(item) != 1:
                 return False
             return True
-        elif predicate in self.predicate_GDL["Entity"]:
+        elif predicate in self.parsed_predicate_GDL["Entity"]:
             if len(item) != len(set(item)):  # default check 1: mutex points
                 return False
-            item_GDL = self.predicate_GDL["Entity"][predicate]
-        elif predicate in self.predicate_GDL["Relation"]:
-            item_GDL = self.predicate_GDL["Relation"][predicate]
+            item_GDL = self.parsed_predicate_GDL["Entity"][predicate]
+        elif predicate in self.parsed_predicate_GDL["Relation"]:
+            item_GDL = self.parsed_predicate_GDL["Relation"][predicate]
         elif predicate == "Free":
             return True
         else:
-            item_GDL = self.predicate_GDL["Attribution"][predicate]
+            item_GDL = self.parsed_predicate_GDL["Attribution"][predicate]
 
         if len(item) != len(item_GDL["vars"]):  # default check 2: correct para len
             return False
@@ -757,7 +605,7 @@ class Problem:
         if len(item_GDL["ee_check"]) > 1:  # default check 3: para of the same type need to be different
             predicate_to_vars = {}
             for predicate, p_var in item_GDL["ee_check"]:
-                if predicate not in self.predicate_GDL["Construction"]:  # check only BasicEntity
+                if predicate not in self.parsed_predicate_GDL["Preset"]["Construction"]:  # check only BasicEntity
                     if predicate not in predicate_to_vars:
                         predicate_to_vars[predicate] = [p_var]
                     else:
@@ -800,7 +648,7 @@ class Problem:
         :return: sym
         """
 
-        if attr != "Free" and attr not in self.predicate_GDL["Attribution"]:  # attr must define
+        if attr != "Free" and attr not in self.parsed_predicate_GDL["Attribution"]:  # attr must define
             e_msg = "Attribution '{}' not defined in current predicate GDL.".format(attr)
             raise Exception(e_msg)
         if not self.ee_check(attr, item):  # ee check
@@ -825,7 +673,7 @@ class Problem:
         if attr == "MeasureOfAngle":  # align angle's sym
             return self._align_angle_sym(item)
 
-        attr_GDL = self.predicate_GDL["Attribution"][attr]
+        attr_GDL = self.parsed_predicate_GDL["Attribution"][attr]
         if (attr, item) not in self.condition.sym_of_attr:  # No symbolic representation, initialize one.
             sym = symbols(attr_GDL["sym"] + "_" + "".join(item).lower(), positive=True)
             self.condition.sym_of_attr[(attr, item)] = sym  # add sym
@@ -845,29 +693,28 @@ class Problem:
             self.condition.attr_of_sym[sym] = (attr, tuple(extend_items))  # add attr
             return sym
 
-    def set_value_of_sym(self, sym, value, premise, theorem):
+    def set_value_of_sym(self, sym, value, premise):
         """
         Set value of sym.
         Add equation to record the premise and theorem of solving the symbol's value at the same time.
         :param sym: <symbol>
         :param value: <float>
         :param premise: tuple of <int>, premise of getting value.
-        :param theorem: <str>, theorem of getting value. such as 'solve_eq'.
         """
 
         if self.condition.value_of_sym[sym] is None:
             self.condition.value_of_sym[sym] = value
-            added, _id = self.condition.add("Equation", sym - value, premise, theorem)
+            added, _id = self.condition.add("Equation", sym - value, premise, ("solve_eq", None, None))
             return added
         return False
 
     def step(self, item, timing):
         """
         Execute when theorem successful applied. Save theorem and update step.
-        :param item: <str>, theorem_name, 'init_problem' and 'check_goal'.
+        :param item: <str>, theorem, 'init_problem' and 'check_goal'.
         :param timing: <float>.
         """
-        self.timing[self.condition.step_count] = (item, timing)
+        self.timing[self.condition.step_count] = (str(item), timing)
         self.condition.step()
 
     def check_goal(self):

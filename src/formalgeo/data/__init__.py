@@ -2,7 +2,7 @@
 # Author: Xiaokai Zhang
 # Contact: xiaokaizhang1999@163.com
 
-"""Formal representation and solving for Euclidean plane geometry problems."""
+"""Download and Management of Datasets and Formal Systems."""
 
 __all__ = [
 ]

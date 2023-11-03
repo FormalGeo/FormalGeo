@@ -582,7 +582,7 @@ class EquationKiller:
                     problem.set_value_of_sym(sym, results[sym], premise)
                     value_added = True
         if not value_added:
-            problem.condition.add("Equation", target_expr - solved_target_value, premise, "solve_eq")
+            problem.condition.add("Equation", target_expr - solved_target_value, premise, ("solve_eq", None, None))
 
         if EquationKiller.use_cache:
             EquationKiller.cache_target[eqs_for_cache] = solved_target_value

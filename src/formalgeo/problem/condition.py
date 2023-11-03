@@ -73,7 +73,7 @@ class Condition:
             self.ids_of_predicate[predicate].append(self.id_count)
             self.ids_of_step[self.step_count].append(self.id_count)
 
-            if predicate == "Equation" and theorem != "solve_eq":
+            if predicate == "Equation" and theorem[0] != "solve_eq":
                 self.simplified_equation[item] = [self.id_count]
                 self.eq_solved = False
 

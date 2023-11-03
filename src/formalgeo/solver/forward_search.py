@@ -1,20 +1,43 @@
 import time
 import random
-import warnings
 from func_timeout import func_set_timeout
 from formalgeo.problem import Problem
 from formalgeo.core import GeometryPredicateLogicExecutor as GPLExecutor
 from formalgeo.core import EquationKiller as EqKiller
 from formalgeo.parse import parse_predicate_gdl, parse_theorem_gdl, parse_problem_cdl
-from formalgeo.parse import inverse_parse_one_theorem
-from formalgeo.tools import get_used_pid_and_theorem, load_json, debug_print
+from formalgeo.tools import get_used_pid_and_theorem, debug_print
 
 search_timout = 300
 
 
+def get_p2t_map_fw(t_info, parsed_theorem_GDL):
+    """
+    Predicate-theorem mapping hash table for Search Accelerating.
+    :param t_info: <dict>, {t_name: (category_id, usage_count)}, user customization.
+    :param parsed_theorem_GDL: parsed theorem GDL.
+    """
+    p2t_map_fw = {}
+    for t_name in t_info:
+        if t_info[t_name][1] == 0 or t_info[t_name][0] == 3:  # skip no used and diff t
+            continue
+        for t_branch in parsed_theorem_GDL[t_name]["body"]:
+            theorem_unit = parsed_theorem_GDL[t_name]["body"][t_branch]
+            premises = list(theorem_unit["products"])
+            premises += list(theorem_unit["logic_constraints"])
+            premises += list(theorem_unit["attr_in_algebra_constraints"])
+            for predicate, p_vars in premises:
+                if predicate[0] == "~":  # skip oppose
+                    continue
+                if predicate not in p2t_map_fw:
+                    p2t_map_fw[predicate] = [(t_name, t_branch, p_vars)]
+                elif (t_name, t_branch, p_vars) not in p2t_map_fw[predicate]:
+                    p2t_map_fw[predicate].append((t_name, t_branch, p_vars))
+    return p2t_map_fw
+
+
 class ForwardSearcher:
 
-    def __init__(self, predicate_GDL, theorem_GDL, method, max_depth, beam_size, p2t_map, debug=False):
+    def __init__(self, predicate_GDL, theorem_GDL, method, max_depth, beam_size, t_info, debug=False):
         """
         Initialize Forward Searcher.
         :param predicate_GDL: predicate GDL.
@@ -22,16 +45,16 @@ class ForwardSearcher:
         :param method: <str>, "dfs", "bfs", "rs", "bs".
         :param max_depth: max search depth.
         :param beam_size: beam search size.
-        :param p2t_map: <dict>, {predicate/attr: [(theorem_name, branch, p_vars)]}, map predicate to theorem.
+        :param t_info: <dict>, {t_name: (category_id, usage_count)}, user customization.
         :param debug: <bool>, set True when need print process information.
         """
-        self.predicate_GDL = parse_predicate_gdl(predicate_GDL)
-        self.theorem_GDL = parse_theorem_gdl(theorem_GDL, self.predicate_GDL)
+        self.parsed_predicate_GDL = parse_predicate_gdl(predicate_GDL)
+        self.parsed_theorem_GDL = parse_theorem_gdl(theorem_GDL, self.parsed_predicate_GDL)
         self.max_depth = max_depth
         self.beam_size = beam_size
         self.method = method
         self.debug = debug
-        self.p2t_map = p2t_map
+        self.p2t_map = get_p2t_map_fw(t_info, self.parsed_theorem_GDL)
 
         self.problem = None
         self.stack = None
@@ -51,7 +74,8 @@ class ForwardSearcher:
         timing = time.time()  # timing
 
         self.problem = Problem()  # init problem
-        self.problem.load_problem_by_fl(self.predicate_GDL, parse_problem_cdl(problem_CDL))
+        self.problem.load_problem_by_fl(
+            self.parsed_predicate_GDL, self.parsed_theorem_GDL, parse_problem_cdl(problem_CDL))
         EqKiller.solve_equations(self.problem)
         self.problem.step("init_problem", 0)
 
@@ -278,10 +302,10 @@ class ForwardSearcher:
 
         selections = []
         for t_name, t_branch, t_letters in related_pres:
-            gpl = self.theorem_GDL[t_name]["body"][t_branch]
+            gpl = self.parsed_theorem_GDL[t_name]["body"][t_branch]
             results = GPLExecutor.run(gpl, self.problem, t_letters)  # get gpl reasoned result
             for letters, premise, conclusion in results:
-                t_para = tuple([letters[i] for i in self.theorem_GDL[t_name]["vars"]])
+                t_para = tuple([letters[i] for i in self.parsed_theorem_GDL[t_name]["vars"]])
 
                 premise = tuple(premise)
                 conclusions = []
@@ -320,14 +344,14 @@ class ForwardSearcher:
         for related_attr in paras_of_attrs:
             related_paras = set(paras_of_attrs[related_attr])
             for t_name, t_branch, p_vars in self.p2t_map[related_attr]:
-                gpl = self.theorem_GDL[t_name]["body"][t_branch]  # run gdl
+                gpl = self.parsed_theorem_GDL[t_name]["body"][t_branch]  # run gdl
                 for related_para in related_paras:
                     letters = {}
                     for i in range(len(p_vars)):
                         letters[p_vars[i]] = related_para[i]
                     results = GPLExecutor.run(gpl, self.problem, letters)  # get gpl reasoned result
                     for letters, premise, conclusion in results:
-                        theorem_para = tuple([letters[i] for i in self.theorem_GDL[t_name]["vars"]])
+                        theorem_para = tuple([letters[i] for i in self.parsed_theorem_GDL[t_name]["vars"]])
                         premise = tuple(premise)
                         conclusions = []
                         for predicate, item in conclusion:  # add conclusion
@@ -349,18 +373,16 @@ class ForwardSearcher:
         self.last_step = self.problem.condition.step_count
         update = False
         t_msg, conclusions = selection
-        t_name, t_branch, t_para = t_msg
-        theorem = inverse_parse_one_theorem(t_name, t_branch, t_para, self.theorem_GDL)
 
         for predicate, item, premise in conclusions:
-            update = self.problem.add(predicate, item, premise, theorem, skip_check=True) or update
+            update = self.problem.add(predicate, item, premise, t_msg, skip_check=True) or update
 
         if not update:  # close current branch if applied theorem no new condition
             return None
 
         EqKiller.solve_equations(self.problem)  # solve eq & check_goal
         self.problem.check_goal()
-        self.problem.step(theorem, 0)
+        self.problem.step(t_msg, 0)
 
         return self.problem.goal.solved
 
@@ -378,20 +400,3 @@ class ForwardSearcher:
         for selection in selections:
             self.stack.append((tuple(pos + [self.node_count[depth]]), selection))
             self.node_count[depth] += 1
-
-
-if __name__ == '__main__':
-    random.seed(619)
-    path_gdl = "../../datasets/gdl/"
-    path_problems = "../../datasets/problems/"
-    path_search_log = "../../utils/search/"
-    warnings.filterwarnings("ignore")
-    searcher = ForwardSearcher(
-        load_json(path_gdl + "predicate_GDL.json"), load_json(path_gdl + "theorem_GDL.json"),
-        method="bfs", max_depth=15, beam_size=20,
-        p2t_map=load_json(path_search_log + "p2t_map-fw.json"), debug=True
-    )
-    pid = 1
-    searcher.init_search(load_json(path_problems + "{}.json".format(pid)))
-    result = searcher.search()
-    print("pid: {}, solved: {}, seqs:{}, step_count: {}.\n".format(pid, result[0], result[1], searcher.step_size))

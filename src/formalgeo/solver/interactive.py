@@ -99,7 +99,7 @@ class Interactor:
 
         timing = time.time()  # timing
         EqKiller.solve_equations(self.problem)
-        self.problem.step("solve_eq", time.time() - timing)
+        self.problem.step("solve_equations", time.time() - timing)
 
         return update
 
@@ -172,7 +172,7 @@ class Interactor:
 
         timing = time.time()  # timing
         EqKiller.solve_equations(self.problem)
-        self.problem.step("solve_eq", time.time() - timing)
+        self.problem.step("solve_equations", time.time() - timing)
 
         return update
 
@@ -204,7 +204,7 @@ class Interactor:
 
         timing = time.time()  # timing
         EqKiller.solve_equations(self.problem)
-        self.problem.step("solve_eq", time.time() - timing)
+        self.problem.step("solve_equations", time.time() - timing)
 
         return update
 
@@ -268,6 +268,6 @@ class Interactor:
 
         timing = time.time()  # timing
         EqKiller.solve_equations(self.problem)
-        self.problem.step("solve_eq", time.time() - timing)
+        self.problem.step("solve_equations", time.time() - timing)
 
         return update

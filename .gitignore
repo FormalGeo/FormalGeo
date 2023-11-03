@@ -9,4 +9,4 @@ dist
 src/formalgeo.egg-info
 
 # tests
-tests
+tests/outputs

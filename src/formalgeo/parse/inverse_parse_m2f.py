@@ -31,18 +31,23 @@ def inverse_parse_logic_to_cdl(problem):
     return inverse_parsed_cdl
 
 
-def inverse_parse_one(predicate, item, problem):
+def inverse_parse_one(predicate, item, problem, remove_predicate=False):
     """
     Inverse parse one condition.
     Called by <inverse_parse_logic_to_cdl>.
     """
     if predicate == "Equation":
-        return inverse_parse_equation(item, problem)
+        inverse_parsed = inverse_parse_equation(item, problem)
     elif (predicate in problem.parsed_predicate_GDL["Preset"]["Construction"] or
           predicate in problem.parsed_predicate_GDL["Preset"]["BasicEntity"]):
-        return inverse_parse_preset(predicate, item)
+        inverse_parsed = inverse_parse_preset(predicate, item)
     else:
-        return inverse_parse_logic(predicate, item, problem)
+        inverse_parsed = inverse_parse_logic(predicate, item, problem)
+
+    if remove_predicate:
+        inverse_parsed = inverse_parsed.split("(")[1].replace(")", "")
+
+    return inverse_parsed
 
 
 def inverse_parse_logic(predicate, item, problem):

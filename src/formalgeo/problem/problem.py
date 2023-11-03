@@ -714,7 +714,7 @@ class Problem:
         :param item: <str>, theorem, 'init_problem' and 'check_goal'.
         :param timing: <float>.
         """
-        self.timing[self.condition.step_count] = (str(item), timing)
+        self.timing[self.condition.step_count] = (item, timing)
         self.condition.step()
 
     def check_goal(self):
@@ -738,7 +738,7 @@ class Problem:
                         self.goal.theorem = self.condition.get_theorem_by_predicate_and_item("Equation", eq)
                     else:
                         self.goal.premise = tuple(premise)
-                        self.goal.theorem = "solve_eq"
+                        self.goal.theorem = ("solve_eq", None, None)
         elif self.goal.type == "logic":  # logic relation
             if self.goal.answer in self.condition.get_items_by_predicate(self.goal.item):
                 self.goal.solved = True

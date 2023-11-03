@@ -1,23 +1,45 @@
 import time
 import copy
 import random
-import warnings
 from enum import Enum
 from itertools import permutations
 from func_timeout import func_set_timeout
 from formalgeo.problem import Problem
 from formalgeo.core import EquationKiller as EqKiller
-from formalgeo.parse import parse_predicate_gdl, parse_theorem_gdl, parse_problem_cdl
-from formalgeo.parse import get_equation_from_tree, inverse_parse_one_theorem
-from formalgeo.tools import get_used_pid_and_theorem, load_json, debug_print
+from formalgeo.parse import parse_predicate_gdl, parse_theorem_gdl, parse_problem_cdl, get_equation_from_tree
+from formalgeo.tools import get_used_pid_and_theorem, debug_print
 
 search_timout = 300
 
 
+def get_p2t_map_bw(t_info, parsed_theorem_GDL):
+    """
+    Predicate-theorem mapping hash table for Search Accelerating.
+    :param t_info: <dict>, {t_name: (category_id, usage_count)}, user customization.
+    :param parsed_theorem_GDL: parsed theorem GDL.
+    """
+    p2t_map_bw = {}
+    for t_name in parsed_theorem_GDL:
+        if t_name in t_info and (t_info[t_name][1] == 0 or t_info[t_name][0] == 3):  # skip no used and diff t
+            continue
+        for branch in parsed_theorem_GDL[t_name]["body"]:
+            theorem_unit = parsed_theorem_GDL[t_name]["body"][branch]
+            conclusions = list(theorem_unit["conclusions"])
+            conclusions += list(theorem_unit["attr_in_conclusions"])
+            for predicate, _ in conclusions:
+                if predicate == "Equal":
+                    continue
+                if predicate not in p2t_map_bw:
+                    p2t_map_bw[predicate] = [(t_name, branch)]
+                elif (t_name, branch) not in p2t_map_bw[predicate]:
+                    p2t_map_bw[predicate].append((t_name, branch))
+    return p2t_map_bw
+
+
 class GoalFinder:
 
-    def __init__(self, theorem_GDL, p2t_map):
-        self.theorem_GDL = theorem_GDL
+    def __init__(self, parsed_theorem_GDL, p2t_map):
+        self.parsed_theorem_GDL = parsed_theorem_GDL
         self.p2t_map = p2t_map
 
     def find_all_sub_goals(self, predicate, item, problem):
@@ -41,10 +63,10 @@ class GoalFinder:
                     if (t_name, t_branch) not in theorem_and_para:
                         theorem_and_para[(t_name, t_branch)] = set()
                     t_paras = []
-                    for t_attr, attr_vars in self.theorem_GDL[t_name]["body"][t_branch]["attr_in_conclusions"]:
+                    for t_attr, attr_vars in self.parsed_theorem_GDL[t_name]["body"][t_branch]["attr_in_conclusions"]:
                         if attr != t_attr:
                             continue
-                        t_vars = copy.copy(self.theorem_GDL[t_name]["vars"])
+                        t_vars = copy.copy(self.parsed_theorem_GDL[t_name]["vars"])
                         for para in attr_to_paras[attr]:
                             t_para = [v if v not in attr_vars else para[attr_vars.index(v)] for v in t_vars]
                             t_paras.append(t_para)
@@ -59,10 +81,10 @@ class GoalFinder:
                     theorem_and_para[(t_name, t_branch)] = set()
                 t_paras = set()
 
-                for t_predicate, item_vars in self.theorem_GDL[t_name]["body"][t_branch]["conclusions"]:
+                for t_predicate, item_vars in self.parsed_theorem_GDL[t_name]["body"][t_branch]["conclusions"]:
                     if t_predicate != predicate:
                         continue
-                    t_vars = copy.copy(self.theorem_GDL[t_name]["vars"])
+                    t_vars = copy.copy(self.parsed_theorem_GDL[t_name]["vars"])
                     t_para = [v if v not in item_vars else item[item_vars.index(v)] for v in t_vars]
                     t_paras.add(tuple(t_para))
 
@@ -71,7 +93,7 @@ class GoalFinder:
 
                 theorem_and_para[(t_name, t_branch)] |= t_paras
 
-        return GoalFinder.gen_sub_goals(self.theorem_GDL, theorem_and_para, problem)
+        return self.gen_sub_goals(theorem_and_para, problem)
 
     @staticmethod
     def theorem_para_completion(t_paras, points):
@@ -93,11 +115,9 @@ class GoalFinder:
                 results.add(tuple(result))
         return results
 
-    @staticmethod
-    def gen_sub_goals(theorem_GDL, theorem_and_para, problem):
+    def gen_sub_goals(self, theorem_and_para, problem):
         """
         Construct and return legitimate sub goal.
-        :param theorem_GDL: parsed theorem_GDL.
         :param theorem_and_para: {(t_name, t_branch): t_paras}.
         :param problem: Class <Problem>.
         :return results: [(t_name, t_branch, t_para, sub_goals)].
@@ -105,7 +125,7 @@ class GoalFinder:
         results = []
         for t in theorem_and_para:
             t_name, t_branch = t
-            t_vars = theorem_GDL[t_name]["vars"]
+            t_vars = self.parsed_theorem_GDL[t_name]["vars"]
             for t_para in theorem_and_para[t]:
                 letters = {}
                 for j in range(len(t_vars)):
@@ -113,7 +133,7 @@ class GoalFinder:
 
                 sub_goals = []
                 passed = True
-                for predicate, item_vars in theorem_GDL[t_name]["body"][t_branch]["products"]:
+                for predicate, item_vars in self.parsed_theorem_GDL[t_name]["body"][t_branch]["products"]:
                     item = tuple(letters[i] for i in item_vars)
                     if not (problem.ee_check(predicate, item) and problem.fv_check(predicate, item)):
                         passed = False
@@ -122,7 +142,7 @@ class GoalFinder:
                 if not passed:
                     continue
 
-                for predicate, item_vars in theorem_GDL[t_name]["body"][t_branch]["logic_constraints"]:
+                for predicate, item_vars in self.parsed_theorem_GDL[t_name]["body"][t_branch]["logic_constraints"]:
                     item = tuple(letters[i] for i in item_vars)
                     if not (problem.ee_check(predicate, item) and problem.fv_check(predicate, item)):
                         passed = False
@@ -131,7 +151,7 @@ class GoalFinder:
                 if not passed:
                     continue
 
-                for _, tree in theorem_GDL[t_name]["body"][t_branch]["algebra_constraints"]:
+                for _, tree in self.parsed_theorem_GDL[t_name]["body"][t_branch]["algebra_constraints"]:
                     eq = get_equation_from_tree(problem, tree, True, letters)
                     if eq is None:
                         passed = False
@@ -327,7 +347,7 @@ class SuperNode:
             if self.state == NodeState.success:
                 break
             debug_print(self.debug, "(pid={},depth={},branch={}/{},nodes={}/{}) Expanding Node ({}, {})".format(
-                self.problem.problem_CDL["id"], self.pos[0], self.pos[1], SuperNode.snc[self.pos[0]],
+                self.problem.parsed_problem_CDL["id"], self.pos[0], self.pos[1], SuperNode.snc[self.pos[0]],
                 i + 1, len(self.nodes), self.nodes[i].predicate, self.nodes[i].item))
             self.nodes[i].expand(self.search_stack)
 
@@ -336,14 +356,12 @@ class SuperNode:
             return
 
         t_name, t_branch, t_para = self.theorem
-        theorem = inverse_parse_one_theorem(  # theorem + para
-            t_name, t_branch, t_para, self.finder.theorem_GDL)
 
         letters = {}  # used for vars-letters replacement
-        for i in range(len(self.finder.theorem_GDL[t_name]["vars"])):
-            letters[self.finder.theorem_GDL[t_name]["vars"][i]] = t_para[i]
+        for i in range(len(self.finder.parsed_theorem_GDL[t_name]["vars"])):
+            letters[self.finder.parsed_theorem_GDL[t_name]["vars"][i]] = t_para[i]
 
-        gpl = self.finder.theorem_GDL[t_name]["body"][t_branch]
+        gpl = self.finder.parsed_theorem_GDL[t_name]["body"][t_branch]
         premises = []
         passed = True
 
@@ -362,7 +380,7 @@ class SuperNode:
                 break
 
         if not passed:
-            self.problem.step(theorem, 0)
+            self.problem.step(self.theorem, 0)
             return
 
         for equal, item in gpl["algebra_constraints"]:
@@ -382,24 +400,24 @@ class SuperNode:
                 break
 
         if not passed:
-            self.problem.step(theorem, 0)
+            self.problem.step(self.theorem, 0)
             return
 
         for predicate, item in gpl["conclusions"]:
             if predicate == "Equal":  # algebra conclusion
                 eq = get_equation_from_tree(self.problem, item, True, letters)
-                self.problem.add("Equation", eq, premises, theorem)
+                self.problem.add("Equation", eq, premises, self.theorem)
             else:  # logic conclusion
                 item = tuple(letters[i] for i in item)
-                self.problem.add(predicate, item, premises, theorem)
+                self.problem.add(predicate, item, premises, self.theorem)
 
         EqKiller.solve_equations(self.problem)
-        self.problem.step(theorem, 0)
+        self.problem.step(self.theorem, 0)
 
 
 class BackwardSearcher:
 
-    def __init__(self, predicate_GDL, theorem_GDL, method, max_depth, beam_size, p2t_map, debug=False):
+    def __init__(self, predicate_GDL, theorem_GDL, method, max_depth, beam_size, t_info, debug=False):
         """
         Initialize Forward Searcher.
         :param predicate_GDL: predicate GDL.
@@ -407,18 +425,18 @@ class BackwardSearcher:
         :param method: <str>, "dfs", "bfs", "rs", "bs".
         :param max_depth: max search depth.
         :param beam_size: beam search size.
-        :param p2t_map: <dict>, {predicate/attr: [(theorem_name, branch)]}, map predicate to theorem.
+        :param t_info: <dict>, {t_name: (category_id, usage_count)}, user customization.
         :param debug: <bool>, set True when need print process information.
         """
-        self.predicate_GDL = parse_predicate_gdl(predicate_GDL)
-        self.theorem_GDL = parse_theorem_gdl(theorem_GDL, self.predicate_GDL)
+        self.parsed_predicate_GDL = parse_predicate_gdl(predicate_GDL)
+        self.parsed_theorem_GDL = parse_theorem_gdl(theorem_GDL, self.parsed_predicate_GDL)
         self.max_depth = max_depth
         self.beam_size = beam_size
         self.method = method
         self.debug = debug
 
         self.node_map = None
-        self.finder = GoalFinder(self.theorem_GDL, p2t_map)
+        self.finder = GoalFinder(self.parsed_theorem_GDL, get_p2t_map_bw(t_info, self.parsed_theorem_GDL))
 
         self.step_size = None
         self.problem = None
@@ -435,7 +453,8 @@ class BackwardSearcher:
         SuperNode.snc = {}
 
         self.problem = Problem()
-        self.problem.load_problem_by_fl(self.predicate_GDL, parse_problem_cdl(problem_CDL))  # load problem
+        self.problem.load_problem_by_fl(
+            self.parsed_predicate_GDL, self.parsed_theorem_GDL, parse_problem_cdl(problem_CDL))  # load problem
         EqKiller.solve_equations(self.problem)
         self.problem.step("init_problem", time.time() - s_start_time)  # save applied theorem and update step
 
@@ -452,7 +471,7 @@ class BackwardSearcher:
     @func_set_timeout(search_timout)
     def search(self):
         """return seqs, <list> of theorem, solved theorem sequences."""
-        pid = self.problem.problem_CDL["id"]
+        pid = self.problem.parsed_problem_CDL["id"]
         debug_print(self.debug, "(pid={}) Start Searching".format(pid))
         if self.method == "bfs":
             while self.root.state not in [NodeState.success, NodeState.fail]:
@@ -577,11 +596,11 @@ class BackwardSearcher:
         # self.save_backward_tree()
 
         if self.problem.goal.solved:
-            debug_print(self.debug, "(pid={}) End Searching".format(self.problem.problem_CDL["id"]))
+            debug_print(self.debug, "(pid={}) End Searching".format(self.problem.parsed_problem_CDL["id"]))
             _, seqs = get_used_pid_and_theorem(self.problem)
             return True, seqs
 
-        debug_print(self.debug, "(pid={}) End Searching".format(self.problem.problem_CDL["id"]))
+        debug_print(self.debug, "(pid={}) End Searching".format(self.problem.parsed_problem_CDL["id"]))
         return False, None
 
     def clean_search_stack(self):
@@ -626,21 +645,3 @@ class BackwardSearcher:
                 node.expand(self.search_stack)
 
         self.check_node(end_step_count)
-
-
-if __name__ == '__main__':
-    random.seed(619)
-    path_gdl = "../../datasets/gdl/"
-    path_problems = "../../datasets/problems/"
-    path_search_log = "../../utils/search/"
-    warnings.filterwarnings("ignore")
-    searcher = BackwardSearcher(
-        load_json(path_gdl + "predicate_GDL.json"), load_json(path_gdl + "theorem_GDL.json"),
-        method="bfs", max_depth=15, beam_size=20,
-        p2t_map=load_json(path_search_log + "p2t_map-bw.json"), debug=True
-    )
-    problem_id = 1
-    searcher.init_search(load_json(path_problems + "{}.json".format(problem_id)))
-    solved_result = searcher.search()
-    print("pid: {}, solved: {}, seqs:{}, step_count: {}.\n".format(
-        problem_id, solved_result[0], solved_result[1], searcher.step_size))

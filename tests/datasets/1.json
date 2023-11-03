@@ -1,0 +1,32 @@
+{
+  "problem_id": 1,
+  "annotation": "XiaokaiZhang_2023-03-12",
+  "source": "Geometry3k-0",
+  "problem_level": 1,
+  "problem_text_cn": "如图所示，三角形RST与三角形XYZ全等，求y。",
+  "problem_text_en": "Triangle RST and triangle XYZ are congruent, find y.",
+  "problem_img": "1.png",
+  "construction_cdl": [
+    "Shape(RS,ST,TR)",
+    "Shape(XY,YZ,ZX)"
+  ],
+  "text_cdl": [
+    "CongruentBetweenTriangle(RST,XYZ)"
+  ],
+  "image_cdl": [
+    "Equal(LengthOfLine(TR),x+21)",
+    "Equal(MeasureOfAngle(TRS),4*y-10)",
+    "Equal(MeasureOfAngle(ZXY),3*y+5)",
+    "Equal(LengthOfLine(ZX),2*x-14)"
+  ],
+  "goal_cdl": "Value(y)",
+  "problem_answer": "15",
+  "theorem_seqs": [
+    "congruent_triangle_property_angle_equal(1,RST,XYZ)"
+  ],
+  "theorem_seq_dag": {
+    "START": [
+      "congruent_triangle_property_angle_equal(1,RST,XYZ)"
+    ]
+  }
+}

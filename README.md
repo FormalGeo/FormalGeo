@@ -2,34 +2,110 @@
 
 [![Version](https://img.shields.io/badge/Version-0.0.1-brightgreen)](https://github.com/BitSecret/FormalGeo)
 [![License](https://img.shields.io/badge/License-MIT-green)](https://opensource.org/licenses/MIT)
-[![Survey](https://img.shields.io/badge/Survey-FormalGeo-blue)](https://github.com/BitSecret/FormalGeo) 
+[![Survey](https://img.shields.io/badge/Survey-FormalGeo-blue)](https://github.com/BitSecret/FormalGeo)
 
-brief-intro: Formal representation and solving for Euclidean plane geometry problems from SAT-level to IMO-level. 
-author-list  
-License
-
+Formal representation and solving for Euclidean plane geometry problems. Our goal is to build a crucial bridge between
+IMO-level plane geometry challenges and readable AI automated reasoning.  
+FormalGeo is in its early stages and brimming with potential. We welcome anyone to join us in this exciting endeavor.
 
 ## Installation
-For user:
 
-    > conda create -n <your_env_name> python=3.10
-    > conda activate <your_env_name>
-    > pip install formalgeo
+**For users:**  
+We recommend using Conda to manage Python development environments. Formalgeo has been uploaded to PyPi, allowing for
+easy installation via the `pip` command.
 
-For developer:  
+    $ conda create -n <your_env_name> python=3.10
+    $ conda activate <your_env_name>
+    $ pip install formalgeo
 
-    > git clone --depth 1 https://github.com/BitSecret/FormalGeo.git
-    > cd FormalGeo
-    > conda create -n <your_env_name> python=3.10
-    > conda activate <your_env_name>
-    > pip install -e .
+**For developers:**  
+This project uses [pyproject.toml](https://packaging.python.org/en/latest/specifications/declaring-project-metadata) to
+store project metadata. The command `pip install -e .` reads file `pyproject.toml`, automatically installs project
+dependencies, and installs the current project in an editable mode into the environment's library for convenient
+project development and testing.
+
+    $ git clone --depth 1 https://github.com/BitSecret/FormalGeo.git
+    $ cd FormalGeo
+    $ conda create -n <your_env_name> python=3.10
+    $ conda activate <your_env_name>
+    $ pip install -e .
 
 ## Documentation and Usage
 
+Everything is at [doc](./formalgeo.md). You can gain a deeper understanding of the **Geometry Formalization Theory** by
+reading the [original paper](https://arxiv.org/abs/2310.18021) of FormalGeo.  
+If you don't want to read `doc`, here is a short usage, start Python and:
+
+    >>> from formalgeo.data import DatasetLoader
+    >>> from formalgeo.solver import Interactor
+
+The `DatasetLoader` is used for dataset management, the `Interactor` act as an interactive solver, and `show_solution`
+is utilized to display the problem-solving process.
+
+    >>> dl = DatasetLoader(name="formalgeo7k", version="v1")
+
+This example demonstrates using the `formalgeo-v1` dataset, and you can use the
+function `formalgeo.data.get_available_datasets` to retrieve all available datasets. These datasets are annotated,
+released, and maintained within project [FormalGeo-Datasets](https://github.com/BitSecret/FormalGeo-Datasets).
+
+    >>> solver = Interactor(dl.get_predicate_gdl(), dl.get_theorem_gdl())
+    >>> problem_CDL = dl.get_problem(pid=1)
+    >>> solver.apply_theorem(t_name, t_branch, t_para) for t_name, t_branch, t_para in parse_theorem_seqs(problem_CDL["theorem_seqs"])
+    >>> solver.problem.check_goal()
+
+Initialize the solver, load the problems, and apply the annotated sequence of theorems for solving. Then, print the
+problem-solving process:
+
+    >>> from formalgeo.tools import show_solution
+    >>> show_solution(solver.problem)
+
+The problem-solving process is represented as a hypertree with conditions as hypernodes and theorems as hyperedges,
+which you can save as JSON file:
+
+    >>> from formalgeo.tools import save_json, get_solution_hypertree
+    >>> save_json(get_solution_hypertree(solver.problem), "1_hypertree.json")
+
 ## Contributing
+
+We welcome contributions from anyone, even if you are new to open source. Please read our [Introduction to Contributing
+page](./doc/contributing.md).
 
 ## Bugs
 
+Our bug reporting platform is available at [here](https://github.com/BitSecret/FormalGeo/issues). We encourage you to
+report any issues you encounter. Or even better, fork our repository on GitHub and submit a pull request. We appreciate
+contributions of all sizes and are happy to assist newcomers to git with their pull requests.
+
 ## Related Projects
 
+**FGPS**  
+URL: https://github.com/BitSecret/FGPS  
+Intro: This project has implemented an automated solving algorithm for geometric problems based on search, including
+forward search and backward search. FGPS is capable of adopting various search strategies, such as breadth-first search,
+depth-first search, random search and beam search.
+
+**FGeoDRL**  
+URL:  
+Intro:
+
 ## Citation
+
+To cite FormalGeo in publications use:
+> Xiaokai, Zhang., Na, Zhu., Yiming, He., Jia, Zou., ... & Tuo, Leng. (2023). FormalGeo: The First Step Toward
+> Human-like IMO-level Geometric Automated Reasoning. arXiv preprint arXiv:2310.18021.
+
+A BibTeX entry for LaTeX users is:
+> @misc{arxiv2023formalgeo,  
+> title={FormalGeo: The First Step Toward Human-like IMO-level Geometric Automated Reasoning},  
+> author={Xiaokai Zhang and Na Zhu and Yiming He and Jia Zou and Qike Huang and Xiaoxiao Jin and Yanjun Guo and Chenyang
+> Mao and Zhe Zhu and Dengfeng Yue and Fangzhen Zhu and Yang Li and Yifan Wang and Yiwen Huang and Runan Wang and Cheng
+> Qin and Zhenbing Zeng and Shaorong Xie and Xiangfeng Luo and Tuo Leng},  
+> year={2023},  
+> eprint={2310.18021},  
+> archivePrefix={arXiv},  
+> primaryClass={cs.AI}  
+> }
+
+FormalGeo is MIT licensed, so you are free to use it whatever you like, be it academic, commercial, creating forks or
+derivatives, as long as you copy the MIT statement if you redistribute it (see the LICENSE file for details). That said,
+if it is convenient for you, please cite FormalGeo when using it in your work.

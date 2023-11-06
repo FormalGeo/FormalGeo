@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 name = "formalgeo"
 version = "0.0.1"
 authors = [
-  { name="Xiaokai Zhang", email="xiaokaizhang1999@163.com" },
+    { name = "Xiaokai Zhang", email = "xiaokaizhang1999@163.com" },
 ]
 description = "Formal representation and solving for Euclidean plane geometry problems."
 readme = "README.md"
@@ -16,8 +16,9 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-  "sympy>=1.10",
-  "func_timeout>=4.3",
+    "sympy>=1.10",
+    "func-timeout>=4.3",
+    "requests>=2.31"
 ]
 [project.urls]
 "Homepage" = "https://github.com/BitSecret/FormalGeo"

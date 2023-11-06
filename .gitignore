@@ -10,3 +10,4 @@ src/formalgeo.egg-info
 
 # tests
 tests/outputs
+src/formalgeo/datasets

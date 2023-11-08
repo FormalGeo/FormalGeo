@@ -92,7 +92,6 @@ def show_solution(problem):
         item = str(item).replace(" ", "")
         if len(item) > 40:
             item = item[0:40] + "..."
-
         if _id not in used_pid:
             print("{0:^6}{1:^60}{2:^25}{3:>6}".format(_id, item, premises, theorem))
         else:

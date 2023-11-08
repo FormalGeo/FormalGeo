@@ -82,13 +82,13 @@ class Problem:
             if not added:
                 continue
 
-            self.condition.add(predicate, tuple(item[::-1]), (_id,), ("extend", None, None))
-            self.add("Line", (item[0], item[-1]), (_id,), ("extend", None, None))
+            self.condition.add(predicate, tuple(item[::-1]), (_id,), ("extended", None, None))
+            self.add("Line", (item[0], item[-1]), (_id,), ("extended", None, None))
             for extended_item in combinations(item, 3):  # l=3 is enough
-                self.condition.add("Collinear", extended_item, (_id,), ("extend", None, None))
-                self.condition.add("Collinear", extended_item[::-1], (_id,), ("extend", None, None))
-                self.add("Angle", extended_item, (_id,), ("extend", None, None))
-                self.add("Angle", extended_item[::-1], (_id,), ("extend", None, None))
+                self.condition.add("Collinear", extended_item, (_id,), ("extended", None, None))
+                self.condition.add("Collinear", extended_item[::-1], (_id,), ("extended", None, None))
+                self.add("Angle", extended_item, (_id,), ("extended", None, None))
+                self.add("Angle", extended_item[::-1], (_id,), ("extended", None, None))
 
         # 2.Cocircular expand.
         for predicate, item in self.parsed_problem_CDL["parsed_cdl"]["construction_cdl"]:  # Cocircular
@@ -104,7 +104,7 @@ class Problem:
                 continue
 
             circle = item[0]
-            self.add("Circle", (circle,), (_id,), ("extend", None, None))
+            self.add("Circle", (circle,), (_id,), ("extended", None, None))
             if len(item) == 1:
                 continue
 
@@ -113,14 +113,14 @@ class Problem:
                 for extended_item in combinations(item, com):
                     if com == 2:
                         self.condition.add("Arc", (circle, extended_item[0], extended_item[-1]),
-                                           (_id,), ("extend", None, None))
+                                           (_id,), ("extended", None, None))
                         self.condition.add("Arc", (circle, extended_item[-1], extended_item[0]),
-                                           (_id,), ("extend", None, None))
+                                           (_id,), ("extended", None, None))
                     cocircular = list(extended_item)
                     l = len(cocircular)
                     for bias in range(l):
                         extended_item = tuple([circle] + [cocircular[(i + bias) % l] for i in range(l)])
-                        self.condition.add("Cocircular", extended_item, (_id,), ("extend", None, None))
+                        self.condition.add("Cocircular", extended_item, (_id,), ("extended", None, None))
 
         # 3.Shape expand.
         jigsaw_unit = {}  # shape's jigsaw
@@ -484,7 +484,7 @@ class Problem:
             for extended_predicate, para in item_GDL["extend"]:  # extended
                 if extended_predicate == "Equal":
                     self.add("Equation", get_equation_from_tree(self, para, True, letters),
-                             (_id,), "extended")
+                             (_id,), ("extended", None, None))
                 else:
                     self.add(extended_predicate, tuple(letters[i] for i in para),
                              (_id,), ("extended", None, None))

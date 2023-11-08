@@ -12,9 +12,10 @@ def save_json(data, file_path_and_name):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-def safe_save_json(data, path, filename):
+def safe_save_json(data, file_path_and_name):
     """Avoiding log file corruption."""
-    file_path_and_name = os.path.join(path, filename)
+    path = os.path.dirname(file_path_and_name)
+    filename = os.path.basename(file_path_and_name)
     file_path_and_name_bk = os.path.join(path, filename + ".bk")
 
     with open(file_path_and_name_bk, "w", encoding="utf-8") as f:
@@ -23,7 +24,7 @@ def safe_save_json(data, path, filename):
     if os.path.exists(file_path_and_name):
         os.remove(file_path_and_name)
 
-    os.rename(file_path_and_name, file_path_and_name)
+    os.rename(file_path_and_name_bk, file_path_and_name)
 
 
 def debug_print(debug, msg):

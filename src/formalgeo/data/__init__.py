@@ -5,9 +5,9 @@
 """Download and Management of Datasets and Formal Systems."""
 
 __all__ = [
-    "get_available_datasets", "download_dataset", "remove_dataset",
+    "show_available_datasets", "download_dataset", "remove_dataset",
     "DatasetLoader"
 ]
 
-from formalgeo.data.data import get_available_datasets, download_dataset, remove_dataset
+from formalgeo.data.data import show_available_datasets, download_dataset, remove_dataset
 from formalgeo.data.data import DatasetLoader

@@ -21,7 +21,7 @@ easy installation via the `pip` command.
 **For developers:**  
 This project uses [pyproject.toml](https://packaging.python.org/en/latest/specifications/declaring-project-metadata) to
 store project metadata. The command `pip install -e .` reads file `pyproject.toml`, automatically installs project
-dependencies, and installs the current project in an editable mode into the environment's library for convenient
+dependencies, and installs the current project in an editable mode into the environment's library. It is convenient for
 project development and testing.
 
     $ git clone --depth 1 https://github.com/BitSecret/FormalGeo.git
@@ -43,15 +43,15 @@ If you don't want to read `doc`, here is a short usage, start Python and:
 The `DatasetLoader` is used for dataset management, the `Interactor` act as an interactive solver, and `show_solution`
 is utilized to display the problem-solving process.
 
-    >>> dl = DatasetLoader(name="formalgeo7k", version="v1")
+    >>> dl = DatasetLoader(dataset_name="formalgeo7k-v1")
 
 This example demonstrates using the `formalgeo-v1` dataset, and you can use the
-function `formalgeo.data.get_available_datasets` to retrieve all available datasets. These datasets are annotated,
+function `formalgeo.data.show_available_datasets()` to retrieve all available datasets. These datasets are annotated,
 released, and maintained within project [FormalGeo-Datasets](https://github.com/BitSecret/FormalGeo-Datasets).
 
     >>> solver = Interactor(dl.get_predicate_gdl(), dl.get_theorem_gdl())
     >>> problem_CDL = dl.get_problem(pid=1)
-    >>> solver.apply_theorem(t_name, t_branch, t_para) for t_name, t_branch, t_para in parse_theorem_seqs(problem_CDL["theorem_seqs"])
+    >>> for t_name, t_branch, t_para in parse_theorem_seqs(problem_CDL["theorem_seqs"]): solver.apply_theorem(t_name, t_branch, t_para)
     >>> solver.problem.check_goal()
 
 Initialize the solver, load the problems, and apply the annotated sequence of theorems for solving. Then, print the

@@ -18,7 +18,8 @@ classifiers = [
 dependencies = [
     "sympy>=1.10",
     "func-timeout>=4.3",
-    "requests>=2.31"
+    "requests>=2.31",
+    "tqdm>=4.66.1"
 ]
 [project.urls]
 "Homepage" = "https://github.com/BitSecret/FormalGeo"

@@ -4,14 +4,14 @@
 [![License](https://img.shields.io/badge/License-MIT-green)](https://opensource.org/licenses/MIT)
 [![Survey](https://img.shields.io/badge/Survey-FormalGeo-blue)](https://github.com/BitSecret/FormalGeo)
 
-Formal representation and solving for Euclidean plane geometry problems. Our goal is to build a crucial bridge between
-IMO-level plane geometry challenges and readable AI automated reasoning.  
+Formal representation and solving for Euclidean plane geometry problems.  
+Our goal is to build a crucial bridge between IMO-level plane geometry challenges and readable AI automated reasoning.  
 FormalGeo is in its early stages and brimming with potential. We welcome anyone to join us in this exciting endeavor.
 
 ## Installation
 
 **For users:**  
-We recommend using Conda to manage Python development environments. Formalgeo has been uploaded to PyPi, allowing for
+We recommend using Conda to manage Python development environments. FormalGeo has been uploaded to PyPi, allowing for
 easy installation via the `pip` command.
 
     $ conda create -n <your_env_name> python=3.10
@@ -32,7 +32,8 @@ project development and testing.
 
 ## Documentation and Usage
 
-Everything is at [doc](./formalgeo.md). You can gain a deeper understanding of the **Geometry Formalization Theory** by
+Everything is at [doc](./doc/formalgeo.md). You can gain a deeper understanding of the **Geometry Formalization Theory**
+by
 reading the [original paper](https://arxiv.org/abs/2310.18021) of FormalGeo.  
 If you don't want to read `doc`, here is a short usage, start Python and:
 

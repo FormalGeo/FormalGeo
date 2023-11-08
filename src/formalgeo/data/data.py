@@ -1,6 +1,7 @@
 import os
 import copy
 import requests
+from tqdm import tqdm
 import json
 import tarfile
 import shutil
@@ -49,13 +50,23 @@ def download_dataset(name, version, datasets_path=None):
         if user_input == "n":
             return False
 
-    response = requests.get(os.path.join(remote, filename))
+    response = requests.get(os.path.join(remote, filename), stream=True)
     if response.status_code == 200:
-        with open(os.path.join(datasets_path, filename), "wb") as file:  # download
-            file.write(response.content)
+        pbar = tqdm(
+            total=int(response.headers.get('content-length', 0)),
+            unit='iB',
+            unit_scale=True,
+            desc="Download [{}-{}]".format(name, version)
+        )
+        with open(os.path.join(datasets_path, filename), "wb") as file:
+            for data in response.iter_content(1024):  # block_size = 1024
+                pbar.update(len(data))
+                file.write(data)
+        pbar.close()
+
         with tarfile.open(os.path.join(datasets_path, filename), "r:gz") as tar_file:  # extract
-            print(os.path.join(datasets_path, '{}-{}'.format(name, version)))
             tar_file.extractall(os.path.join(datasets_path, '{}-{}'.format(name, version)))
+
         return True
 
     msg = "Network error. Fail to download '{}'.".format(os.path.join(remote, filename))
@@ -88,6 +99,9 @@ def remove_dataset(name, version, datasets_path=None):
 
     return True
 
+
+def format_json(path_datasets):
+    pass
 
 class DatasetLoader:
 
@@ -122,11 +136,12 @@ class DatasetLoader:
     def get_problem(self, pid):
         pass
 
-    def assemble(self, raw_problem, aug_problem):
+    @staticmethod
+    def assemble(raw_problem, aug_problem):
         raw_problem = copy.copy(raw_problem)
         raw_problem["problem_id"] = aug_problem["problem_id"]
         raw_problem["text_cdl"] += aug_problem["added_cdl"]
         raw_problem["goal_cdl"] = aug_problem["goal_cdl"]
         raw_problem["problem_answer"] = aug_problem["problem_answer"]
-        raw_problem["theorem_seqs"] = aug_problem["theorem_seqs"]
+        raw_problem["theorem_seqs"] = copy.copy(aug_problem["theorem_seqs"])
         return raw_problem

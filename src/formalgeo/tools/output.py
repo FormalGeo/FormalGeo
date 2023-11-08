@@ -2,6 +2,13 @@ from sympy import Float
 from formalgeo.parse import inverse_parse_one, inverse_parse_logic_to_cdl, inverse_parse_one_theorem
 
 
+def simple_show(pid, correct_answer, solved, solved_answer, timing):
+    """Show simple information about problem-solving."""
+    solved = "\033[32m1\033[0m\t" if solved else "\033[31m0\033[0m\t"
+    timing = "{:.6f}".format(timing) if timing < 2 else "\033[31m{:.6f}\033[0m".format(timing)
+    print("{}\t{}\t{}\t{}\t{}".format(pid, str(correct_answer), solved, solved_answer, timing))
+
+
 def show_solution(problem):
     """-----------Condition Declaration Statements-----------"""
     print("\033[36mproblem_index:\033[0m", end=" ")

@@ -8,10 +8,10 @@
 
 __all__ = [
     "load_json", "save_json", "safe_save_json", "debug_print", "rough_equal",
-    "show_solution", "get_solution_step", "get_solution_hypertree", "get_theorem_dag",
+    "simple_show", "show_solution", "get_solution_step", "get_solution_hypertree", "get_theorem_dag",
     "get_used_pid_and_theorem"
 ]
 
 from formalgeo.tools.utils import load_json, save_json, safe_save_json, debug_print, rough_equal
-from formalgeo.tools.output import show_solution, get_solution_step, get_solution_hypertree, get_theorem_dag
+from formalgeo.tools.output import simple_show, show_solution, get_solution_step, get_solution_hypertree, get_theorem_dag
 from formalgeo.tools.output import get_used_pid_and_theorem

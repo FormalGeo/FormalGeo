@@ -1,6 +1,6 @@
 # Copyright (C) 2022-2023 FormalGeo Development Team
 # Author: Xiaokai Zhang
-# Contact: xiaokaizhang1999@163.com
+# Contact: formalgeo@gmail.com
 
 """
 'tools' provides some practical tools, such as problem-solving process outputting.

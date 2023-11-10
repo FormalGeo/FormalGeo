@@ -128,7 +128,7 @@ def show_solution(problem):
         else:
             print("{:^2} {} {:.6f}s".format(step, problem.timing[step][0], problem.timing[step][1]))
         time_sum += problem.timing[step][1]
-    print("total: {:.6f}s\n".format(time_sum))
+    print("total: {:.6f}s".format(time_sum))
 
 
 def get_solution_step(problem):

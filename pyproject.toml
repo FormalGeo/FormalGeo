@@ -2,7 +2,7 @@
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 [project]
-name = "formalgeo"
+name = "FormalGeo"
 version = "0.0.1"
 authors = [
     { name = "Xiaokai Zhang", email = "xiaokaizhang1999@163.com" },

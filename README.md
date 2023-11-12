@@ -1,8 +1,8 @@
 # FormalGeo
 
-[![Version](https://img.shields.io/badge/Version-0.0.1-brightgreen)](https://github.com/BitSecret/FormalGeo)
+[![Version](https://img.shields.io/badge/Version-0.0.1-brightgreen)](https://github.com/FormalGeo/FormalGeo)
 [![License](https://img.shields.io/badge/License-MIT-green)](https://opensource.org/licenses/MIT)
-[![Survey](https://img.shields.io/badge/Survey-FormalGeo-blue)](https://github.com/BitSecret/FormalGeo)
+[![Survey](https://img.shields.io/badge/Survey-FormalGeo-blue)](https://github.com/FormalGeo/FormalGeo)
 
 Formal representation and solving for Euclidean plane geometry problems.  
 Our goal is to build a crucial bridge between IMO-level plane geometry challenges and readable AI automated reasoning.  
@@ -24,7 +24,7 @@ store project metadata. The command `pip install -e .` reads file `pyproject.tom
 dependencies, and installs the current project in an editable mode into the environment's library. It is convenient for
 project development and testing.
 
-    $ git clone --depth 1 https://github.com/BitSecret/FormalGeo.git
+    $ git clone --depth 1 https://github.com/FormalGeo/FormalGeo.git
     $ cd FormalGeo
     $ conda create -n <your_env_name> python=3.10
     $ conda activate <your_env_name>
@@ -32,9 +32,8 @@ project development and testing.
 
 ## Documentation and Usage
 
-Everything is at [doc](./doc/formalgeo.md). You can gain a deeper understanding of the **Geometry Formalization Theory**
-by
-reading the [original paper](https://arxiv.org/abs/2310.18021) of FormalGeo.  
+Everything is at [doc](./doc/doc.md). You can gain a deeper understanding of the **Geometry Formalization Theory**
+by reading the [original paper](https://arxiv.org/abs/2310.18021) of FormalGeo.  
 If you don't want to read `doc`, here is a short usage, start Python and:
 
     >>> from formalgeo.data import DatasetLoader
@@ -47,7 +46,7 @@ is utilized to display the problem-solving process.
 
 This example demonstrates using the `formalgeo-v1` dataset, and you can use the
 function `formalgeo.data.show_available_datasets()` to retrieve all available datasets. These datasets are annotated,
-released, and maintained within project [FormalGeo-Datasets](https://github.com/BitSecret/FormalGeo-Datasets).
+released, and maintained within project [Datasets](https://github.com/FormalGeo/Datasets).
 
     >>> solver = Interactor(dl.get_predicate_gdl(), dl.get_theorem_gdl())
     >>> problem_CDL = dl.get_problem(pid=1)
@@ -73,7 +72,7 @@ page](./doc/contributing.md).
 
 ## Bugs
 
-Our bug reporting platform is available at [here](https://github.com/BitSecret/FormalGeo/issues). We encourage you to
+Our bug reporting platform is available at [here](https://github.com/FormalGeo/FormalGeo/issues). We encourage you to
 report any issues you encounter. Or even better, fork our repository on GitHub and submit a pull request. We appreciate
 contributions of all sizes and are happy to assist newcomers to git with their pull requests.
 

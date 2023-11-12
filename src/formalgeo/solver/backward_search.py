@@ -3,13 +3,10 @@ import copy
 import random
 from enum import Enum
 from itertools import permutations
-from func_timeout import func_set_timeout
 from formalgeo.problem import Problem
 from formalgeo.core import EquationKiller as EqKiller
 from formalgeo.parse import parse_predicate_gdl, parse_theorem_gdl, parse_problem_cdl, get_equation_from_tree
 from formalgeo.tools import get_used_pid_and_theorem, debug_print
-
-search_timout = 300
 
 
 def get_p2t_map_bw(t_info, parsed_theorem_GDL):
@@ -468,7 +465,6 @@ class BackwardSearcher:
 
         self.search_stack.append(self.root)
 
-    @func_set_timeout(search_timout)
     def search(self):
         """return seqs, <list> of theorem, solved theorem sequences."""
         pid = self.problem.parsed_problem_CDL["id"]

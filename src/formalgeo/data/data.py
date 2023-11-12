@@ -1,10 +1,11 @@
+from formalgeo.tools import load_json, save_json
 import os
 import requests
 from tqdm import tqdm
 import json
 import tarfile
 import shutil
-from formalgeo.tools import load_json, save_json
+import random
 
 remote = "https://raw.githubusercontent.com/BitSecret/FormalGeo-Datasets/main/released/"
 
@@ -182,24 +183,95 @@ class DatasetLoader:
         self.info = load_json(os.path.join(self.datasets_path, "info.json"))
         self.predicate_GDL = load_json(os.path.join(self.datasets_path, "gdl", "predicate_GDL.json"))
         self.theorem_GDL = load_json(os.path.join(self.datasets_path, "gdl", "theorem_GDL.json"))
-        self.pid_mapping = load_json(os.path.join(self.datasets_path, "files", "pid_mapping.json"))
+        self.pid_mapping = self.load_file("pid_mapping.json")
 
     def show(self):
-        pass
+        for item in self.info:
+            print("{}: {}".format(item, self.info[item]))
+        print("dataset_path: {}".format(self.datasets_path))
+        print("files: {}".format(os.listdir(os.path.join(self.datasets_path, "files"))))
 
     def get_problem(self, pid):
-        pass
+        if pid <= self.info["problem_number"]:
+            return load_json(os.path.join(self.datasets_path, "problems", "{}.json".format(pid)))
+        elif pid <= self.info["expanded_problem_number"]:
+            raw_pid = self.pid_mapping[pid]
+            raw_problem = load_json(os.path.join(self.datasets_path, "problems", "{}.json".format(raw_pid)))
+            expanded = load_json(os.path.join(self.datasets_path, "expanded", "{}.json".format(raw_pid)))[str(pid)]
+            raw_problem["problem_id"] = expanded["problem_id"]
+            raw_problem["text_cdl"] += expanded["added_cdl"]
+            raw_problem["goal_cdl"] = expanded["goal_cdl"]
+            raw_problem["problem_answer"] = expanded["problem_answer"]
+            raw_problem["theorem_seqs"] = expanded["theorem_seqs"]
+            raw_problem["problem_level"] = len(expanded["theorem_seqs"])
+            return raw_problem
+        else:
+            msg = "No problem named {}.".format(pid)
+            raise Exception(msg)
 
-    def get_expanded_problem(self, pid):
-        # raw_problem = copy.copy(raw_problem)
-        # raw_problem["problem_id"] = aug_problem["problem_id"]
-        # raw_problem["text_cdl"] += aug_problem["added_cdl"]
-        # raw_problem["goal_cdl"] = aug_problem["goal_cdl"]
-        # raw_problem["problem_answer"] = aug_problem["problem_answer"]
-        # raw_problem["theorem_seqs"] = copy.copy(aug_problem["theorem_seqs"])
-        pass
+    def get_problem_split(self, expanded=False):
+        file_path = os.path.join(self.datasets_path, "files")
+        if expanded:
+            split_msg = self.info["expanded_problem_split"]
+            filename = "expanded_problem_split_{}_{}_{}_{}.json".format(
+                split_msg[0], split_msg[1], split_msg[2], split_msg[3]
+            )
+            problem_number = self.info["expanded_problem_number"]
+        else:
+            split_msg = self.info["problem_split"]
+            filename = "problem_split_{}_{}_{}_{}.json".format(
+                split_msg[0], split_msg[1], split_msg[2], split_msg[3]
+            )
+            problem_number = self.info["problem_number"]
+
+        if filename in os.listdir(file_path):
+            return load_json(os.path.join(file_path, filename))
+
+        total = split_msg[0] + split_msg[1] + split_msg[2]
+        random.seed(split_msg[3])
+        data = list(range(1, problem_number + 1))
+        test = sorted(random.sample(data, int(problem_number * split_msg[2] / total)))
+        for i in range(len(data))[::-1]:
+            if data[i] in test:
+                data.pop(i)
+        val = sorted(random.sample(data, int(problem_number * split_msg[1] / total)))
+        for i in range(len(data))[::-1]:
+            if data[i] in val:
+                data.pop(i)
+        train = data
+
+        total = len(train) + len(val) + len(test)
+
+        data = {
+            "msg": {
+                "total": total,
+                "train": len(train),
+                "val": len(val),
+                "test": len(test)
+            },
+            "split": {
+                "train": train,
+                "val": val,
+                "test": test
+            }
+        }
+
+        save_json(data, os.path.join(file_path, filename))
+
+        return data
+
+    def load_file(self, filename):
+        file_path = os.path.join(self.datasets_path, "files")
+        if filename not in os.listdir(file_path):
+            msg = "No file named {} in {}.".format(filename, file_path)
+            raise Exception(msg)
+
+        if filename.endswith(".json"):
+            return load_json(os.path.join(file_path, filename))
+        else:
+            with open(os.path.join(file_path, filename)) as f:
+                return f.read()
 
 
 if __name__ == '__main__':
     show_available_datasets()
-    download_dataset("formalgeo7k-v1")

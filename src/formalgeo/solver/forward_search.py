@@ -1,13 +1,10 @@
 import time
 import random
-from func_timeout import func_set_timeout
 from formalgeo.problem import Problem
 from formalgeo.core import GeometryPredicateLogicExecutor as GPLExecutor
 from formalgeo.core import EquationKiller as EqKiller
 from formalgeo.parse import parse_predicate_gdl, parse_theorem_gdl, parse_problem_cdl
 from formalgeo.tools import get_used_pid_and_theorem, debug_print
-
-search_timout = 300
 
 
 def get_p2t_map_fw(t_info, parsed_theorem_GDL):
@@ -104,7 +101,6 @@ class ForwardSearcher:
         debug_print(self.debug, "(timing={:.4f}s) Expand {} child node.".
                     format(time.time() - timing, len(selections)))
 
-    @func_set_timeout(search_timout)
     def search(self):
         """
         Search problem and return search result.

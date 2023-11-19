@@ -1,8 +1,9 @@
 from formalgeo.solver import Interactor, ForwardSearcher, BackwardSearcher
 from formalgeo.tools import load_json, save_json
 from formalgeo.tools import show_solution
-from formalgeo.parse import parse_theorem_seqs
-from formalgeo.tools import get_solution_step, get_solution_hypertree, get_theorem_dag
+from formalgeo.parse import parse_theorem_seqs, inverse_parse_one_theorem
+from formalgeo.tools import get_solution_step, get_solution_hypertree, get_theorem_dag, get_used_pid_and_theorem
+from formalgeo.data import show_available_datasets, DatasetLoader
 import random
 import warnings
 
@@ -60,6 +61,25 @@ def test_backward_searcher():
 
 
 if __name__ == '__main__':
-    test_interactor()
+    # test_interactor()
     # test_forward_searcher()
     # test_backward_searcher()
+
+    test_datasets_path = "F:/Datasets/released"
+    # show_available_datasets(test_datasets_path)
+
+    dl = DatasetLoader("formalgeo7k_v1", test_datasets_path)
+    solver = Interactor(dl.predicate_GDL, dl.theorem_GDL)
+
+    problem_CDL = dl.get_problem(94077)
+    solver.load_problem(problem_CDL)
+    for t_name, t_branch, t_para in parse_theorem_seqs(problem_CDL["theorem_seqs"]):
+        solver.apply_theorem(t_name, t_branch, t_para)
+    solver.problem.check_goal()  # check goal after applied theorem seqs
+
+    _, theorem_seqs = get_used_pid_and_theorem(solver.problem)
+    theorem_seqs = [inverse_parse_one_theorem(t, solver.parsed_theorem_GDL) for t in theorem_seqs]
+    theorem_seqs_dag = get_theorem_dag(solver.problem)
+    print(theorem_seqs)
+    print(theorem_seqs_dag)
+    # show_solution(solver.problem)  # show solving process

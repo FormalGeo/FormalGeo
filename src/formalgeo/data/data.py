@@ -181,16 +181,15 @@ def remove_dataset(dataset_name, datasets_path=None):
 
 class DatasetLoader:
 
-    def __init__(self, dataset_name, dataset_version, datasets_path=None):
+    def __init__(self, dataset_name, datasets_path=None):
         datasets_path = get_datasets_path(datasets_path)
         local_datasets = get_local_datasets(datasets_path)
-        dataset_filename = "{}_{}".format(dataset_name, dataset_version)
-        if dataset_filename not in local_datasets:
+        if dataset_name not in local_datasets:
             msg = "No dataset dir named '{}'. run 'formalgeo.data.show_available_datasets()' for more info.".format(
-                dataset_filename)
+                dataset_name)
             raise Exception(msg)
 
-        self.dataset_path = os.path.join(datasets_path, dataset_filename)
+        self.dataset_path = os.path.join(datasets_path, dataset_name)
 
         self.info = load_json(os.path.join(self.dataset_path, "info.json"))
         self.predicate_GDL = load_json(os.path.join(self.dataset_path, "gdl", "predicate_GDL.json"))

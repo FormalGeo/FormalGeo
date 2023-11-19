@@ -36,19 +36,20 @@ Everything is at [doc](./doc/doc.md). You can gain a deeper understanding of the
 by reading the [original paper](https://arxiv.org/abs/2310.18021) of FormalGeo.  
 If you don't want to read `doc`, here is a short usage, start Python and:
 
-    >>> from formalgeo.data import DatasetLoader
+    >>> from formalgeo.data import download_dataset, DatasetLoader
     >>> from formalgeo.solver import Interactor
 
 The `DatasetLoader` is used for dataset management, the `Interactor` act as an interactive solver, and `show_solution`
 is utilized to display the problem-solving process.
 
-    >>> dl = DatasetLoader(dataset_name="formalgeo7k-v1")
+    >>> download_dataset(dataset_name="formalgeo7k_v1")
+    >>> dl = DatasetLoader(dataset_name="formalgeo7k_v1")
 
-This example demonstrates using the `formalgeo-v1` dataset, and you can use the
+This example demonstrates using the `formalgeo7k_v1` dataset, and you can use the
 function `formalgeo.data.show_available_datasets()` to retrieve all available datasets. These datasets are annotated,
 released, and maintained within project [Datasets](https://github.com/FormalGeo/Datasets).
 
-    >>> solver = Interactor(dl.get_predicate_gdl(), dl.get_theorem_gdl())
+    >>> solver = Interactor(dl.predicate_GDL, dl.theorem_GDL)
     >>> problem_CDL = dl.get_problem(pid=1)
     >>> for t_name, t_branch, t_para in parse_theorem_seqs(problem_CDL["theorem_seqs"]): solver.apply_theorem(t_name, t_branch, t_para)
     >>> solver.problem.check_goal()

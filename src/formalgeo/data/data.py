@@ -1,4 +1,4 @@
-from formalgeo.tools import load_json, save_json
+from formalgeo.tools import load_json, save_json, get_user_input
 import os
 import requests
 from tqdm import tqdm
@@ -6,8 +6,9 @@ import json
 import tarfile
 import shutil
 import random
+import warnings
 
-remote = "https://raw.githubusercontent.com/BitSecret/FormalGeo-Datasets/main/released/"
+remote = "https://raw.formalgeocontent.com/Formalgeo/Datasets/main/released/"
 
 
 def get_datasets_path(datasets_path):
@@ -18,25 +19,6 @@ def get_datasets_path(datasets_path):
     return datasets_path
 
 
-def get_user_input(notes):
-    notes = "{} (y/n):".format(notes)
-    user_input = input(notes)
-    while user_input not in ["y", "n"]:
-        user_input = input(notes)
-    return user_input
-
-
-def get_remote_datasets():
-    url = os.path.join(remote, "released.json")
-    response = requests.get(url)
-
-    if response.status_code == 200:
-        return json.loads(response.content)
-
-    msg = "Network error. Fail to download '{}'.".format(url)
-    raise Exception(msg)
-
-
 def format_json(path_datasets):
     for path, _, files in os.walk(path_datasets):
         for file in files:
@@ -44,21 +26,21 @@ def format_json(path_datasets):
                 save_json(load_json(os.path.join(path, file)), os.path.join(path, file))
 
 
-def get_local_datasets(datasets_path=None):
-    datasets_path = get_datasets_path(datasets_path)
+def get_remote_datasets():
+    response = requests.get(os.path.join(remote, "released.json"))
+    if response.status_code == 200:
+        return json.loads(response.content)
+    return None
+
+
+def get_local_datasets(datasets_path):
     local_datasets = {}
     for file in os.listdir(datasets_path):
         if file.endswith(".json"):
             info = load_json(os.path.join(datasets_path, file))
-            local_datasets[file.split(".")[0]] = {
-                "name": info["name"],
-                "version": info["version"],
-                "formalgeo_version": info["formalgeo_version"],
-                "gdl": info["gdl"],
-                "gdl_version": info["gdl_version"],
-                "release_datetime": info["release_datetime"],
-                "short_desc": info["short_desc"],
-            }
+            local_datasets[file.split(".")[0]] = info
+
+    local_datasets.pop("released")
 
     return local_datasets
 
@@ -67,36 +49,68 @@ def show_available_datasets(datasets_path=None):
     datasets_path = get_datasets_path(datasets_path)
     remote_datasets = get_remote_datasets()
     local_datasets = get_local_datasets(datasets_path)
+    text = "{0:<15}{1:<15}{2:<15}{3:<15}{4:<15}{5:<15}{6:<22}{7:}"
+    print(text.format("Location", "Name", "Version", "Formalgeo", "GDL", "GDL-Version", "Release", "Description"))
+
+    if remote_datasets is None:
+        for dataset in local_datasets:
+            print(text.format("local",
+                              local_datasets[dataset]["dataset_name"],
+                              local_datasets[dataset]["dataset_version"],
+                              local_datasets[dataset]["formalgeo_version"],
+                              local_datasets[dataset]["gdl_name"],
+                              local_datasets[dataset]["gdl_version"],
+                              local_datasets[dataset]["release_datetime"],
+                              local_datasets[dataset]["short_description"]))
+        print("\nFailed to get the remote datasets, displaying local datasets.")
+        print("Please check your network connection and try again.")
+        return
 
     for dataset in local_datasets:
         if dataset in remote_datasets:
             if local_datasets[dataset]["release_datetime"] == remote_datasets[dataset]["release_datetime"]:
-                name = "\033[32m{}\033[0m".format(local_datasets[dataset]["name"])
+                dataset_name = "\033[32m{}\033[0m".format(local_datasets[dataset]["dataset_name"])
             else:
-                name = "\033[33m{}\033[0m".format(local_datasets[dataset]["name"])
+                dataset_name = "\033[33m{}\033[0m".format(local_datasets[dataset]["dataset_name"])
+            print(text.format(dataset_name,
+                              local_datasets[dataset]["dataset_version"],
+                              local_datasets[dataset]["formalgeo_version"],
+                              local_datasets[dataset]["gdl_name"],
+                              local_datasets[dataset]["gdl_version"],
+                              local_datasets[dataset]["release_datetime"],
+                              local_datasets[dataset]["short_description"]))
+            print(text.format(remote_datasets[dataset]["dataset_name"],
+                              remote_datasets[dataset]["dataset_version"],
+                              remote_datasets[dataset]["formalgeo_version"],
+                              remote_datasets[dataset]["gdl_name"],
+                              remote_datasets[dataset]["gdl_version"],
+                              remote_datasets[dataset]["release_datetime"],
+                              remote_datasets[dataset]["short_description"]))
         else:
-            name = "\033[34m{}\033[0m".format(local_datasets[dataset]["name"])
-        print("{0:^3}{1:<20}{2:<20}{3:<20}{4:<20}{5:<20}{6:}".format(
-            name,
-            local_datasets[dataset]["version"],
-            local_datasets[dataset]["formalgeo"],
-            local_datasets[dataset]["gdl"],
-            local_datasets[dataset]["gdl_version"],
-            local_datasets[dataset]["release_datetime"],
-            local_datasets[dataset]["short_desc"],
-        ))
+            print(text.format("\033[34m{}\033[0m".format(local_datasets[dataset]["dataset_name"]),
+                              local_datasets[dataset]["dataset_version"],
+                              local_datasets[dataset]["formalgeo_version"],
+                              local_datasets[dataset]["gdl_name"],
+                              local_datasets[dataset]["gdl_version"],
+                              local_datasets[dataset]["release_datetime"],
+                              local_datasets[dataset]["short_description"]))
 
     for dataset in remote_datasets:
         if dataset not in local_datasets:
-            print("{0:^3}{1:<20}{2:<20}{3:<20}{4:<20}{5:<20}{6:}".format(
-                remote_datasets[dataset]["name"],
-                remote_datasets[dataset]["version"],
-                remote_datasets[dataset]["formalgeo"],
-                remote_datasets[dataset]["gdl"],
-                remote_datasets[dataset]["gdl_version"],
-                remote_datasets[dataset]["release_datetime"],
-                remote_datasets[dataset]["short_desc"],
-            ))
+            print(text.format(remote_datasets[dataset]["dataset_name"],
+                              remote_datasets[dataset]["dataset_version"],
+                              remote_datasets[dataset]["formalgeo_version"],
+                              remote_datasets[dataset]["gdl_name"],
+                              remote_datasets[dataset]["gdl_version"],
+                              remote_datasets[dataset]["release_datetime"],
+                              remote_datasets[dataset]["short_description"]))
+
+    print("\nColored dataset name representation of the locally downloaded dataset.")
+    print("\033[32mGreen\033[0m indicates that the local version is in sync with the remote version.")
+    print("\033[33mYellow\033[0m indicates the remote dataset has updates.")
+    print("\033[34mBlue\033[0m represents the local dataset not in the remote repository.")
+    print("White represents the remote dataset that can be downloaded.")
+    print("Run 'formalgeo.data.download_dataset()' to download the remote dataset.")
 
 
 def download_dataset(dataset_name, datasets_path=None):
@@ -104,8 +118,13 @@ def download_dataset(dataset_name, datasets_path=None):
     remote_datasets = get_remote_datasets()
     local_datasets = get_local_datasets(datasets_path)
 
+    if remote_datasets is None:
+        msg = "Network error. Fail to get remote datasets lists."
+        raise Exception(msg)
+
     if dataset_name not in remote_datasets:
-        msg = "No dataset named '{}', run <show_available_datasets> for more info.".format(dataset_name)
+        msg = "No dataset named '{}'. run 'formalgeo.data.show_available_datasets()' for more info.".format(
+            dataset_name)
         raise Exception(msg)
 
     if dataset_name in local_datasets:
@@ -113,7 +132,7 @@ def download_dataset(dataset_name, datasets_path=None):
             print("Datasets '{}' already exits in '{}'.".format(dataset_name, datasets_path))
             if get_user_input("Do you want to update?") == "n":
                 return False
-        remote_datasets(dataset_name, datasets_path)
+        remove_dataset(dataset_name, datasets_path)
 
     response = requests.get(os.path.join(remote, "{}.tar.gz".format(dataset_name)), stream=True)
     if response.status_code == 200:
@@ -162,47 +181,41 @@ def remove_dataset(dataset_name, datasets_path=None):
 
 class DatasetLoader:
 
-    def __init__(self, dataset_name, datasets_path=None):
-        self.datasets_path = get_datasets_path(datasets_path)
-        remote_datasets = get_remote_datasets()
-        local_datasets = get_local_datasets(self.datasets_path)
+    def __init__(self, dataset_name, dataset_version, datasets_path=None):
+        datasets_path = get_datasets_path(datasets_path)
+        local_datasets = get_local_datasets(datasets_path)
+        dataset_filename = "{}_{}".format(dataset_name, dataset_version)
+        if dataset_filename not in local_datasets:
+            msg = "No dataset dir named '{}'. run 'formalgeo.data.show_available_datasets()' for more info.".format(
+                dataset_filename)
+            raise Exception(msg)
 
-        if dataset_name in local_datasets:
-            if dataset_name in remote_datasets:
-                if (local_datasets[dataset_name]["release_datetime"]
-                        != remote_datasets[dataset_name]["release_datetime"]):
-                    if get_user_input("The dataset can update, Dd you want to update?") == "y":
-                        download_dataset(dataset_name, self.datasets_path)
-        else:
-            if dataset_name in remote_datasets:
-                download_dataset(dataset_name, self.datasets_path)
-            else:
-                msg = "No dataset named '{}', run <get_available_datasets> for more info.".format(dataset_name)
-                raise Exception(msg)
+        self.dataset_path = os.path.join(datasets_path, dataset_filename)
 
-        self.info = load_json(os.path.join(self.datasets_path, "info.json"))
-        self.predicate_GDL = load_json(os.path.join(self.datasets_path, "gdl", "predicate_GDL.json"))
-        self.theorem_GDL = load_json(os.path.join(self.datasets_path, "gdl", "theorem_GDL.json"))
+        self.info = load_json(os.path.join(self.dataset_path, "info.json"))
+        self.predicate_GDL = load_json(os.path.join(self.dataset_path, "gdl", "predicate_GDL.json"))
+        self.theorem_GDL = load_json(os.path.join(self.dataset_path, "gdl", "theorem_GDL.json"))
         self.pid_mapping = self.load_file("pid_mapping.json")
 
     def show(self):
         for item in self.info:
             print("{}: {}".format(item, self.info[item]))
-        print("dataset_path: {}".format(self.datasets_path))
-        print("files: {}".format(os.listdir(os.path.join(self.datasets_path, "files"))))
+        print("dataset_path: {}".format(self.dataset_path))
+        print("files: {}".format(os.listdir(os.path.join(self.dataset_path, "files"))))
 
     def get_problem(self, pid):
         if pid <= self.info["problem_number"]:
-            return load_json(os.path.join(self.datasets_path, "problems", "{}.json".format(pid)))
+            return load_json(os.path.join(self.dataset_path, "problems", "{}.json".format(pid)))
         elif pid <= self.info["expanded_problem_number"]:
-            raw_pid = self.pid_mapping[pid]
-            raw_problem = load_json(os.path.join(self.datasets_path, "problems", "{}.json".format(raw_pid)))
-            expanded = load_json(os.path.join(self.datasets_path, "expanded", "{}.json".format(raw_pid)))[str(pid)]
+            raw_pid = self.pid_mapping[str(pid)]
+            raw_problem = load_json(os.path.join(self.dataset_path, "problems", "{}.json".format(raw_pid)))
+            expanded = load_json(os.path.join(self.dataset_path, "expanded", "{}.json".format(raw_pid)))[str(pid)]
             raw_problem["problem_id"] = expanded["problem_id"]
             raw_problem["text_cdl"] += expanded["added_cdl"]
             raw_problem["goal_cdl"] = expanded["goal_cdl"]
             raw_problem["problem_answer"] = expanded["problem_answer"]
             raw_problem["theorem_seqs"] = expanded["theorem_seqs"]
+            raw_problem["theorem_seqs_dag"] = expanded["theorem_seqs_dag"]
             raw_problem["problem_level"] = len(expanded["theorem_seqs"])
             return raw_problem
         else:
@@ -210,7 +223,7 @@ class DatasetLoader:
             raise Exception(msg)
 
     def get_problem_split(self, expanded=False):
-        file_path = os.path.join(self.datasets_path, "files")
+        file_path = os.path.join(self.dataset_path, "files")
         if expanded:
             split_msg = self.info["expanded_problem_split"]
             filename = "expanded_problem_split_{}_{}_{}_{}.json".format(
@@ -261,7 +274,7 @@ class DatasetLoader:
         return data
 
     def load_file(self, filename):
-        file_path = os.path.join(self.datasets_path, "files")
+        file_path = os.path.join(self.dataset_path, "files")
         if filename not in os.listdir(file_path):
             msg = "No file named {} in {}.".format(filename, file_path)
             raise Exception(msg)
@@ -271,7 +284,3 @@ class DatasetLoader:
         else:
             with open(os.path.join(file_path, filename)) as f:
                 return f.read()
-
-
-if __name__ == '__main__':
-    show_available_datasets()

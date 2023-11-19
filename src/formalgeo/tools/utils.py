@@ -36,3 +36,13 @@ def debug_print(debug, msg):
 def rough_equal(a, b):
     """Accuracy is controlled at 0.001. Preventing floating point calculation issues"""
     return abs(a - b) < 0.001
+
+
+def get_user_input(notes, choice=None):
+    if choice is None:
+        choice = ["y", "n"]
+    notes = "{} ({}):".format(notes, "/".join(choice))
+    user_input = input(notes)
+    while user_input not in choice:
+        user_input = input(notes)
+    return user_input

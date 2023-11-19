@@ -2,9 +2,14 @@ from sympy import Float
 from formalgeo.parse import inverse_parse_one, inverse_parse_logic_to_cdl, inverse_parse_one_theorem
 
 
-def simple_show(pid, correct_answer, solved, solved_answer, timing):
+def simple_show(problem, timing):
     """Show simple information about problem-solving."""
-    solved = "\033[32m1\033[0m\t" if solved else "\033[31m0\033[0m\t"
+    pid = problem.parsed_problem_CDL["id"]
+    correct_answer = str(problem.goal.answer).replace(" ", "")
+    solved = problem.goal.solved
+    solved_answer = problem.goal.solved_answer
+
+    solved = "\033[32msolved\033[0m\t" if solved else "\033[31munsolved\033[0m\t"
     timing = "{:.6f}".format(timing) if timing < 2 else "\033[31m{:.6f}\033[0m".format(timing)
     print("{}\t{}\t{}\t{}\t{}".format(pid, str(correct_answer), solved, solved_answer, timing))
 
@@ -209,13 +214,12 @@ def get_theorem_dag(problem):
     rough_dag = {}
     for premise, theorem in adjust_group:  # generate theorem dag
         conclusion = adjust_group[(premise, theorem)]
+        if theorem not in rough_dag:
+            rough_dag[theorem] = []
+
         for _id in conclusion:
             for tail_premise, tail_theorem in adjust_group:
-                if _id not in tail_premise:
-                    continue
-                if theorem not in rough_dag:
-                    rough_dag[theorem] = []
-                if tail_theorem not in rough_dag[theorem]:
+                if _id in tail_premise and tail_theorem not in rough_dag[theorem]:
                     rough_dag[theorem].append(tail_theorem)
 
     update = True

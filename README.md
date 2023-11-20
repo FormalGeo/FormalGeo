@@ -4,8 +4,9 @@
 [![License](https://img.shields.io/badge/License-MIT-green)](https://opensource.org/licenses/MIT)
 [![Survey](https://img.shields.io/badge/Survey-FormalGeo-blue)](https://github.com/FormalGeo/FormalGeo)
 
-Formal representation and solving for Euclidean plane geometry problems.  
-Our goal is to build a crucial bridge between IMO-level plane geometry challenges and readable AI automated reasoning.  
+Formal representation and solving for Euclidean plane geometry problems. Our goal is to build a crucial bridge between
+IMO-level plane geometry challenges and readable AI automated reasoning. More information about FormalGeo will be found
+in [homepage](https://formalgeo.github.io/).  
 FormalGeo is in its early stages and brimming with potential. We welcome anyone to join us in this exciting endeavor.
 
 ## Installation
@@ -79,6 +80,11 @@ contributions of all sizes and are happy to assist newcomers to git with their p
 
 ## Related Projects
 
+**Datasets**  
+URL: https://github.com/FormalGeo/Datasets  
+Intro: This project is used for the design and release of geometry formal systems and datasets. It currently includes 2
+formal systems, GFS-BASIC and GFS-IMO, and the corresponding datasets formalgeo7k and formalgeo-imo.
+
 **FGPS**  
 URL: https://github.com/BitSecret/FGPS  
 Intro: This project has implemented an automated solving algorithm for geometric problems based on search, including
@@ -86,8 +92,8 @@ forward search and backward search. FGPS is capable of adopting various search s
 depth-first search, random search and beam search.
 
 **FGeoDRL**  
-URL:  
-Intro:
+URL: https://github.com/PersonNoName/FGeoDRL
+Intro: coming soon...
 
 ## Citation
 

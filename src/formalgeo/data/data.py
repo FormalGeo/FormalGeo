@@ -40,8 +40,6 @@ def get_local_datasets(datasets_path):
             info = load_json(os.path.join(datasets_path, file))
             local_datasets[file.split(".")[0]] = info
 
-    local_datasets.pop("released")
-
     return local_datasets
 
 

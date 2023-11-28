@@ -5,9 +5,9 @@
 [![Survey](https://img.shields.io/badge/Survey-FormalGeo-blue)](https://github.com/FormalGeo/FormalGeo)
 
 Formal representation and solving for Euclidean plane geometry problems. Our goal is to build a crucial bridge between
-IMO-level plane geometry challenges and readable AI automated reasoning. More information about FormalGeo will be found
-in [homepage](https://formalgeo.github.io/).  
-FormalGeo is in its early stages and brimming with potential. We welcome anyone to join us in this exciting endeavor.
+IMO-level plane geometry challenges and readable AI automated reasoning.  
+More information about FormalGeo will be found in [homepage](https://formalgeo.github.io/). FormalGeo is in its early 
+stages and brimming with potential. We welcome anyone to join us in this exciting endeavor.
 
 ## Installation
 

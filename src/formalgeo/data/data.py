@@ -6,7 +6,6 @@ import json
 import tarfile
 import shutil
 import random
-import warnings
 
 remote = "https://raw.formalgeocontent.com/Formalgeo/Datasets/main/released/"
 

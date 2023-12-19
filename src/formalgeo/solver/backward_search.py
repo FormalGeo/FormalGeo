@@ -414,12 +414,12 @@ class SuperNode:
 
 class BackwardSearcher:
 
-    def __init__(self, predicate_GDL, theorem_GDL, method, max_depth, beam_size, t_info, debug=False):
+    def __init__(self, predicate_GDL, theorem_GDL, strategy, max_depth, beam_size, t_info, debug=False):
         """
         Initialize Forward Searcher.
         :param predicate_GDL: predicate GDL.
         :param theorem_GDL: theorem GDL.
-        :param method: <str>, "dfs", "bfs", "rs", "bs".
+        :param strategy: <str>, "dfs", "bfs", "rs", "bs".
         :param max_depth: max search depth.
         :param beam_size: beam search size.
         :param t_info: <dict>, {t_name: (category_id, usage_count)}, user customization.
@@ -429,7 +429,7 @@ class BackwardSearcher:
         self.parsed_theorem_GDL = parse_theorem_gdl(theorem_GDL, self.parsed_predicate_GDL)
         self.max_depth = max_depth
         self.beam_size = beam_size
-        self.method = method
+        self.strategy = strategy
         self.debug = debug
 
         self.node_map = None
@@ -469,7 +469,7 @@ class BackwardSearcher:
         """return seqs, <list> of theorem, solved theorem sequences."""
         pid = self.problem.parsed_problem_CDL["id"]
         debug_print(self.debug, "(pid={}) Start Searching".format(pid))
-        if self.method == "bfs":
+        if self.strategy == "bfs":
             while self.root.state not in [NodeState.success, NodeState.fail]:
                 self.clean_search_stack()
                 if len(self.search_stack) == 0:
@@ -495,7 +495,7 @@ class BackwardSearcher:
                 debug_print(self.debug, "(pid={},depth={},branch={}/{}) Checking Node End (timing={:.4f})".format(
                     pid, super_node.pos[0], super_node.pos[1], SuperNode.snc[super_node.pos[0]],
                     time.time() - timing))
-        elif self.method == "dfs":
+        elif self.strategy == "dfs":
             while self.root.state not in [NodeState.success, NodeState.fail]:
                 self.clean_search_stack()
                 if len(self.search_stack) == 0:
@@ -521,7 +521,7 @@ class BackwardSearcher:
                 debug_print(self.debug, "(pid={},depth={},branch={}/{}) Checking Node End (timing={:.4f})".format(
                     pid, super_node.pos[0], super_node.pos[1], SuperNode.snc[super_node.pos[0]],
                     time.time() - timing))
-        elif self.method == "rs":
+        elif self.strategy == "rs":
             while self.root.state not in [NodeState.success, NodeState.fail]:
                 self.clean_search_stack()
                 if len(self.search_stack) == 0:

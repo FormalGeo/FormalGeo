@@ -9,4 +9,4 @@ dist
 src/FormalGeo.egg-info
 
 # tests
-tests/outputs
+tests

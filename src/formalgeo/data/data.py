@@ -7,7 +7,7 @@ import tarfile
 import shutil
 import random
 
-remote = "https://raw.formalgeocontent.com/Formalgeo/Datasets/main/released/"
+remote = "https://raw.githubusercontent.com/Formalgeo/Datasets/main/released/"
 
 
 def get_datasets_path(datasets_path):
@@ -69,14 +69,16 @@ def show_available_datasets(datasets_path=None):
                 dataset_name = "\033[32m{}\033[0m".format(local_datasets[dataset]["dataset_name"])
             else:
                 dataset_name = "\033[33m{}\033[0m".format(local_datasets[dataset]["dataset_name"])
-            print(text.format(dataset_name,
+            print(text.format("local",
+                              dataset_name,
                               local_datasets[dataset]["dataset_version"],
                               local_datasets[dataset]["formalgeo_version"],
                               local_datasets[dataset]["gdl_name"],
                               local_datasets[dataset]["gdl_version"],
                               local_datasets[dataset]["release_datetime"],
                               local_datasets[dataset]["short_description"]))
-            print(text.format(remote_datasets[dataset]["dataset_name"],
+            print(text.format("remote",
+                              remote_datasets[dataset]["dataset_name"],
                               remote_datasets[dataset]["dataset_version"],
                               remote_datasets[dataset]["formalgeo_version"],
                               remote_datasets[dataset]["gdl_name"],
@@ -94,7 +96,8 @@ def show_available_datasets(datasets_path=None):
 
     for dataset in remote_datasets:
         if dataset not in local_datasets:
-            print(text.format(remote_datasets[dataset]["dataset_name"],
+            print(text.format("remote",
+                              remote_datasets[dataset]["dataset_name"],
                               remote_datasets[dataset]["dataset_version"],
                               remote_datasets[dataset]["formalgeo_version"],
                               remote_datasets[dataset]["gdl_name"],
@@ -102,11 +105,10 @@ def show_available_datasets(datasets_path=None):
                               remote_datasets[dataset]["release_datetime"],
                               remote_datasets[dataset]["short_description"]))
 
-    print("\nColored dataset name representation of the locally downloaded dataset.")
-    print("\033[32mGreen\033[0m indicates that the local version is in sync with the remote version.")
-    print("\033[33mYellow\033[0m indicates the remote dataset has updates.")
-    print("\033[34mBlue\033[0m represents the local dataset not in the remote repository.")
-    print("White represents the remote dataset that can be downloaded.")
+    print("\n<\033[32mGreen\033[0m> indicates that the local version is in sync with the remote version.")
+    print("<\033[33mYellow\033[0m> indicates the remote dataset has updates.")
+    print("<\033[34mBlue\033[0m> represents the local dataset not in the remote repository.")
+    print("<White> represents the remote dataset that can be downloaded.")
     print("Run 'formalgeo.data.download_dataset()' to download the remote dataset.")
 
 
@@ -154,7 +156,7 @@ def download_dataset(dataset_name, datasets_path=None):
         shutil.copy(os.path.join(datasets_path, dataset_name, "info.json"),
                     os.path.join(datasets_path, "{}.json".format(dataset_name)))
 
-        os.remove(os.path.join(datasets_path, "{}.tar.7z".format(dataset_name)))
+        os.remove(os.path.join(datasets_path, "{}.tar.gz".format(dataset_name)))
 
         return True
 

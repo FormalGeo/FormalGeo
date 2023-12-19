@@ -34,12 +34,12 @@ def get_p2t_map_fw(t_info, parsed_theorem_GDL):
 
 class ForwardSearcher:
 
-    def __init__(self, predicate_GDL, theorem_GDL, method, max_depth, beam_size, t_info, debug=False):
+    def __init__(self, predicate_GDL, theorem_GDL, strategy, max_depth, beam_size, t_info, debug=False):
         """
         Initialize Forward Searcher.
         :param predicate_GDL: predicate GDL.
         :param theorem_GDL: theorem GDL.
-        :param method: <str>, "dfs", "bfs", "rs", "bs".
+        :param strategy: <str>, "dfs", "bfs", "rs", "bs".
         :param max_depth: max search depth.
         :param beam_size: beam search size.
         :param t_info: <dict>, {t_name: (category_id, usage_count)}, user customization.
@@ -49,7 +49,7 @@ class ForwardSearcher:
         self.parsed_theorem_GDL = parse_theorem_gdl(theorem_GDL, self.parsed_predicate_GDL)
         self.max_depth = max_depth
         self.beam_size = beam_size
-        self.method = method
+        self.strategy = strategy
         self.debug = debug
         self.p2t_map = get_p2t_map_fw(t_info, self.parsed_theorem_GDL)
 
@@ -92,8 +92,8 @@ class ForwardSearcher:
                 for para in paras:
                     self.problem_a_paras.add(para)
 
-        debug_print(self.debug, "(pid={}, method={}, timing={:.4f}s) Initialize and start forward search...".format(
-            problem_CDL["problem_id"], self.method, time.time() - timing))
+        debug_print(self.debug, "(pid={}, strategy={}, timing={:.4f}s) Initialize and start forward search...".format(
+            problem_CDL["problem_id"], self.strategy, time.time() - timing))
 
         timing = time.time()
         selections = self.get_theorem_selection()
@@ -107,7 +107,7 @@ class ForwardSearcher:
         :return solved: <bool>, indicate whether problem solved or not.
         :return seqs: <list> of <str>, solved theorem sequences.
         """
-        if self.method == "bfs":  # breadth-first search
+        if self.strategy == "bfs":  # breadth-first search
             while len(self.stack) > 0:
                 pos, selection = self.stack.pop(0)
                 self.step_size += 1
@@ -129,7 +129,7 @@ class ForwardSearcher:
                     self.add_selections(pos, selections)
                     debug_print(self.debug, "(timing={:.4f}s) Expand {} child node.".
                                 format(time.time() - timing, len(selections)))
-        elif self.method == "dfs":  # deep-first search
+        elif self.strategy == "dfs":  # deep-first search
             while len(self.stack) > 0:
                 pos, selection = self.stack.pop()
                 self.step_size += 1
@@ -151,7 +151,7 @@ class ForwardSearcher:
                     self.add_selections(pos, selections)
                     debug_print(self.debug, "(timing={:.4f}s) Expand {} child node.".
                                 format(time.time() - timing, len(selections)))
-        elif self.method == "rs":  # random search
+        elif self.strategy == "rs":  # random search
             while len(self.stack) > 0:
                 pos, selection = self.stack.pop(random.randint(0, len(self.stack) - 1))
                 self.step_size += 1

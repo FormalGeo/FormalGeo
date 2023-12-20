@@ -1,6 +1,6 @@
 # FormalGeo
 
-[![Version](https://img.shields.io/badge/Version-0.0.1-brightgreen)](https://github.com/FormalGeo/FormalGeo)
+[![Version](https://img.shields.io/badge/Version-0.0.2-brightgreen)](https://github.com/FormalGeo/FormalGeo)
 [![License](https://img.shields.io/badge/License-MIT-green)](https://opensource.org/licenses/MIT)
 [![Survey](https://img.shields.io/badge/Survey-FormalGeo-blue)](https://github.com/FormalGeo/FormalGeo)
 
@@ -39,6 +39,7 @@ If you don't want to read `doc`, here is a short usage, start Python and:
 
     >>> from formalgeo.data import download_dataset, DatasetLoader
     >>> from formalgeo.solver import Interactor
+    >>> from formalgeo.parse import parse_theorem_seqs
 
 The `DatasetLoader` is used for dataset management, the `Interactor` act as an interactive solver, and `show_solution`
 is utilized to display the problem-solving process.
@@ -46,12 +47,18 @@ is utilized to display the problem-solving process.
     >>> download_dataset(dataset_name="formalgeo7k_v1")
     >>> dl = DatasetLoader(dataset_name="formalgeo7k_v1")
 
+You can customize the download location of the dataset using para `datasets_path`:
+
+    >>> download_dataset(dataset_name="formalgeo7k_v1", datasets_path="F:/datasets")
+    >>> dl = DatasetLoader(dataset_name="formalgeo7k_v1", datasets_path="F:/datasets")
+
 This example demonstrates using the `formalgeo7k_v1` dataset, and you can use the
 function `formalgeo.data.show_available_datasets()` to retrieve all available datasets. These datasets are annotated,
 released, and maintained within project [Datasets](https://github.com/FormalGeo/Datasets).
 
     >>> solver = Interactor(dl.predicate_GDL, dl.theorem_GDL)
     >>> problem_CDL = dl.get_problem(pid=1)
+    >>> solver.load_problem(problem_CDL)
     >>> for t_name, t_branch, t_para in parse_theorem_seqs(problem_CDL["theorem_seqs"]): solver.apply_theorem(t_name, t_branch, t_para)
     >>> solver.problem.check_goal()
 

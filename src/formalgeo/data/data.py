@@ -46,12 +46,12 @@ def show_available_datasets(datasets_path=None):
     datasets_path = get_datasets_path(datasets_path)
     remote_datasets = get_remote_datasets()
     local_datasets = get_local_datasets(datasets_path)
-    text = "{0:<15}{1:<15}{2:<15}{3:<15}{4:<15}{5:<15}{6:<22}{7:}"
-    print(text.format("Location", "Name", "Version", "Formalgeo", "GDL", "GDL-Version", "Release", "Description"))
+    text = "{0:<12}{1:<10}{2:<15}{3:<15}{4:<15}{5:<15}{6:<15}{7:<22}{8:}"
+    print(text.format("Location", "Status", "Name", "Version", "Formalgeo", "GDL", "GDL-Version", "Release", "Description"))
 
     if remote_datasets is None:
         for dataset in local_datasets:
-            print(text.format("local",
+            print(text.format("local", "U",
                               local_datasets[dataset]["dataset_name"],
                               local_datasets[dataset]["dataset_version"],
                               local_datasets[dataset]["formalgeo_version"],
@@ -66,27 +66,20 @@ def show_available_datasets(datasets_path=None):
     for dataset in local_datasets:
         if dataset in remote_datasets:
             if local_datasets[dataset]["release_datetime"] == remote_datasets[dataset]["release_datetime"]:
-                dataset_name = "\033[32m{}\033[0m".format(local_datasets[dataset]["dataset_name"])
+                status = "A"
             else:
-                dataset_name = "\033[33m{}\033[0m".format(local_datasets[dataset]["dataset_name"])
-            print(text.format("local",
-                              dataset_name,
+                status = "B"
+            print(text.format("local", status,
+                              local_datasets[dataset]["dataset_name"],
                               local_datasets[dataset]["dataset_version"],
                               local_datasets[dataset]["formalgeo_version"],
                               local_datasets[dataset]["gdl_name"],
                               local_datasets[dataset]["gdl_version"],
                               local_datasets[dataset]["release_datetime"],
                               local_datasets[dataset]["short_description"]))
-            print(text.format("remote",
-                              remote_datasets[dataset]["dataset_name"],
-                              remote_datasets[dataset]["dataset_version"],
-                              remote_datasets[dataset]["formalgeo_version"],
-                              remote_datasets[dataset]["gdl_name"],
-                              remote_datasets[dataset]["gdl_version"],
-                              remote_datasets[dataset]["release_datetime"],
-                              remote_datasets[dataset]["short_description"]))
         else:
-            print(text.format("\033[34m{}\033[0m".format(local_datasets[dataset]["dataset_name"]),
+            print(text.format("local", "C",
+                              local_datasets[dataset]["dataset_name"],
                               local_datasets[dataset]["dataset_version"],
                               local_datasets[dataset]["formalgeo_version"],
                               local_datasets[dataset]["gdl_name"],
@@ -95,20 +88,20 @@ def show_available_datasets(datasets_path=None):
                               local_datasets[dataset]["short_description"]))
 
     for dataset in remote_datasets:
-        if dataset not in local_datasets:
-            print(text.format("remote",
-                              remote_datasets[dataset]["dataset_name"],
-                              remote_datasets[dataset]["dataset_version"],
-                              remote_datasets[dataset]["formalgeo_version"],
-                              remote_datasets[dataset]["gdl_name"],
-                              remote_datasets[dataset]["gdl_version"],
-                              remote_datasets[dataset]["release_datetime"],
-                              remote_datasets[dataset]["short_description"]))
+        print(text.format("remote", "R",
+                          remote_datasets[dataset]["dataset_name"],
+                          remote_datasets[dataset]["dataset_version"],
+                          remote_datasets[dataset]["formalgeo_version"],
+                          remote_datasets[dataset]["gdl_name"],
+                          remote_datasets[dataset]["gdl_version"],
+                          remote_datasets[dataset]["release_datetime"],
+                          remote_datasets[dataset]["short_description"]))
 
-    print("\n<\033[32mGreen\033[0m> indicates that the local version is in sync with the remote version.")
-    print("<\033[33mYellow\033[0m> indicates the remote dataset has updates.")
-    print("<\033[34mBlue\033[0m> represents the local dataset not in the remote repository.")
-    print("<White> represents the remote dataset that can be downloaded.")
+    print("\n<A> indicates that the local version is in sync with the remote version.")
+    print("<B> indicates the remote dataset has updates.")
+    print("<C> represents the local dataset not in the remote repository.")
+    print("<D> represents the remote dataset that can be downloaded.")
+    print("<R> represents the remote datasets.")
     print("Run 'formalgeo.data.download_dataset()' to download the remote dataset.")
 
 
@@ -282,3 +275,7 @@ class DatasetLoader:
         else:
             with open(os.path.join(file_path, filename)) as f:
                 return f.read()
+
+
+if __name__ == '__main__':
+    show_available_datasets("F:/test/datasets")

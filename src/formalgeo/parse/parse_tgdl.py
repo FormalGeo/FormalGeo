@@ -234,19 +234,21 @@ def parse_conclusion(conclusion_GDL):
     """
     paras = []
     attrs = []
+    parsed_conclusion_GDL = []
     for i in range(len(conclusion_GDL)):
         if "Equal" in conclusion_GDL[i]:
-            conclusion_GDL[i], eq_attrs = parse_equal_predicate(conclusion_GDL[i], True)
+            parsed_GDL, eq_attrs = parse_equal_predicate(conclusion_GDL[i], True)
+            parsed_conclusion_GDL.append(parsed_GDL)
             attrs += eq_attrs
             for attr, para in eq_attrs:
                 paras += list(para)
         else:
             predicate, para, _ = parse_geo_predicate(conclusion_GDL[i], True)
-            conclusion_GDL[i] = (predicate, tuple(para))
+            parsed_conclusion_GDL.append((predicate, tuple(para)))
             paras += para
 
     parsed_conclusion_GDL = {
-        "conclusions": tuple(conclusion_GDL),
+        "conclusions": tuple(parsed_conclusion_GDL),
         "attr_in_conclusions": sorted(tuple([(attr, tuple(para)) for attr, para in set(attrs)]))
     }
     return parsed_conclusion_GDL, paras

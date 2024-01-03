@@ -1,7 +1,6 @@
 from sympy import Float
 from formalgeo.parse import inverse_parse_one, inverse_parse_logic_to_cdl, inverse_parse_one_theorem
-from formalgeo.tools import save_json
-from graphviz import Digraph, Graph
+from graphviz import Digraph
 import os
 
 
@@ -139,139 +138,6 @@ def show_solution(problem):
     print("total: {:.6f}s".format(time_sum))
 
 
-def get_solution_step(problem):
-    """Get conditions grouped by step in dict."""
-    step_msg = {
-        "cdl": inverse_parse_logic_to_cdl(problem),
-        "theorems_applied": {}
-    }
-    for step in problem.timing:
-        if isinstance(problem.timing[step][0], tuple):
-            step_msg["theorems_applied"][str(step)] = inverse_parse_one_theorem(
-                problem.timing[step][0], problem.parsed_theorem_GDL)
-
-    return step_msg
-
-
-def get_solution_hypertree(problem):
-    """Generate solution hyper tree and theorem DAG."""
-    group = {}  # (premise, theorem): [_id], used for building hyper graph.
-    cdl = {}  # _id: anti_parsed_cdl, user for getting cdl by id.
-
-    for _id in range(problem.condition.id_count):  # summary information
-        predicate, item, premise, theorem, _ = problem.condition.items[_id]
-        theorem = inverse_parse_one_theorem(theorem, problem.parsed_theorem_GDL)
-        cdl[_id] = inverse_parse_one(predicate, item, problem)
-        if theorem == "prerequisite":  # prerequisite not show in graph
-            continue
-        if (premise, theorem) not in group:
-            group[(premise, theorem)] = [_id]
-        else:
-            group[(premise, theorem)].append(_id)
-
-    if problem.goal.solved and problem.goal.type == "algebra":  # if target solved, add target
-        eq = problem.goal.item - problem.goal.answer
-        if eq not in problem.condition.get_items_by_predicate("Equation"):  # target not in condition set
-            target_equation = inverse_parse_one("Equation", eq, problem)
-            _id = len(cdl)
-            cdl[_id] = target_equation
-            group[(problem.goal.premise, problem.goal.theorem)] = [_id]
-
-    solution_hypertree = {}
-    for premise, theorem in group:  # generate solution tree
-        start_nodes = [cdl[_id] for _id in premise]
-
-        conclusion = group[(premise, theorem)]
-        end_nodes = [cdl[_id] for _id in conclusion]
-
-        solution_hypertree[len(solution_hypertree)] = {
-            "conditions": start_nodes,
-            "theorem": theorem,
-            "conclusion": end_nodes
-        }
-
-    return solution_hypertree
-
-
-def get_theorem_dag(problem):
-    """Generate theorem DAG."""
-    group = {}  # (premise, theorem): [_id], used for building theorem DAG.
-    for _id in range(problem.condition.id_count):  # summary information
-        predicate, item, premise, theorem, _ = problem.condition.items[_id]
-        if theorem[0] == "prerequisite":  # prerequisite not show in graph
-            continue
-        if (premise, theorem) not in group:
-            group[(premise, theorem)] = [_id]
-        else:
-            group[(premise, theorem)].append(_id)
-    if problem.goal.solved and problem.goal.type == "algebra":  # if target solved, add target
-        eq = problem.goal.item - problem.goal.answer
-        if eq not in problem.condition.get_items_by_predicate("Equation"):  # target not in condition set
-            group[(problem.goal.premise, problem.goal.theorem)] = [problem.condition.id_count]
-
-    adjust_group = {}
-    for premise, theorem in group:
-        adjust_theorem = (theorem[0], theorem[1], theorem[2], len(adjust_group))
-        adjust_group[(premise, adjust_theorem)] = group[(premise, theorem)]
-
-    rough_dag = {}
-    for premise, theorem in adjust_group:  # generate theorem dag
-        conclusion = adjust_group[(premise, theorem)]
-        if theorem not in rough_dag:
-            rough_dag[theorem] = []
-
-        for _id in conclusion:
-            for tail_premise, tail_theorem in adjust_group:
-                if _id in tail_premise and tail_theorem not in rough_dag[theorem]:
-                    rough_dag[theorem].append(tail_theorem)
-
-    update = True
-    while update:  # remove tail which contains 'extended' and 'solve_eq'
-        update = False
-        for head in rough_dag:
-            for tail in list(rough_dag[head]):
-                if tail[0] not in ["extended", "solve_eq"]:
-                    continue
-                rough_dag[head].pop(rough_dag[head].index(tail))
-                if tail not in rough_dag:
-                    continue
-                for new_tail in rough_dag[tail]:
-                    rough_dag[head].append(new_tail)
-                    update = True
-
-    cleaned_dag = {}
-    for head in rough_dag:  # remove head which contains 'extended' and 'solve_eq'
-        if head[0] in ["extended", "solve_eq"]:
-            continue
-        cleaned_dag[head] = []
-        for tail in rough_dag[head]:
-            cleaned_dag[head].append(tail)
-
-    start_nodes = []
-    for head in cleaned_dag:  # get START nodes
-        is_start_node = True
-        for check_head in cleaned_dag:
-            if head in cleaned_dag[check_head]:
-                is_start_node = False
-                break
-        if is_start_node:
-            start_nodes.append(inverse_parse_one_theorem(
-                (head[0], head[1], head[2]), problem.parsed_theorem_GDL))
-
-    dag = {"START": start_nodes}
-    for head in cleaned_dag:
-        if len(cleaned_dag[head]) == 0:
-            continue
-        inverse_adjust_head = inverse_parse_one_theorem(
-            (head[0], head[1], head[2]), problem.parsed_theorem_GDL)
-        dag[inverse_adjust_head] = [
-            inverse_parse_one_theorem((tail[0], tail[1], tail[2]), problem.parsed_theorem_GDL)
-            for tail in cleaned_dag[head]
-        ]
-
-    return dag
-
-
 def get_used_pid_and_theorem(problem):
     """Return used condition id and theorem for solving problem."""
     if not problem.goal.solved:
@@ -302,196 +168,209 @@ def get_used_pid_and_theorem(problem):
     return used_pid, selected_theorem
 
 
-def draw_solution_tree_and_theorem_dag(problem, path):
-    """Generate and save solution hyper tree and theorem DAG."""
-    st_dot = Digraph(name=str(problem.parsed_problem_CDL["id"]))  # Tree
-    nodes = []  # list of node(cdl or theorem).
-    t_nodes = []  # theorem nodes, used for DAG generating.
-    edges = {}  # node(cdl or theorem): [node(cdl or theorem)], used for DAG generating.
+def get_meta_hypertree(problem):
+    """
+    Generate meta hypertree message for downstream task.
+    :return nodes: all nodes, {node_id: node_name}, such as {1: "Equation(ll_ab-1)"}
+    :return edges: all edges, {edge_id: edge_name}, such as {1: "extended"}
+    :return free_nodes: nodes not in hypertree but in prerequisite, [node_id], such as [1, 2, 3]
+    :return hypertree: {((tail_node_ids), edge_id): (tail_node_ids))}, such as {((1, 2, 3), 1): (4, 5))}
+    """
     group = {}  # (premise, theorem): [_id], used for building hyper graph.
     cdl = {}  # _id: anti_parsed_cdl, user for getting cdl by id.
+    init_nodes = []  # [_id], id of prerequisite.
+    tree_nodes = []  # [_id], id of tree nodes.
 
-    for _id in range(problem.condition.id_count):  # summary information
-        predicate, item, premise, theorem, _ = problem.condition.items[_id]
+    for node_id in range(problem.condition.id_count):  # group conditions
+        predicate, item, premise, theorem, _ = problem.condition.items[node_id]
         theorem = inverse_parse_one_theorem(theorem, problem.parsed_theorem_GDL)
-        cdl[_id] = inverse_parse_one(predicate, item, problem)
+
+        if (predicate in problem.parsed_predicate_GDL["Preset"]["Construction"] or
+            predicate in problem.parsed_predicate_GDL["Preset"]["BasicEntity"]) and \
+                theorem == "extended":
+            continue  # skip construction cdl extending process
+
+        if predicate == "Equation":
+            cdl[node_id] = "Equation" + "(" + str(item).replace(" ", "") + ")"
+        else:
+            cdl[node_id] = inverse_parse_one(predicate, item, problem)
+
         if theorem == "prerequisite":  # prerequisite not show in graph
+            init_nodes.append(node_id)
             continue
         if (premise, theorem) not in group:
-            group[(premise, theorem)] = [_id]
+            group[(premise, theorem)] = [node_id]
         else:
-            group[(premise, theorem)].append(_id)
+            group[(premise, theorem)].append(node_id)
 
-    used_id, _ = get_used_pid_and_theorem(problem)  # just keep useful solution msg
-    if problem.goal.solved:  # if target solved, add target
-        if problem.goal.type == "algebra":
-            eq = problem.goal.item - problem.goal.answer
-            if eq not in problem.condition.get_items_by_predicate("Equation"):  # target not in condition set
-                target_equation = inverse_parse_one("Equation", eq, problem)
-                _id = len(cdl)
-                cdl[_id] = target_equation
-                group[(problem.goal.premise, problem.goal.theorem)] = [_id]
-                used_id.append(_id)
-            else:
-                used_id.append(problem.condition.get_id_by_predicate_and_item("Equation", eq))
-        else:
-            used_id.append(problem.condition.get_id_by_predicate_and_item(problem.goal.item, problem.goal.answer))
-        used_id += list(problem.goal.premise)
+    if problem.goal.solved and problem.goal.type == "algebra":  # if target solved, add target
+        eq = problem.goal.item - problem.goal.answer
+        if eq not in problem.condition.get_items_by_predicate("Equation"):  # target not in condition set
+            node_id = len(cdl)
+            cdl[node_id] = "Equation" + "(" + str(eq).replace(" ", "") + ")"
+            theorem = inverse_parse_one_theorem(problem.goal.theorem, problem.parsed_theorem_GDL)
+            group[(problem.goal.premise, theorem)] = [node_id]
 
-    remove_list = []
-    for key in group:
-        premise = key[0]
-        not_used_in_premise = True
-        l = 0
-        while not_used_in_premise and l < len(premise):
-            if premise[l] in used_id:
-                not_used_in_premise = False
-                break
-            l += 1
+    edges = {-2: "none", -1: "self"}
+    tree = {}
+    for premise, theorem in group:  # make construction premise to prerequisite
+        conclusion = group[(premise, theorem)]
+        edge_id = len(edges)
+        edges[edge_id] = theorem
+        new_premise = []
+        for node_id in premise:
+            predicate, _, premise, theorem, _ = problem.condition.items[node_id]
+            if (predicate in problem.parsed_predicate_GDL["Preset"]["Construction"] or
+                    predicate in problem.parsed_predicate_GDL["Preset"]["BasicEntity"]):
+                while theorem[0] != "prerequisite":
+                    node_id = premise[0]
+                    _, _, premise, theorem, _ = problem.condition.items[node_id]
+            new_premise.append(node_id)
+        tree_nodes += new_premise
+        tree_nodes += conclusion
+        tree[(tuple(set(new_premise)), edge_id)] = conclusion
 
-        conclusion = group[key]
-        not_used_in_conclusion = True
-        l = 0
-        while not_used_in_conclusion and l < len(conclusion):
-            if conclusion[l] in used_id:
-                not_used_in_conclusion = False
-                break
-            l += 1
+    nodes = {}
+    for node_id in sorted(list(set(tree_nodes + init_nodes))):
+        nodes[node_id] = cdl[node_id]
 
-        if not_used_in_premise or not_used_in_conclusion:
-            remove_list.append(key)
+    free_nodes = sorted(list(set(init_nodes) - set(tree_nodes)))
 
-    for key in remove_list:
-        group.pop(key)
+    return nodes, edges, free_nodes, tree
 
-    count = 0
-    solution_tree = {}
-    for key in group:  # generate solution tree
-        premise, theorem = key
-        conclusion = group[key]
 
-        theorem_node = theorem + "_{}".format(count)  # theorem name in hyper
-        t_nodes.append(theorem_node)
-        _add_node(st_dot, nodes, theorem_node)
-
-        start_nodes = []
-        for _id in premise:
-            if _id not in used_id:
-                continue
-            _add_node(st_dot, nodes, cdl[_id])  # add node to graph
-            start_nodes.append(cdl[_id])  # add to json output
-            _add_edge(st_dot, nodes, cdl[_id], theorem_node, edges)  # add edge to graph
-
-        end_nodes = []
-        for _id in conclusion:
-            if _id not in used_id:
-                continue
-            _add_node(st_dot, nodes, cdl[_id])  # add node to graph
-            end_nodes.append(cdl[_id])  # add to json output
-            _add_edge(st_dot, nodes, theorem_node, cdl[_id], edges)  # add edge to graph
-
-        solution_tree[count] = {
-            "conditions": start_nodes,
+def get_solution_hypertree(problem):
+    """Generate solution hyper tree."""
+    nodes, edges, free_nodes, tree = get_meta_hypertree(problem)
+    parsed_tree = {}
+    for premise, theorem in tree:
+        conditions = [nodes[node_id] for node_id in premise]
+        conclusions = [nodes[node_id] for node_id in tree[(premise, theorem)]]
+        theorem = edges[theorem]
+        parsed_tree[len(tree) + 1] = {
+            "conditions": conditions,
             "theorem": theorem,
-            "conclusion": end_nodes
+            "conclusions": conclusions
         }
-        count += 1
 
-    save_json(solution_tree, path + "{}_hyper.json".format(problem.parsed_problem_CDL["id"]))  # save solution tree
-    st_dot.render(directory=path, view=False, format="png")  # save hyper graph
+    hypertree = {
+        "nodes": list(nodes.values()),
+        "free_nodes": [nodes[node_id] for node_id in free_nodes],
+        "tree": parsed_tree
+    }
+    return hypertree
+
+
+def draw_solution_hypertree(problem, path):
+    """Draw solution hyper tree and save as .png."""
+    nodes, edges, free_nodes, tree = get_meta_hypertree(problem)
+    dot = Digraph(name=str(problem.parsed_problem_CDL["id"]))
+
+    for node_id in free_nodes:
+        dot.node(str(node_id), nodes[node_id], shape='box')
+
+    nodes_added = []
+    for premise, theorem in tree:
+        dot.node(str(theorem), edges[theorem])
+
+        for node_id in premise:
+            if node_id not in nodes_added:
+                nodes_added.append(node_id)
+                dot.node(str(node_id), nodes[node_id], shape='box')
+            dot.edge(str(node_id), str(theorem))
+
+        conclusions = tree[(premise, theorem)]
+        for node_id in conclusions:
+            if node_id not in nodes_added:
+                nodes_added.append(node_id)
+                dot.node(str(node_id), nodes[node_id], shape='box')
+            dot.edge(str(theorem), str(node_id))
+
+    dot.render(directory=path, view=False, format="png")  # save hyper graph
     os.remove(path + "{}.gv".format(problem.parsed_problem_CDL["id"]))
     if "{}_hyper.png".format(problem.parsed_problem_CDL["id"]) in os.listdir(path):
         os.remove(path + "{}_hyper.png".format(problem.parsed_problem_CDL["id"]))
     os.rename(path + "{}.gv.png".format(problem.parsed_problem_CDL["id"]),
               path + "{}_hyper.png".format(problem.parsed_problem_CDL["id"]))
 
-    dag_dot = Digraph(name=str(problem.parsed_problem_CDL["id"]))  # generate theorem DAG
-    nodes = []  # list of theorem.
-    dag = {}
 
-    for s_node in edges:  # select theorem nodes
-        if s_node not in t_nodes:
-            continue
-        dag[s_node] = []
-        for m_node in edges[s_node]:  # middle condition
-            if m_node not in edges:
-                continue
-            for e_node in edges[m_node]:
-                dag[s_node].append(e_node)
+def get_theorem_dag(problem):
+    """Generate theorem DAG."""
+    nodes, edges, free_nodes, tree = get_meta_hypertree(problem)
+
+    rough_dag = {}
+    for premise, theorem in tree:  # generate theorem dag
+        if theorem not in rough_dag:
+            rough_dag[theorem] = []
+
+        for _id in tree[(premise, theorem)]:
+            for tail_premise, tail_theorem in tree:
+                if _id in tail_premise and tail_theorem not in rough_dag[theorem]:
+                    rough_dag[theorem].append(tail_theorem)
 
     update = True
-    while update:  # remove extended and solve_eq nodes
+    while update:  # remove tail which contains 'extended' and 'solve_eq'
         update = False
-        for head in dag:
-            for tail in dag[head]:
-                if not (tail.startswith("extended") or tail.startswith("solve_eq")):
+        for head in rough_dag:
+            for tail in list(rough_dag[head]):
+                if edges[tail] not in ["extended", "solve_eq"]:
                     continue
-                dag[head].pop(dag[head].index(tail))
-                if tail not in dag:
+                rough_dag[head].pop(rough_dag[head].index(tail))
+                if tail not in rough_dag:
                     continue
-                for new_tail in dag[tail]:
-                    dag[head].append(new_tail)
+                for new_tail in rough_dag[tail]:
+                    rough_dag[head].append(new_tail)
                     update = True
 
-    cleaned = {}
-    for key in dag:
-        if key.startswith("extended") or key.startswith("solve_eq"):
+    cleaned_dag = {}
+    for head in rough_dag:  # remove head which contains 'extended' and 'solve_eq'
+        if edges[head] in ["extended", "solve_eq"]:
             continue
-        new_key = key.split(")")[0] + ")"
-        cleaned[new_key] = []
-        for tail in dag[key]:
-            cleaned[new_key].append(tail.split(")")[0] + ")")
-    dag = cleaned
+        cleaned_dag[head] = []
+        for tail in rough_dag[head]:
+            cleaned_dag[head].append(tail)
 
-    root_nodes = []
-    child_nodes = []
-    real_root_nodes = []
-    real_child_nodes = []
-    for head in dag:  # build DAG graph
-        _add_node(dag_dot, nodes, head)
-        root_nodes.append(head)
-        if len(dag[head]) == 0:
-            real_child_nodes.append(head)
+    start_nodes = []
+    for head in cleaned_dag:  # get START nodes
+        is_start_node = True
+        for check_head in cleaned_dag:
+            if head in cleaned_dag[check_head]:
+                is_start_node = False
+                break
+        if is_start_node:
+            start_nodes.append(edges[head])
+
+    dag = {"START": start_nodes}
+    for head in cleaned_dag:
+        if len(cleaned_dag[head]) == 0:
             continue
-        for tail in set(dag[head]):
-            _add_node(dag_dot, nodes, tail)
-            _add_edge(dag_dot, nodes, head, tail)
-            child_nodes.append(tail)
+        inverse_adjust_head = edges[head]
+        dag[inverse_adjust_head] = [edges[tail] for tail in cleaned_dag[head]]
 
-    _add_node(dag_dot, nodes, "START")  # add START node
-    for root in root_nodes:
-        if root in child_nodes:
-            continue
-        real_root_nodes.append(root)
-        _add_node(dag_dot, nodes, root)
-        _add_edge(dag_dot, nodes, "START", root)
-    dag["START"] = real_root_nodes
+    return dag
 
-    save_json(dag, path + "{}_dag.json".format(problem.parsed_problem_CDL["id"]))  # save solution tree
-    dag_dot.render(directory=path, view=False, format="png")  # save hyper graph
+
+def draw_theorem_dag(problem, path):
+    """Draw theorem DAG."""
+    dag = get_theorem_dag(problem)
+    dot = Digraph(name=str(problem.parsed_problem_CDL["id"]))
+    nodes = []  # list of theorem.
+
+    for head in dag:
+        if head not in nodes:
+            nodes.append(head)
+            dot.node(str(nodes.index(head)), head, shape='box')
+
+        for tail in dag[head]:
+            if tail not in nodes:
+                nodes.append(tail)
+                dot.node(str(nodes.index(tail)), tail, shape='box')
+
+            dot.edge(str(nodes.index(head)), str(nodes.index(tail)))
+
+    dot.render(directory=path, view=False, format="png")  # save theorem DAG
     os.remove(path + "{}.gv".format(problem.parsed_problem_CDL["id"]))
     if "{}_dag.png".format(problem.parsed_problem_CDL["id"]) in os.listdir(path):
         os.remove(path + "{}_dag.png".format(problem.parsed_problem_CDL["id"]))
     os.rename(path + "{}.gv.png".format(problem.parsed_problem_CDL["id"]),
               path + "{}_dag.png".format(problem.parsed_problem_CDL["id"]))
-
-
-def _add_node(dot, nodes, node):
-    if node in nodes:  # node was already added
-        return
-
-    added_node_id = len(nodes)
-    nodes.append(node)
-    if node[0].isupper():
-        dot.node(str(added_node_id), node, shape='box')  # condition node
-    else:
-        dot.node(str(added_node_id), node)  # theorem node
-
-
-def _add_edge(dot, nodes, start_node, end_node, edges=None):
-    dot.edge(str(nodes.index(start_node)), str(nodes.index(end_node)))
-    if edges is not None:
-        if start_node not in edges:
-            edges[start_node] = [end_node]
-        else:
-            edges[start_node].append(end_node)

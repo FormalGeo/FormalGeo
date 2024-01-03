@@ -270,50 +270,9 @@ class Problem:
 
         # 5.Angle collinear expand.
         for angle in self.condition.get_items_by_predicate("Angle"):
-            a, v, b = angle
-            a_collinear = None
-            b_collinear = None
-            for predicate, item in self.parsed_problem_CDL["parsed_cdl"]["construction_cdl"]:
-                if predicate == "Collinear" and v in item:
-                    if a in item:
-                        a_collinear = item
-                    if b in item:
-                        b_collinear = item
-
-            a_points = []  # Points collinear with a and on the same side with a
-            b_points = []
-            if a_collinear is not None:
-                if a_collinear.index(v) < a_collinear.index(a):  # .....V...P..
-                    i = a_collinear.index(v) + 1
-                    while i < len(a_collinear):
-                        a_points.append(a_collinear[i])
-                        i += 1
-                else:  # ...P.....V...
-                    i = 0
-                    while i < a_collinear.index(v):
-                        a_points.append(a_collinear[i])
-                        i += 1
-            else:
-                a_points.append(a)
-
-            if b_collinear is not None:
-                if b_collinear.index(v) < b_collinear.index(b):  # .....V...P..
-                    i = b_collinear.index(v) + 1
-                    while i < len(b_collinear):
-                        b_points.append(b_collinear[i])
-                        i += 1
-                else:  # ...P.....V...
-                    i = 0
-                    while i < b_collinear.index(v):
-                        b_points.append(b_collinear[i])
-                        i += 1
-            else:
-                b_points.append(b)
-
-            for a_point in a_points:
-                for b_point in b_points:
-                    premise = (self.condition.get_id_by_predicate_and_item("Angle", angle),)
-                    self.add("Angle", (a_point, v, b_point), premise, ("extended", None, None))
+            premise = (self.condition.get_id_by_predicate_and_item("Angle", angle),)
+            for same_angle in self._get_same_angles(angle):
+                self.add("Angle", same_angle, premise, ("extended", None, None))
 
         # 6.Angle expand (vertical angle).
         for angle in self.condition.get_items_by_predicate("Angle"):
@@ -340,7 +299,7 @@ class Problem:
         while i < len(shape):
             if len(shape[i]) == 2:
                 self.add("Line", (shape[i][0], shape[i][1]),
-                         (-1,), ("prerequisite", None, None))
+                         (_id,), ("extended", None, None))
             else:
                 has_arc = True
                 i += 1
@@ -349,7 +308,7 @@ class Problem:
             j = (i + 1) % len(shape)
             if len(shape[j]) == 2:
                 self.add("Angle", (shape[i][0], shape[i][1], shape[j][1]),
-                         (-1,), ("prerequisite", None, None))  # extend angle
+                         (_id,), ("extended", None, None))  # extend angle
                 if (shape[i][0], shape[i][1], shape[j][1]) in col:
                     shape[i] = shape[i][0] + shape[j][1]
                     shape.pop(j)
@@ -366,27 +325,29 @@ class Problem:
                 i += 1
             if valid:
                 self.add("Polygon", tuple([item[0] for item in shape]),
-                         (-1,), ("prerequisite", None, None))
+                         (_id,), ("extended", None, None))
 
         return True, set(all_forms)
 
-    def _align_angle_sym(self, angle):
+    def _get_same_angles(self, angle):
         """
-        Make the symbols of angles the same.
-        Measure(Angle(ABC)), Measure(Angle(ABD))  ==>  m_abc,  if Collinear(BCD)
+        Expanding angles according to collinear.
+        Angle(ABC), Collinear(BCD)  ==>  Angle(ABD)
         """
-        sym = symbols("ma_" + "".join(angle).lower(), positive=True)  # init sym
-        self.condition.value_of_sym[sym] = None  # init symbol's value
+        collinear = []
+        for _id in self.condition.ids_of_predicate["Collinear"]:
+            if self.condition.items[_id][3] == ("prerequisite", None, None):
+                collinear.append(self.condition.items[_id][1])
 
         a, v, b = angle
         a_collinear = None
         b_collinear = None
-        for predicate, item in self.parsed_problem_CDL["parsed_cdl"]["construction_cdl"]:
-            if predicate == "Collinear" and v in item:
-                if a in item:
-                    a_collinear = item
-                if b in item:
-                    b_collinear = item
+        for collinear_points in collinear:
+            if v in collinear_points:
+                if a in collinear_points:
+                    a_collinear = collinear_points
+                if b in collinear_points:
+                    b_collinear = collinear_points
 
         a_points = []  # Points collinear with a and on the same side with a
         b_points = []
@@ -423,11 +384,7 @@ class Problem:
             for b_point in b_points:
                 same_angles.append((a_point, v, b_point))
 
-        for same_angle in same_angles:
-            self.condition.sym_of_attr[("MeasureOfAngle", same_angle)] = sym
-        self.condition.attr_of_sym[sym] = ("MeasureOfAngle", tuple(same_angles))
-
-        return sym
+        return same_angles
 
     def add(self, predicate, item, premise, theorem, skip_check=False):
         """
@@ -671,7 +628,13 @@ class Problem:
             return sym
 
         if attr == "MeasureOfAngle":  # align angle's sym
-            return self._align_angle_sym(item)
+            sym = symbols("ma_" + "".join(item).lower(), positive=True)  # init sym
+            self.condition.value_of_sym[sym] = None  # init symbol's value
+            same_angles = self._get_same_angles(item)
+            for same_angle in same_angles:
+                self.condition.sym_of_attr[("MeasureOfAngle", same_angle)] = sym
+            self.condition.attr_of_sym[sym] = ("MeasureOfAngle", tuple(same_angles))
+            return sym
 
         attr_GDL = self.parsed_predicate_GDL["Attribution"][attr]
         if (attr, item) not in self.condition.sym_of_attr:  # No symbolic representation, initialize one.

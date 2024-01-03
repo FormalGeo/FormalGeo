@@ -248,10 +248,10 @@ class DatasetLoader:
 
         data = {
             "msg": {
-                "total": total,
                 "train": len(train),
                 "val": len(val),
-                "test": len(test)
+                "test": len(test),
+                "total": total
             },
             "split": {
                 "train": train,

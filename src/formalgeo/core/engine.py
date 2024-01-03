@@ -463,7 +463,7 @@ class EquationKiller:
         :param target_expr: symbol expression.
         """
         if target_expr is None:
-            return None, None
+            return None, []
 
         if target_expr in problem.condition.get_items_by_predicate("Equation"):  # no need to solve
             return 0, [problem.condition.get_id_by_predicate_and_item("Equation", target_expr)]

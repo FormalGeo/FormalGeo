@@ -1,12 +1,12 @@
 # FormalGeo
 
-[![Version](https://img.shields.io/badge/Version-0.0.2-brightgreen)](https://github.com/FormalGeo/FormalGeo)
+[![Version](https://img.shields.io/badge/Version-0.0.3-brightgreen)](https://github.com/FormalGeo/FormalGeo)
 [![License](https://img.shields.io/badge/License-MIT-green)](https://opensource.org/licenses/MIT)
 [![Survey](https://img.shields.io/badge/Survey-FormalGeo-blue)](https://github.com/FormalGeo/FormalGeo)
 
 Formal representation and solving for Euclidean plane geometry problems. Our goal is to build a crucial bridge between
 IMO-level plane geometry challenges and readable AI automated reasoning.  
-More information about FormalGeo will be found in [homepage](https://formalgeo.github.io/). FormalGeo is in its early 
+More information about FormalGeo will be found in [homepage](https://formalgeo.github.io/). FormalGeo is in its early
 stages and brimming with potential. We welcome anyone to join us in this exciting endeavor.
 
 ## Installation
@@ -41,20 +41,13 @@ If you don't want to read `doc`, here is a short usage, start Python and:
     >>> from formalgeo.solver import Interactor
     >>> from formalgeo.parse import parse_theorem_seqs
 
-The `DatasetLoader` is used for dataset management, the `Interactor` act as an interactive solver, and `show_solution`
-is utilized to display the problem-solving process.
+The `DatasetLoader` is used for dataset management, the `Interactor` act as an interactive solver. Download and load
+dataset `formalgeo7k_v1`.
 
-    >>> download_dataset(dataset_name="formalgeo7k_v1")
-    >>> dl = DatasetLoader(dataset_name="formalgeo7k_v1")
+    >>> download_dataset(dataset_name="formalgeo7k_v1", datasets_path="your_datasets_path")
+    >>> dl = DatasetLoader(dataset_name="formalgeo7k_v1", datasets_path="your_datasets_path")
 
-You can customize the download location of the dataset using para `datasets_path`:
-
-    >>> download_dataset(dataset_name="formalgeo7k_v1", datasets_path="F:/datasets")
-    >>> dl = DatasetLoader(dataset_name="formalgeo7k_v1", datasets_path="F:/datasets")
-
-This example demonstrates using the `formalgeo7k_v1` dataset, and you can use the
-function `formalgeo.data.show_available_datasets()` to retrieve all available datasets. These datasets are annotated,
-released, and maintained within project [Datasets](https://github.com/FormalGeo/Datasets).
+Initialize the solver, load the problems, and apply the annotated sequence of theorems for solving:
 
     >>> solver = Interactor(dl.predicate_GDL, dl.theorem_GDL)
     >>> problem_CDL = dl.get_problem(pid=1)
@@ -62,17 +55,10 @@ released, and maintained within project [Datasets](https://github.com/FormalGeo/
     >>> for t_name, t_branch, t_para in parse_theorem_seqs(problem_CDL["theorem_seqs"]): solver.apply_theorem(t_name, t_branch, t_para)
     >>> solver.problem.check_goal()
 
-Initialize the solver, load the problems, and apply the annotated sequence of theorems for solving. Then, print the
-problem-solving process:
+Print the problem-solving process:
 
     >>> from formalgeo.tools import show_solution
     >>> show_solution(solver.problem)
-
-The problem-solving process is represented as a hypertree with conditions as hypernodes and theorems as hyperedges,
-which you can save as JSON file:
-
-    >>> from formalgeo.tools import save_json, get_solution_hypertree
-    >>> save_json(get_solution_hypertree(solver.problem), "1_hypertree.json")
 
 ## Contributing
 

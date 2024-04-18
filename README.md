@@ -1,6 +1,6 @@
 # FormalGeo
 
-[![Version](https://img.shields.io/badge/Version-0.0.3-brightgreen)](https://github.com/FormalGeo/FormalGeo)
+[![Version](https://img.shields.io/badge/Version-0.0.4-brightgreen)](https://github.com/FormalGeo/FormalGeo)
 [![License](https://img.shields.io/badge/License-MIT-green)](https://opensource.org/licenses/MIT)
 [![Survey](https://img.shields.io/badge/Survey-FormalGeo-blue)](https://github.com/FormalGeo/FormalGeo)
 
@@ -70,23 +70,6 @@ page](./doc/contributing.md).
 Our bug reporting platform is available at [here](https://github.com/FormalGeo/FormalGeo/issues). We encourage you to
 report any issues you encounter. Or even better, fork our repository on GitHub and submit a pull request. We appreciate
 contributions of all sizes and are happy to assist newcomers to git with their pull requests.
-
-## Related Projects
-
-**Datasets**  
-URL: https://github.com/FormalGeo/Datasets  
-Intro: This project is used for the design and release of geometry formal systems and datasets. It currently includes 2
-formal systems, GFS-BASIC and GFS-IMO, and the corresponding datasets formalgeo7k and formalgeo-imo.
-
-**FGPS**  
-URL: https://github.com/BitSecret/FGPS  
-Intro: This project has implemented an automated solving algorithm for geometric problems based on search, including
-forward search and backward search. FGPS is capable of adopting various search strategies, such as breadth-first search,
-depth-first search, random search and beam search.
-
-**FGeoDRL**  
-URL: https://github.com/PersonNoName/FGeoDRL
-Intro: coming soon...
 
 ## Citation
 

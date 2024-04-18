@@ -1,4 +1,4 @@
-# Copyright (C) 2022-2023 FormalGeo Development Team
+# Copyright (C) 2022-2024 FormalGeo Development Team
 # Author: Xiaokai Zhang
 # Contact: formalgeo@gmail.com
 
@@ -7,3 +7,5 @@
 __all__ = [
     "core", "data", "parse", "problem", "solver", "tools"
 ]
+
+__version__ = "0.0.4"

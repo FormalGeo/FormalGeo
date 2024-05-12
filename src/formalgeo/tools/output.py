@@ -247,7 +247,7 @@ def get_solution_hypertree(problem):
         conditions = [nodes[node_id] for node_id in premise]
         conclusions = [nodes[node_id] for node_id in tree[(premise, theorem)]]
         theorem = edges[theorem]
-        parsed_tree[len(tree) + 1] = {
+        parsed_tree[len(parsed_tree) + 1] = {
             "conditions": conditions,
             "theorem": theorem,
             "conclusions": conclusions

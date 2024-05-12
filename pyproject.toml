@@ -19,6 +19,7 @@ dependencies = [
     "sympy>=1.10",
     "func-timeout>=4.3",
     "requests>=2.31",
+    "chardet==5.2.0",
     "tqdm>=4.66.1",
     "graphviz>=0.20.1"
 ]

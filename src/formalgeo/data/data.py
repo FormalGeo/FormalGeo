@@ -228,6 +228,11 @@ class DatasetLoader:
 
 
 if __name__ == '__main__':
-    show_available_datasets("D:/Projects/dataset")
-    # download_dataset("formalgeo7k_v1", "D:/Projects/dataset")
-    # remove_dataset("formalgeo7k_v1", "D:/Projects/dataset")
+    show_available_datasets("D:/Projects/released")
+    # download_dataset("formalgeo7k_v1", "D:/Projects/released")
+    # download_dataset("formalgeo7k_v2", "D:/Projects/released")
+    # download_dataset("formalgeo-imo_v1", "D:/Projects/released")
+    # remove_dataset("formalgeo7k_v1", "D:/Projects/released")
+
+
+

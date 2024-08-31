@@ -174,12 +174,14 @@ def get_meta_hypertree(problem):
     :return nodes: all nodes, {node_id: node_name}, such as {1: "Equation(ll_ab-1)"}
     :return edges: all edges, {edge_id: edge_name}, such as {1: "extended"}
     :return free_nodes: nodes not in hypertree but in prerequisite, [node_id], such as [1, 2, 3]
+    :return target_node_id: target node id, such as 1
     :return hypertree: {((tail_node_ids), edge_id): (tail_node_ids))}, such as {((1, 2, 3), 1): (4, 5))}
     """
     group = {}  # (premise, theorem): [_id], used for building hyper graph.
     cdl = {}  # _id: anti_parsed_cdl, user for getting cdl by id.
     init_nodes = []  # [_id], id of prerequisite.
     tree_nodes = []  # [_id], id of tree nodes.
+    target_node_id = None
 
     for node_id in range(problem.condition.id_count):  # group conditions
         predicate, item, premise, theorem, _ = problem.condition.items[node_id]
@@ -203,13 +205,20 @@ def get_meta_hypertree(problem):
         else:
             group[(premise, theorem)].append(node_id)
 
-    if problem.goal.solved and problem.goal.type == "algebra":  # if target solved, add target
-        eq = problem.goal.item - problem.goal.answer
-        if eq not in problem.condition.get_items_by_predicate("Equation"):  # target not in condition set
-            node_id = len(cdl)
-            cdl[node_id] = "Equation" + "(" + str(eq).replace(" ", "") + ")"
-            theorem = inverse_parse_one_theorem(problem.goal.theorem, problem.parsed_theorem_GDL)
-            group[(problem.goal.premise, theorem)] = [node_id]
+    if problem.goal.solved:
+        if problem.goal.type == "algebra":
+            eq = problem.goal.item - problem.goal.answer
+            if eq not in problem.condition.get_items_by_predicate("Equation"):  # target not in condition set
+                node_id = problem.condition.id_count
+                cdl[node_id] = "Equation" + "(" + str(eq).replace(" ", "") + ")"
+                theorem = inverse_parse_one_theorem(problem.goal.theorem, problem.parsed_theorem_GDL)
+                group[(problem.goal.premise, theorem)] = [node_id]
+                target_node_id = node_id
+            else:
+                target_node_id = problem.condition.get_id_by_predicate_and_item("Equation", eq)
+
+        else:
+            target_node_id = problem.condition.get_id_by_predicate_and_item(problem.goal.item, problem.goal.answer)
 
     edges = {-2: "none", -1: "self"}
     tree = {}
@@ -236,12 +245,12 @@ def get_meta_hypertree(problem):
 
     free_nodes = sorted(list(set(init_nodes) - set(tree_nodes)))
 
-    return nodes, edges, free_nodes, tree
+    return nodes, edges, free_nodes, target_node_id, tree
 
 
 def get_solution_hypertree(problem):
     """Generate solution hyper tree."""
-    nodes, edges, free_nodes, tree = get_meta_hypertree(problem)
+    nodes, edges, free_nodes, target_node_id, tree = get_meta_hypertree(problem)
     parsed_tree = {}
     for premise, theorem in tree:
         conditions = [nodes[node_id] for node_id in premise]
@@ -256,6 +265,7 @@ def get_solution_hypertree(problem):
     hypertree = {
         "nodes": list(nodes.values()),
         "free_nodes": [nodes[node_id] for node_id in free_nodes],
+        "target_node": nodes[target_node_id] if target_node_id is not None else "None",
         "tree": parsed_tree
     }
     return hypertree
@@ -263,28 +273,43 @@ def get_solution_hypertree(problem):
 
 def draw_solution_hypertree(problem, path):
     """Draw solution hyper tree and save as .png."""
-    nodes, edges, free_nodes, tree = get_meta_hypertree(problem)
+    hypertree = get_solution_hypertree(problem)
     dot = Digraph(name=str(problem.parsed_problem_CDL["id"]))
 
-    for node_id in free_nodes:
-        dot.node(str(node_id), nodes[node_id], shape='box')
+    for node in hypertree["nodes"]:
+        dot.node(node, node)
 
-    nodes_added = []
-    for premise, theorem in tree:
-        dot.node(str(theorem), edges[theorem])
+    edges_count = 1
+    for tree_id in hypertree["tree"]:
+        dot.node(str(edges_count), hypertree["tree"][tree_id]["theorem"])
+        for condition in hypertree["tree"][tree_id]["conditions"]:
+            dot.edge(condition, str(edges_count))
+        for conclusion in hypertree["tree"][tree_id]["conclusions"]:
+            dot.edge(str(edges_count), conclusion)
+        edges_count += 1
 
-        for node_id in premise:
-            if node_id not in nodes_added:
-                nodes_added.append(node_id)
-                dot.node(str(node_id), nodes[node_id], shape='box')
-            dot.edge(str(node_id), str(theorem))
-
-        conclusions = tree[(premise, theorem)]
-        for node_id in conclusions:
-            if node_id not in nodes_added:
-                nodes_added.append(node_id)
-                dot.node(str(node_id), nodes[node_id], shape='box')
-            dot.edge(str(theorem), str(node_id))
+    # nodes, edges, free_nodes, tree = get_meta_hypertree(problem)
+    # dot = Digraph(name=str(problem.parsed_problem_CDL["id"]))
+    #
+    # for node_id in free_nodes:
+    #     dot.node(str(node_id), nodes[node_id], shape='box')
+    #
+    # nodes_added = []
+    # for premise, theorem in tree:
+    #     dot.node(str(theorem), edges[theorem])
+    #
+    #     for node_id in premise:
+    #         if node_id not in nodes_added:
+    #             nodes_added.append(node_id)
+    #             dot.node(str(node_id), nodes[node_id], shape='box')
+    #         dot.edge(str(node_id), str(theorem))
+    #
+    #     conclusions = tree[(premise, theorem)]
+    #     for node_id in conclusions:
+    #         if node_id not in nodes_added:
+    #             nodes_added.append(node_id)
+    #             dot.node(str(node_id), nodes[node_id], shape='box')
+    #         dot.edge(str(theorem), str(node_id))
 
     dot.render(directory=path, view=False, format="png")  # save hyper graph
     os.remove(path + "{}.gv".format(problem.parsed_problem_CDL["id"]))
@@ -296,7 +321,7 @@ def draw_solution_hypertree(problem, path):
 
 def get_theorem_dag(problem):
     """Generate theorem DAG."""
-    nodes, edges, free_nodes, tree = get_meta_hypertree(problem)
+    nodes, edges, free_nodes, target_node_id, tree = get_meta_hypertree(problem)
 
     rough_dag = {}
     for premise, theorem in tree:  # generate theorem dag

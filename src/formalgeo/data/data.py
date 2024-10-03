@@ -17,7 +17,7 @@ def get_datasets_path(datasets_path):
 
 
 def get_remote_datasets():
-    response = requests.get("https://raw.githubusercontent.com/FormalGeo/Datasets/main/released.json")
+    response = requests.get("https://raw.githubusercontent.com/FormalGeo/FormalGeo/main/datasets.json")
     if response.status_code == 200:
         return json.loads(response.content)
     return None

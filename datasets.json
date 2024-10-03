@@ -1,0 +1,59 @@
+{
+  "formalgeo7k_v1": {
+    "dataset_name": "formalgeo7k",
+    "dataset_version": "v1",
+    "short_description": "6981 SAT-level problems with complete formal language and theorem sequence annotation.",
+    "license": "MIT",
+    "problem_number": 6981,
+    "formalgeo_version": "0.0.4",
+    "gdl_name": "GFS-Basic",
+    "gdl_version": "v1",
+    "problem_split": [
+      3,
+      1,
+      1,
+      619
+    ],
+    "problem_source": "Geometry3k (https://github.com/lupantech/InterGPS), GeoQA (https://github.com/chen-judge/GeoQA), GeoQA+ (https://github.com/SCNU203/GeoQA-Plus) and online resources.",
+    "release_datetime": "2023-11-08 13:01:26",
+    "downloads": "https://drive.usercontent.google.com/download?id=1w93L9ap4nrOtdyIjH9lkglgYYBni7fgS&export=download&authuser=0&confirm=t&uuid=8334c10d-2cdb-474b-ba80-08f87f506e4d&at=APZUnTWwbK0C21JRH8u_lMV8tN26%3A1713340917366"
+  },
+  "formalgeo-imo_v1": {
+    "dataset_name": "formalgeo-imo",
+    "dataset_version": "v1",
+    "short_description": "18 IMO-level problems with complete formal language and theorem sequence annotation.",
+    "license": "MIT",
+    "problem_number": 18,
+    "formalgeo_version": "0.0.1",
+    "gdl_name": "GFS-IMO",
+    "gdl_version": "v1",
+    "problem_split": [
+      3,
+      1,
+      1,
+      619
+    ],
+    "problem_source": "WeChat mini program 数之谜 and online resources",
+    "release_datetime": "2023-11-26 19:21:26",
+    "downloads": "https://drive.usercontent.google.com/download?id=16nuLyRQ1n4frO6mM9lrlhPCMJelq71lx&export=download&authuser=0"
+  },
+  "formalgeo7k_v2": {
+    "dataset_name": "formalgeo7k",
+    "dataset_version": "v2",
+    "short_description": "7000 SAT-level problems with complete formal language, geometry image and theorem sequence annotation.",
+    "license": "MIT",
+    "problem_number": 7000,
+    "formalgeo_version": "0.0.4",
+    "gdl_name": "GFS-Basic",
+    "gdl_version": "v1",
+    "problem_split": [
+      3,
+      1,
+      1,
+      619
+    ],
+    "problem_source": "Geometry3k (https://github.com/lupantech/InterGPS), GeoQA (https://github.com/chen-judge/GeoQA), GeoQA+ (https://github.com/SCNU203/GeoQA-Plus) and online resources.",
+    "release_datetime": "2024-08-31 16:35:36",
+    "downloads": "https://drive.usercontent.google.com/download?id=1ftTIBcxkT4fOZq3nCaVi_mtLsDsudMGg&export=download&authuser=1&confirm=t&uuid=3fb71bdb-a6c6-40ac-b7c4-72a45eb61abd&at=AO7h07fVFbvJbGc4UcRfvqT54MJx:1725094034271"
+  }
+}

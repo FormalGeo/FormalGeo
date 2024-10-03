@@ -60,6 +60,31 @@ Print the problem-solving process:
     >>> from formalgeo.tools import show_solution
     >>> show_solution(solver.problem)
 
+## Available Datasets
+
+### formalgeo7k-v1
+
+**Dataset Name:** formalgeo7k_v1  
+**Release Datetime:** 2023-11-08 13:01:26  
+**Description:** 6,981 SAT-level geometry problems with complete natural language description, geometric shapes, formal
+language annotations, and theorem sequences annotations.
+
+### formalgeo-imo
+
+**Dataset Name:** formalgeo-imo_v1  
+**Release Datetime:** 2023-11-26 19:21:26  
+**Description:** We have attempted to annotate 18 IMO-level geometric problems, sourced from carefully
+selected International Olympiads, Chinese Olympiads, and others. During the annotation process, we discovered that
+IMO-level problems require more efficient construction algorithms and a more comprehensive formalization system. A
+larger and more comprehensive dataset will be published after these problems are solved.
+
+### formalgeo7k-v2
+
+**Dataset Name:** formalgeo7k_v2  
+**Release Datetime:** 2024-08-31 16:35:36  
+**Description:** 7000 SAT-level geometry problems with complete natural language description, geometric shapes, formal
+language annotations, and theorem sequences annotations.
+
 ## Contributing
 
 We welcome contributions from anyone, even if you are new to open source. Please read our [Introduction to Contributing

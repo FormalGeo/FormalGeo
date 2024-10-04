@@ -1,5 +1,7 @@
+"""Inverse parse conditions from machine language to formal language."""
+
+
 def inverse_parse_logic_to_cdl(problem):
-    """Inverse parse conditions from machine language to formal language."""
     items = problem.condition.items
     steps = problem.condition.ids_of_step
 

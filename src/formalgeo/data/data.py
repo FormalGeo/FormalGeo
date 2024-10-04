@@ -8,14 +8,6 @@ import shutil
 import random
 
 
-def get_datasets_path(datasets_path):
-    if datasets_path is None:
-        datasets_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "datasets")
-    if not os.path.exists(datasets_path):
-        os.makedirs(datasets_path)
-    return datasets_path
-
-
 def get_remote_datasets():
     response = requests.get("https://raw.githubusercontent.com/FormalGeo/FormalGeo/main/datasets.json")
     if response.status_code == 200:
@@ -24,17 +16,19 @@ def get_remote_datasets():
 
 
 def get_local_datasets(datasets_path):
+    if not os.path.exists(datasets_path):
+        os.makedirs(datasets_path)
+
     local_datasets = {}
     for file in os.listdir(datasets_path):
         if file.endswith(".json"):
-            info = load_json(os.path.join(datasets_path, file))
+            info = load_json(f"{datasets_path}/{file}")
             local_datasets[file.split(".")[0]] = info
 
     return local_datasets
 
 
-def show_available_datasets(datasets_path=None):
-    datasets_path = get_datasets_path(datasets_path)
+def show_available_datasets(datasets_path):
     remote_datasets = get_remote_datasets()
     local_datasets = get_local_datasets(datasets_path)
     text = "{0:<12}{1:<10}{2:<20}{3:<15}{4:<15}{5:<15}{6:<22}{7:}"
@@ -89,8 +83,7 @@ def show_available_datasets(datasets_path=None):
     print("Run 'formalgeo.data.download_dataset()' to download the remote dataset.")
 
 
-def download_dataset(dataset_name, datasets_path=None):
-    datasets_path = get_datasets_path(datasets_path)
+def download_dataset(dataset_name, datasets_path):
     remote_datasets = get_remote_datasets()
     local_datasets = get_local_datasets(datasets_path)
 
@@ -118,28 +111,24 @@ def download_dataset(dataset_name, datasets_path=None):
             unit_scale=True,
             desc="Download dataset '{}'".format(dataset_name)
         )
-        with open(os.path.join(datasets_path, "{}.tar.gz".format(dataset_name)), "wb") as file:
+        with open(f"{datasets_path}/{dataset_name}.tar.gz", "wb") as file:
             for data in response.iter_content(1024):  # block_size = 1024
                 pbar.update(len(data))
                 file.write(data)
         pbar.close()
 
         print("Extracting files ...")
-        with tarfile.open(os.path.join(datasets_path, "{}.tar.gz".format(dataset_name)), "r:gz") as tar_file:  # extract
-            tar_file.extractall(os.path.join(datasets_path, dataset_name))
+        with tarfile.open(f"{datasets_path}/{dataset_name}.tar.gz", "r:gz") as tar_file:  # extract
+            tar_file.extractall(f"{datasets_path}/{dataset_name}")
 
-        shutil.copy(os.path.join(datasets_path, dataset_name, "info.json"),
-                    os.path.join(datasets_path, "{}.json".format(dataset_name)))
-
-        os.remove(os.path.join(datasets_path, "{}.tar.gz".format(dataset_name)))
+        shutil.copy(f"{datasets_path}/{dataset_name}/info.json", f"{datasets_path}/{dataset_name}.json")
 
         return True
 
     raise Exception("Network error. Fail to download '{}'.".format(remote_datasets[dataset_name]["downloads"]))
 
 
-def remove_dataset(dataset_name, datasets_path=None):
-    datasets_path = get_datasets_path(datasets_path)
+def remove_dataset(dataset_name, datasets_path):
     local_datasets = get_local_datasets(datasets_path)
 
     if dataset_name not in local_datasets:
@@ -147,42 +136,43 @@ def remove_dataset(dataset_name, datasets_path=None):
         return
 
     print("Removing dataset '{}'...".format(dataset_name))
-    if os.path.isdir(os.path.join(datasets_path, dataset_name)):
-        shutil.rmtree(os.path.join(datasets_path, dataset_name), ignore_errors=True)  # json文件也要移除吧
-        os.remove(os.path.join(datasets_path, f"{dataset_name}.json"))
+    if os.path.isdir(f"{datasets_path}/{dataset_name}"):
+        shutil.rmtree(f"{datasets_path}/{dataset_name}", ignore_errors=True)
+        os.remove(f"{datasets_path}/{dataset_name}.tar.gz")
+        os.remove(f"{datasets_path}/{dataset_name}.json")
 
 
 class DatasetLoader:
 
-    def __init__(self, dataset_name, datasets_path=None):
-        datasets_path = get_datasets_path(datasets_path)
+    def __init__(self, dataset_name, datasets_path):
         local_datasets = get_local_datasets(datasets_path)
         if dataset_name not in local_datasets:
             msg = "No dataset named '{}'. run 'formalgeo.data.show_available_datasets()' for more info.".format(
                 dataset_name)
             raise Exception(msg)
 
-        self.dataset_path = os.path.join(datasets_path, dataset_name)
+        self.dataset_path = f"{datasets_path}/{dataset_name}"
 
-        self.info = load_json(os.path.join(self.dataset_path, "info.json"))
-        self.predicate_GDL = load_json(os.path.join(self.dataset_path, "gdl", "predicate_GDL.json"))
-        self.theorem_GDL = load_json(os.path.join(self.dataset_path, "gdl", "theorem_GDL.json"))
+        self.info = load_json(f"{self.dataset_path}/info.json")
+        self.predicate_GDL = load_json(f"{self.dataset_path}/gdl/predicate_GDL.json")
+        self.theorem_GDL = load_json(f"{self.dataset_path}/gdl/theorem_GDL.json")
 
     def show(self):
         for item in self.info:
             print("{}: {}".format(item, self.info[item]))
-        print("dataset_path: {}".format(self.dataset_path))
-        print("files: {}".format(os.listdir(os.path.join(self.dataset_path, "files"))))
+        print(f"dataset_path: {self.dataset_path}")
+        files = os.listdir(f"{self.dataset_path}/files")
+        print(f"files: {files}")
 
     def get_problem(self, pid):
         if pid <= self.info["problem_number"]:
-            return load_json(os.path.join(self.dataset_path, "problems", f"{pid}.json"))
+            return load_json(f"{self.dataset_path}/problems/{pid}.json")
         else:
             msg = "No problem named {}.".format(pid)
             raise Exception(msg)
 
     def get_problem_split(self, split_msg=None):
-        file_path = os.path.join(self.dataset_path, "files")
+        file_path = f"{self.dataset_path}/files"
 
         if split_msg is None:
             split_msg = self.info["problem_split"]
@@ -190,8 +180,8 @@ class DatasetLoader:
         filename = f"problem_split_{split_msg[0]}_{split_msg[1]}_{split_msg[2]}_{split_msg[3]}.json"
         problem_number = self.info["problem_number"]
 
-        if filename in os.listdir(file_path):
-            return load_json(os.path.join(file_path, filename))
+        if filename in os.listdir(f"{self.dataset_path}/files"):
+            return load_json(f"{self.dataset_path}/files/{filename}")
 
         total = split_msg[0] + split_msg[1] + split_msg[2]
         random.seed(split_msg[3])
@@ -222,17 +212,12 @@ class DatasetLoader:
             }
         }
 
-        save_json(data, os.path.join(file_path, filename))
+        save_json(data, f"{file_path}/{filename}")
 
         return data
 
 
 if __name__ == '__main__':
     show_available_datasets("D:/Projects/released")
-    # download_dataset("formalgeo7k_v1", "D:/Projects/released")
     # download_dataset("formalgeo7k_v2", "D:/Projects/released")
-    # download_dataset("formalgeo-imo_v1", "D:/Projects/released")
-    # remove_dataset("formalgeo7k_v1", "D:/Projects/released")
-
-
-
+    # remove_dataset("formalgeo7k_v2", "D:/Projects/released")

@@ -1,6 +1,6 @@
 # FormalGeo
 
-[![Version](https://img.shields.io/badge/Version-0.0.5-brightgreen)](https://github.com/FormalGeo/FormalGeo)
+[![Version](https://img.shields.io/badge/Version-0.0.6-brightgreen)](https://github.com/FormalGeo/FormalGeo)
 [![License](https://img.shields.io/badge/License-MIT-green)](https://opensource.org/licenses/MIT)
 [![Survey](https://img.shields.io/badge/Survey-FormalGeo-blue)](https://github.com/FormalGeo/FormalGeo)
 

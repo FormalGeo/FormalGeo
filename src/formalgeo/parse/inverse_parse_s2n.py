@@ -1,4 +1,5 @@
 """Inverse parse solution hypertree to natural language."""
+import copy
 from formalgeo.tools import load_json
 from formalgeo.parse.basic import parse_geo_predicate
 import string
@@ -115,14 +116,18 @@ def inverse_parse_fl(s, language, gdl_source, sym_to_attr_map):
 
 
 def inverse_parse_solution(hypertree, pgdl_source_file, tgdl_source_file, language):
-    skip_predicates = ["Shape", "Collinear", "Cocircular", "Point", "Line", "Arc", "Angle", "Polygon", "Circle"]
+    predicate_gdl_source = load_json(pgdl_source_file)
+    theorem_gdl_source = load_json(tgdl_source_file)
+
+    skip_predicates = copy.copy(predicate_gdl_source["Predicates"]["Preset"]["Construction"])
+    skip_predicates += predicate_gdl_source["Predicates"]["Preset"]["BasicEntity"]
     sym_to_attr_map = {}
-    attr = load_json("files/predicate_GDL-source.json")["Predicates"]["Attribution"]
+    attr = predicate_gdl_source["Predicates"]["Attribution"]
     for attr_name in attr:
         sym_to_attr_map[attr[attr_name]["body"]["sym"]] = attr_name.split("(")[0]
 
-    predicate_gdl_source = parse_predicate_gdl_source(load_json(pgdl_source_file))
-    theorem_gdl_source = parse_theorem_gdl_source(load_json(tgdl_source_file))
+    predicate_gdl_source = parse_predicate_gdl_source(predicate_gdl_source)
+    theorem_gdl_source = parse_theorem_gdl_source(theorem_gdl_source)
 
     hypertree_inverse = {}
     for tree_id in hypertree["tree"]:

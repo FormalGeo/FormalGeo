@@ -28,7 +28,7 @@ class Interactor:
                                         self.parsed_theorem_GDL,
                                         parse_problem_cdl(problem_CDL))  # load problem
         EqKiller.solve_equations(self.problem)  # Solve the equations after initialization
-        self.problem.step("init_problem", time.time() - start_time)  # save applied theorem and update step
+        self.problem.step(("init_problem", None, None), time.time() - start_time)  # save applied theorem and update step
 
     def apply_theorem(self, t_name, t_branch=None, t_para=None):
         """
@@ -99,7 +99,7 @@ class Interactor:
 
         timing = time.time()  # timing
         EqKiller.solve_equations(self.problem)
-        self.problem.step("solve_equations", time.time() - timing)
+        self.problem.step(("solve_equations", None, None), time.time() - timing)
 
         return update
 
@@ -172,7 +172,7 @@ class Interactor:
 
         timing = time.time()  # timing
         EqKiller.solve_equations(self.problem)
-        self.problem.step("solve_equations", time.time() - timing)
+        self.problem.step(("solve_equations", None, None), time.time() - timing)
 
         return update
 
@@ -204,7 +204,7 @@ class Interactor:
 
         timing = time.time()  # timing
         EqKiller.solve_equations(self.problem)
-        self.problem.step("solve_equations", time.time() - timing)
+        self.problem.step(("solve_equations", None, None), time.time() - timing)
 
         return update
 
@@ -268,6 +268,6 @@ class Interactor:
 
         timing = time.time()  # timing
         EqKiller.solve_equations(self.problem)
-        self.problem.step("solve_equations", time.time() - timing)
+        self.problem.step(("solve_equations", None, None), time.time() - timing)
 
         return update

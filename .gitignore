@@ -7,6 +7,3 @@ __pycache__
 # packaging
 dist
 src/FormalGeo.egg-info
-
-# tests
-tests

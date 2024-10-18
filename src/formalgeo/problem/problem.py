@@ -709,4 +709,4 @@ class Problem:
                 self.goal.premise = self.condition.get_premise_by_predicate_and_item(self.goal.item, self.goal.answer)
                 self.goal.theorem = self.condition.get_theorem_by_predicate_and_item(self.goal.item, self.goal.answer)
 
-        self.step("check_goal", time.time() - s_start_time)
+        self.step(("check_goal", None, None), time.time() - s_start_time)

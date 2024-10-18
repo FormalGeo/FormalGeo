@@ -6,7 +6,7 @@ from itertools import permutations
 from formalgeo.problem import Problem
 from formalgeo.core import EquationKiller as EqKiller
 from formalgeo.parse import parse_predicate_gdl, parse_theorem_gdl, parse_problem_cdl, get_equation_from_tree
-from formalgeo.tools import get_used_pid_and_theorem, debug_print
+from formalgeo.tools import get_used, debug_print
 
 
 def get_p2t_map_bw(t_info, parsed_theorem_GDL):
@@ -593,7 +593,7 @@ class BackwardSearcher:
 
         if self.problem.goal.solved:
             debug_print(self.debug, "(pid={}) End Searching".format(self.problem.parsed_problem_CDL["id"]))
-            _, seqs = get_used_pid_and_theorem(self.problem)
+            _, _, seqs = get_used(self.problem)
             return True, seqs
 
         debug_print(self.debug, "(pid={}) End Searching".format(self.problem.parsed_problem_CDL["id"]))

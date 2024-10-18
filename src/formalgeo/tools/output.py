@@ -41,7 +41,7 @@ def show_solution(problem):
             print("{0:^3}{1:<20}".format(step, cdl))
     print()
 
-    used_pid, used_theorem = get_used_pid_and_theorem(problem)
+    used_pid, used_step, _ = get_used(problem)
 
     """-----------Logic Form-----------"""
     print("\033[33mRelations:\033[0m")
@@ -129,43 +129,52 @@ def show_solution(problem):
     print("\033[34mTiming:\033[0m")
     time_sum = 0
     for step in problem.timing:
-        if problem.timing[step][0] in used_theorem:
-            theorem = inverse_parse_one_theorem(problem.timing[step][0], problem.parsed_theorem_GDL)
+        theorem = inverse_parse_one_theorem(problem.timing[step][0], problem.parsed_theorem_GDL)
+        if step in used_step:
             print("\033[35m{:^2} {} {:.6f}s\033[0m".format(step, theorem, problem.timing[step][1]))
         else:
-            print("{:^2} {} {:.6f}s".format(step, problem.timing[step][0], problem.timing[step][1]))
+            print("{:^2} {} {:.6f}s".format(step, theorem, problem.timing[step][1]))
         time_sum += problem.timing[step][1]
     print("total: {:.6f}s".format(time_sum))
 
 
-def get_used_pid_and_theorem(problem):
-    """Return used condition id and theorem for solving problem."""
+def get_used(problem):
+    """Return used condition id, step and theorem for solved problem."""
     if not problem.goal.solved:
-        return [], []
+        return [], [], []
 
-    used_pid = list(set(problem.goal.premise))
-    used_theorem = []
+    skip_theorems = {("solve_eq", None, None), ("extended", None, None), ("prerequisite", None, None)}
+    used_pid = set(problem.goal.premise)
+    last_used_pid = set(problem.goal.premise)
+    used_step = set()
     while True:
-        len_used_pid = len(used_pid)
-        for _id in used_pid:
+        for _id in last_used_pid:
             if _id >= 0:
-                used_pid += list(problem.condition.items[_id][2])
-                used_theorem.append(problem.condition.items[_id][3])
-        used_pid = list(set(used_pid))  # 快速去重
-        if len_used_pid == len(used_pid):
+                used_pid |= set(problem.condition.items[_id][2])
+                if problem.condition.items[_id][3] not in skip_theorems:
+                    used_step.add(problem.condition.items[_id][4])
+        if last_used_pid == used_pid:
             break
+        last_used_pid |= used_pid
 
-    selected_theorem = []
-    for step in problem.timing:  # ensure ordered theorem seqs list
-        if problem.timing[step][0] in used_theorem and \
-                problem.timing[step][0] not in selected_theorem and \
-                problem.timing[step][0][0] not in ["solve_eq", "extended", "prerequisite"]:
-            selected_theorem.append(problem.timing[step][0])
-    if problem.goal.theorem[0] not in ["solve_eq", "extended", "prerequisite"] and \
-            problem.goal.theorem not in selected_theorem:
-        selected_theorem.append(problem.goal.theorem)
+    if problem.goal.type == "algebra":
+        eq = problem.goal.item - problem.goal.answer
+        if eq in problem.condition.get_items_by_predicate("Equation"):  # target in condition set
+            _id = problem.condition.get_id_by_predicate_and_item("Equation", eq)
+            if problem.condition.items[_id][3] not in skip_theorems:
+                used_step |= {problem.condition.items[_id][4]}
+    else:
+        _id = problem.condition.get_id_by_predicate_and_item(problem.goal.item, problem.goal.answer)
+        if problem.condition.items[_id][3] not in skip_theorems:
+            used_step |= {problem.condition.items[_id][4]}
 
-    return used_pid, selected_theorem
+    used_theorems = []
+    for step in problem.timing:
+        theorem = inverse_parse_one_theorem(problem.timing[step][0], problem.parsed_theorem_GDL)
+        if step in used_step:
+            used_theorems.append(theorem)
+
+    return used_pid, used_step, used_theorems
 
 
 def get_meta_hypertree(problem):
@@ -287,29 +296,6 @@ def draw_solution_hypertree(problem, path):
         for conclusion in hypertree["tree"][tree_id]["conclusions"]:
             dot.edge(str(edges_count), conclusion)
         edges_count += 1
-
-    # nodes, edges, free_nodes, tree = get_meta_hypertree(problem)
-    # dot = Digraph(name=str(problem.parsed_problem_CDL["id"]))
-    #
-    # for node_id in free_nodes:
-    #     dot.node(str(node_id), nodes[node_id], shape='box')
-    #
-    # nodes_added = []
-    # for premise, theorem in tree:
-    #     dot.node(str(theorem), edges[theorem])
-    #
-    #     for node_id in premise:
-    #         if node_id not in nodes_added:
-    #             nodes_added.append(node_id)
-    #             dot.node(str(node_id), nodes[node_id], shape='box')
-    #         dot.edge(str(node_id), str(theorem))
-    #
-    #     conclusions = tree[(premise, theorem)]
-    #     for node_id in conclusions:
-    #         if node_id not in nodes_added:
-    #             nodes_added.append(node_id)
-    #             dot.node(str(node_id), nodes[node_id], shape='box')
-    #         dot.edge(str(theorem), str(node_id))
 
     dot.render(directory=path, view=False, format="png")  # save hyper graph
     os.remove(path + "{}.gv".format(problem.parsed_problem_CDL["id"]))

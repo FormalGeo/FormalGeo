@@ -86,15 +86,19 @@ def parse_one_theorem(theorem):
     >> parse_one_theorem('congruent_triangle_property_angle_equal')
     ('congruent_triangle_property_angle_equal', None, None)
     """
+
     if "(" not in theorem:
         return theorem, None, None
 
     t_name, t_para = theorem.split("(", 1)
     t_para = t_para.replace(")", "")
     if t_para[0].isnumeric():
-        t_branch, t_para = t_para.split(",", 1)
-        t_para = tuple(t_para.replace(",", ""))
-        return t_name, t_branch, t_para
+        if "," in t_para:
+            t_branch, t_para = t_para.split(",", 1)
+            t_para = tuple(t_para.replace(",", ""))
+            return t_name, t_branch, t_para
+        else:
+            return t_name, t_para, None
 
     t_para = tuple(t_para.replace(",", ""))
     return t_name, None, t_para

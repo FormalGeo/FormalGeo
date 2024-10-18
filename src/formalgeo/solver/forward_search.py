@@ -4,7 +4,7 @@ from formalgeo.problem import Problem
 from formalgeo.core import GeometryPredicateLogicExecutor as GPLExecutor
 from formalgeo.core import EquationKiller as EqKiller
 from formalgeo.parse import parse_predicate_gdl, parse_theorem_gdl, parse_problem_cdl
-from formalgeo.tools import get_used_pid_and_theorem, debug_print
+from formalgeo.tools import get_used, debug_print
 
 
 def get_p2t_map_fw(t_info, parsed_theorem_GDL):
@@ -119,7 +119,7 @@ class ForwardSearcher:
                 if solved is None:  # not update, close search branch
                     continue
                 if solved:  # solved, return result
-                    _, seqs = get_used_pid_and_theorem(self.problem)
+                    _, _, seqs = get_used(self.problem)
                     return True, seqs
                 else:  # continue search
                     if len(pos) == self.max_depth:
@@ -141,7 +141,7 @@ class ForwardSearcher:
                 if solved is None:  # not update, close search branch
                     continue
                 if solved:  # solved, return result
-                    _, seqs = get_used_pid_and_theorem(self.problem)
+                    _, _, seqs = get_used(self.problem)
                     return True, seqs
                 else:  # continue search
                     if len(pos) == self.max_depth:
@@ -163,7 +163,7 @@ class ForwardSearcher:
                 if solved is None:  # not update, close search branch
                     continue
                 if solved:  # solved, return result
-                    _, seqs = get_used_pid_and_theorem(self.problem)
+                    _, _, seqs = get_used(self.problem)
                     return True, seqs
                 else:  # continue search
                     if len(pos) == self.max_depth:
@@ -194,7 +194,7 @@ class ForwardSearcher:
                     if solved is None:  # not update, close search branch
                         continue
                     if solved:  # solved, return result
-                        _, seqs = get_used_pid_and_theorem(self.problem)
+                        _, _, seqs = get_used(self.problem)
                         return True, seqs
                     else:  # continue search
                         if len(pos) == self.max_depth:

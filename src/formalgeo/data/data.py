@@ -171,51 +171,6 @@ class DatasetLoader:
             msg = "No problem named {}.".format(pid)
             raise Exception(msg)
 
-    def get_problem_split(self, split_msg=None):
-        file_path = f"{self.dataset_path}/files"
-
-        if split_msg is None:
-            split_msg = self.info["problem_split"]
-
-        filename = f"problem_split_{split_msg[0]}_{split_msg[1]}_{split_msg[2]}_{split_msg[3]}.json"
-        problem_number = self.info["problem_number"]
-
-        if filename in os.listdir(f"{self.dataset_path}/files"):
-            return load_json(f"{self.dataset_path}/files/{filename}")
-
-        total = split_msg[0] + split_msg[1] + split_msg[2]
-        random.seed(split_msg[3])
-        data = list(range(1, problem_number + 1))
-        test = sorted(random.sample(data, int(problem_number * split_msg[2] / total)))
-        for i in range(len(data))[::-1]:
-            if data[i] in test:
-                data.pop(i)
-        val = sorted(random.sample(data, int(problem_number * split_msg[1] / total)))
-        for i in range(len(data))[::-1]:
-            if data[i] in val:
-                data.pop(i)
-        train = data
-
-        total = len(train) + len(val) + len(test)
-
-        data = {
-            "msg": {
-                "train": len(train),
-                "val": len(val),
-                "test": len(test),
-                "total": total
-            },
-            "split": {
-                "train": train,
-                "val": val,
-                "test": test
-            }
-        }
-
-        save_json(data, f"{file_path}/{filename}")
-
-        return data
-
 
 if __name__ == '__main__':
     show_available_datasets("D:/Projects/released")

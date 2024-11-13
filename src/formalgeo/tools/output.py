@@ -280,10 +280,12 @@ def get_solution_hypertree(problem):
     return hypertree
 
 
-def draw_solution_hypertree(problem, path):
+def draw_solution_hypertree(problem, file_path_and_name):
     """Draw solution hyper tree and save as .png."""
     hypertree = get_solution_hypertree(problem)
-    dot = Digraph(name=str(problem.parsed_problem_CDL["id"]))
+    path, filename = os.path.split(file_path_and_name)
+    filename = filename.split(".")[0]
+    dot = Digraph(name=filename)
 
     for node in hypertree["nodes"]:
         dot.node(node, node)
@@ -298,11 +300,9 @@ def draw_solution_hypertree(problem, path):
         edges_count += 1
 
     dot.render(directory=path, view=False, format="png")  # save hyper graph
-    os.remove(path + "{}.gv".format(problem.parsed_problem_CDL["id"]))
-    if "{}_hyper.png".format(problem.parsed_problem_CDL["id"]) in os.listdir(path):
-        os.remove(path + "{}_hyper.png".format(problem.parsed_problem_CDL["id"]))
-    os.rename(path + "{}.gv.png".format(problem.parsed_problem_CDL["id"]),
-              path + "{}_hyper.png".format(problem.parsed_problem_CDL["id"]))
+    if f"{filename}.png" in os.listdir(path):
+        os.remove(f"{path}/{filename}.png")
+    os.rename(f"{path}/{filename}.gv.png", f"{path}/{filename}.png")
 
 
 def get_theorem_dag(problem):
@@ -361,10 +361,12 @@ def get_theorem_dag(problem):
     return dag
 
 
-def draw_theorem_dag(problem, path):
+def draw_theorem_dag(problem, file_path_and_name):
     """Draw theorem DAG."""
     dag = get_theorem_dag(problem)
-    dot = Digraph(name=str(problem.parsed_problem_CDL["id"]))
+    path, filename = os.path.split(file_path_and_name)
+    filename = filename.split(".")[0]
+    dot = Digraph(name=filename)
     nodes = []  # list of theorem.
 
     for head in dag:
@@ -380,8 +382,6 @@ def draw_theorem_dag(problem, path):
             dot.edge(str(nodes.index(head)), str(nodes.index(tail)))
 
     dot.render(directory=path, view=False, format="png")  # save theorem DAG
-    os.remove(path + "{}.gv".format(problem.parsed_problem_CDL["id"]))
-    if "{}_dag.png".format(problem.parsed_problem_CDL["id"]) in os.listdir(path):
-        os.remove(path + "{}_dag.png".format(problem.parsed_problem_CDL["id"]))
-    os.rename(path + "{}.gv.png".format(problem.parsed_problem_CDL["id"]),
-              path + "{}_dag.png".format(problem.parsed_problem_CDL["id"]))
+    if f"{filename}.png" in os.listdir(path):
+        os.remove(f"{path}/{filename}.png")
+    os.rename(f"{path}/{filename}.gv.png", f"{path}/{filename}.png")

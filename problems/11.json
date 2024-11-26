@@ -1,0 +1,47 @@
+{
+  "problem_id": 11,
+  "annotation": "XiaokaiZhang_2023-03-12",
+  "annotation_img": "NaZhu_2024-01-01",
+  "source": "Geometry3k-10",
+  "problem_level": 1,
+  "problem_text_cn": "如图所示，∠CFK=28°，∠GKF=35°，∠KAC=25°，∠KHC=51°，EG⊥FG，HC垂直于KC，KF垂直于EF。求∠FEK的大小。",
+  "problem_text_en": "As shown in the diagram, ∠CFK=28°, ∠GKF=35°, ∠KAC=25°, ∠KHC=51°, EG is perpendicular to FG, HC is perpendicular to KC, KF is perpendicular to EF. Find the measure of ∠FEK.",
+  "problem_img": "11.png",
+  "construction_cdl": [
+    "Shape(KA,AH,HK)",
+    "Shape(KH,HC,CK)",
+    "Shape(KC,CF,FK)",
+    "Shape(KF,FG,GK)",
+    "Shape(GF,FE,EG)",
+    "Collinear(AHCF)",
+    "Collinear(EGK)"
+  ],
+  "text_cdl": [
+    "Equal(MeasureOfAngle(CFK),28)",
+    "Equal(MeasureOfAngle(GKF),35)",
+    "Equal(MeasureOfAngle(KAC),25)",
+    "Equal(MeasureOfAngle(KHC),51)",
+    "PerpendicularBetweenLine(EG,FG)",
+    "PerpendicularBetweenLine(HC,KC)",
+    "PerpendicularBetweenLine(KF,EF)"
+  ],
+  "image_cdl": [
+    "Equal(MeasureOfAngle(CFK),28)",
+    "Equal(MeasureOfAngle(GKF),35)",
+    "Equal(MeasureOfAngle(KAC),25)",
+    "Equal(MeasureOfAngle(KHC),51)",
+    "PerpendicularBetweenLine(EG,FG)",
+    "PerpendicularBetweenLine(HC,KC)",
+    "PerpendicularBetweenLine(KF,EF)"
+  ],
+  "goal_cdl": "Value(MeasureOfAngle(FEK))",
+  "problem_answer": "55",
+  "theorem_seqs": [
+    "triangle_property_angle_sum(1,FEK)"
+  ],
+  "theorem_seqs_dag": {
+    "START": [
+      "triangle_property_angle_sum(1,FEK)"
+    ]
+  }
+}

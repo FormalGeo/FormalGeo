@@ -1,0 +1,46 @@
+{
+  "problem_id": 13,
+  "annotation": "XiaokaiZhang_2023-04-02",
+  "annotation_img": "NaZhu_2024-01-01",
+  "source": "Geometry3k-12",
+  "problem_level": 3,
+  "problem_text_cn": "如图所示，AB=5，BD=x，CA=15/2，EC=9/2。求x的值。",
+  "problem_text_en": "As shown in the diagram, AB=5, BD=x, CA=15/2, EC=9/2. Find the value of x.",
+  "problem_img": "13.png",
+  "construction_cdl": [
+    "Shape(XDB,BD)",
+    "Shape(BA,AC,XBC)",
+    "Shape(DB,XBC,CE,XED)",
+    "Shape(XCE,EC)",
+    "Collinear(ABXD)",
+    "Collinear(ACE)",
+    "Cocircular(X,BCED)"
+  ],
+  "text_cdl": [
+    "Equal(LengthOfLine(AB),5)",
+    "Equal(LengthOfLine(BD),x)",
+    "Equal(LengthOfLine(CA),15/2)",
+    "Equal(LengthOfLine(EC),9/2)",
+    "IsCentreOfCircle(X,X)"
+  ],
+  "image_cdl": [
+    "Equal(LengthOfLine(AB),5)",
+    "Equal(LengthOfLine(BD),x)",
+    "Equal(LengthOfLine(CA),15/2)",
+    "Equal(LengthOfLine(EC),9/2)"
+  ],
+  "goal_cdl": "Value(x)",
+  "problem_answer": "13",
+  "theorem_seqs": [
+    "circle_property_circular_power_segment_and_segment_line(1,ABD,ACE,X)",
+    "line_addition(1,AB,BD)",
+    "line_addition(1,AC,CE)"
+  ],
+  "theorem_seqs_dag": {
+    "START": [
+      "circle_property_circular_power_segment_and_segment_line(1,ABD,ACE,X)",
+      "line_addition(1,AB,BD)",
+      "line_addition(1,AC,CE)"
+    ]
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "problem_id": 6,
+  "annotation": "XiaokaiZhang_2023-03-12",
+  "annotation_img": "NaZhu_2024-01-01",
+  "source": "Geometry3k-5",
+  "problem_level": 6,
+  "problem_text_cn": "如图所示，AC=20，CM=12，MB=30，CM⊥AM。求三角形AMB的周长。",
+  "problem_text_en": "As shown in the diagram, AC=20, CM=12, MB=30, CM is perpendicular to AM. Find the perimeter of △AMB.",
+  "problem_img": "6.png",
+  "construction_cdl": [
+    "Shape(AC,CM,MA)",
+    "Shape(AM,MB,BA)",
+    "Collinear(CMB)"
+  ],
+  "text_cdl": [
+    "Equal(LengthOfLine(AC),20)",
+    "Equal(LengthOfLine(CM),12)",
+    "Equal(LengthOfLine(MB),30)",
+    "PerpendicularBetweenLine(CM,AM)"
+  ],
+  "image_cdl": [
+    "Equal(LengthOfLine(AC),20)",
+    "Equal(LengthOfLine(CM),12)",
+    "Equal(LengthOfLine(MB),30)",
+    "PerpendicularBetweenLine(CM,AM)"
+  ],
+  "goal_cdl": "Value(PerimeterOfTriangle(AMB))",
+  "problem_answer": "80",
+  "theorem_seqs": [
+    "adjacent_complementary_angle(1,CMA,AMB)",
+    "right_triangle_judgment_angle(1,CMA)",
+    "right_triangle_judgment_angle(1,AMB)",
+    "right_triangle_property_pythagorean(1,CMA)",
+    "right_triangle_property_pythagorean(1,AMB)",
+    "triangle_perimeter_formula(1,AMB)"
+  ],
+  "theorem_seqs_dag": {
+    "START": [
+      "adjacent_complementary_angle(1,CMA,AMB)",
+      "right_triangle_judgment_angle(1,CMA)",
+      "triangle_perimeter_formula(1,AMB)"
+    ],
+    "adjacent_complementary_angle(1,CMA,AMB)": [
+      "right_triangle_judgment_angle(1,AMB)"
+    ],
+    "right_triangle_judgment_angle(1,CMA)": [
+      "right_triangle_property_pythagorean(1,CMA)"
+    ],
+    "right_triangle_judgment_angle(1,AMB)": [
+      "right_triangle_property_pythagorean(1,AMB)"
+    ]
+  }
+}

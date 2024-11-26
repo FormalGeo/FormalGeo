@@ -1,0 +1,39 @@
+{
+  "problem_id": 10,
+  "annotation": "XiaokaiZhang_2023-04-02",
+  "annotation_img": "NaZhu_2024-01-01",
+  "source": "Geometry3k-9",
+  "problem_level": 1,
+  "problem_text_cn": "如图所示，∠FCD=x°，弧EDB的角度为10*x，弧EFD的角度为40，圆O的切线为CD。求x的值。",
+  "problem_text_en": "As shown in the diagram, ∠FCD=x°, the measure of arc EDB is 10*x, the measure of arc EFD is 40, CD is the tangent to circle E. Find the value of x.",
+  "problem_img": "10.png",
+  "construction_cdl": [
+    "Shape(EDB,BF,EFD)",
+    "Shape(CD,EFD,FC)",
+    "Shape(FB,EBF)",
+    "Collinear(BFC)",
+    "Cocircular(E,FDB)"
+  ],
+  "text_cdl": [
+    "Equal(MeasureOfAngle(FCD),x)",
+    "Equal(MeasureOfArc(EDB),10*x)",
+    "Equal(MeasureOfArc(EFD),40)",
+    "IsCentreOfCircle(E,E)",
+    "IsTangentOfCircle(CD,E)"
+  ],
+  "image_cdl": [
+    "Equal(MeasureOfAngle(FCD),x)",
+    "Equal(MeasureOfArc(EDB),10*x)",
+    "Equal(MeasureOfArc(EFD),40)"
+  ],
+  "goal_cdl": "Value(x)",
+  "problem_answer": "5",
+  "theorem_seqs": [
+    "circle_property_circular_power_tangent_and_segment_angle(2,CD,CFB,E)"
+  ],
+  "theorem_seqs_dag": {
+    "START": [
+      "circle_property_circular_power_tangent_and_segment_angle(2,CD,CFB,E)"
+    ]
+  }
+}

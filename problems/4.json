@@ -1,0 +1,36 @@
+{
+  "problem_id": 4,
+  "annotation": "XiaokaiZhang_2023-04-02",
+  "annotation_img": "NaZhu_2024-01-01",
+  "source": "Geometry3k-3",
+  "problem_level": 1,
+  "problem_text_cn": "如图所示，WZ=23，XY=23，∠ZWX=112°，XW平行于YZ，XY和ZW是梯形XYZW的腰。求∠YZW的大小。",
+  "problem_text_en": "As shown in the diagram, WZ=23, XY=23, ∠ZWX=112°, XW is parallel to YZ, XYZW is a trapezoid. Find the measure of ∠YZW.",
+  "problem_img": "4.png",
+  "construction_cdl": [
+    "Shape(WX,XY,YZ,ZW)"
+  ],
+  "text_cdl": [
+    "Equal(LengthOfLine(WZ),23)",
+    "Equal(LengthOfLine(XY),23)",
+    "Equal(MeasureOfAngle(ZWX),112)",
+    "ParallelBetweenLine(XW,YZ)",
+    "Trapezoid(XYZW)"
+  ],
+  "image_cdl": [
+    "Equal(LengthOfLine(WZ),23)",
+    "Equal(LengthOfLine(XY),23)",
+    "Equal(MeasureOfAngle(ZWX),112)",
+    "ParallelBetweenLine(XW,YZ)"
+  ],
+  "goal_cdl": "Value(MeasureOfAngle(YZW))",
+  "problem_answer": "68",
+  "theorem_seqs": [
+    "parallel_property_ipsilateral_internal_angle(1,ZY,WX)"
+  ],
+  "theorem_seqs_dag": {
+    "START": [
+      "parallel_property_ipsilateral_internal_angle(1,ZY,WX)"
+    ]
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "problem_id": 20,
+  "annotation": "XiaokaiZhang_2023-03-12",
+  "annotation_img": "NaZhu_2024-01-01",
+  "source": "Geometry3k-19",
+  "problem_level": 4,
+  "problem_text_cn": "如图所示，AE=BE，BA=8，BC=8，BE=CE，DA=10，DC=10，∠ADE=x°，DE垂直于AE。求sin(x)。",
+  "problem_text_en": "As shown in the diagram, AE=BE, BA=8, BC=8, BE=CE, DA=10, DC=10, ∠ADE=x°, DE⊥AE. Find sin(x).",
+  "problem_img": "20.png",
+  "construction_cdl": [
+    "Shape(AD,DE,EA)",
+    "Shape(AE,EB,BA)",
+    "Shape(ED,DC,CE)",
+    "Shape(BE,EC,CB)",
+    "Collinear(DEB)",
+    "Collinear(AEC)"
+  ],
+  "text_cdl": [
+    "Equal(LengthOfLine(AE),LengthOfLine(BE))",
+    "Equal(LengthOfLine(BA),8)",
+    "Equal(LengthOfLine(BC),8)",
+    "Equal(LengthOfLine(BE),LengthOfLine(CE))",
+    "Equal(LengthOfLine(DA),10)",
+    "Equal(LengthOfLine(DC),10)",
+    "Equal(MeasureOfAngle(ADE),x)",
+    "PerpendicularBetweenLine(DE,AE)"
+  ],
+  "image_cdl": [
+    "Equal(LengthOfLine(AE),LengthOfLine(BE))",
+    "Equal(LengthOfLine(BA),8)",
+    "Equal(LengthOfLine(BC),8)",
+    "Equal(LengthOfLine(BE),LengthOfLine(CE))",
+    "Equal(LengthOfLine(DA),10)",
+    "Equal(LengthOfLine(DC),10)",
+    "Equal(MeasureOfAngle(ADE),x)",
+    "PerpendicularBetweenLine(DE,AE)"
+  ],
+  "goal_cdl": "Value(Sin(x))",
+  "problem_answer": "2*sqrt(2)/5",
+  "theorem_seqs": [
+    "adjacent_complementary_angle(1,DEA,AEB)",
+    "right_triangle_judgment_angle(1,AEB)",
+    "right_triangle_property_pythagorean(1,AEB)",
+    "sine_theorem(1,ADE)"
+  ],
+  "theorem_seqs_dag": {
+    "START": [
+      "adjacent_complementary_angle(1,DEA,AEB)",
+      "sine_theorem(1,ADE)"
+    ],
+    "adjacent_complementary_angle(1,DEA,AEB)": [
+      "right_triangle_judgment_angle(1,AEB)"
+    ],
+    "right_triangle_judgment_angle(1,AEB)": [
+      "right_triangle_property_pythagorean(1,AEB)"
+    ]
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "problem_id": 1,
+  "annotation": "XiaokaiZhang_2023-03-12",
+  "annotation_img": "NaZhu_2024-01-01",
+  "source": "Geometry3k-0",
+  "problem_level": 1,
+  "problem_text_cn": "如图所示，三角形RST与三角形XYZ是全等三角形，TR=x+21，ZX=2*x-14，∠TRS=4*y-10°，∠ZXY=3*y+5°。求y的值。",
+  "problem_text_en": "As shown in the diagram, triangle RST is congruent to triangle XYZ, TR=x+21, ZX=2*x-14, ∠TRS=4*y-10°, ∠ZXY=3*y+5°. Find the value of y.",
+  "problem_img": "1.png",
+  "coord_system": {
+    "width": 1200,
+    "height": 1000,
+    "xZero": 600,
+    "yZero": 500
+  },
+  "points": [
+    {
+      "R": {
+        "x": 0,
+        "y": 0,
+        "x_dep_eq": "Free",
+        "y_dep_eq": "Free"
+      }
+    },
+    {
+      "S": {
+        "x": 3,
+        "y": 0,
+        "x_dep_eq": "Free",
+        "y_dep_eq": "Free"
+      }
+    },
+    {
+      "T": {
+        "x": 1.5,
+        "y": 2.6,
+        "x_dep_eq": "2*S_x-1",
+        "y_dep_eq": "3*S_y-2"
+      }
+    },
+    {
+      "X": {
+        "x": 6,
+        "y": 0,
+        "x_dep_eq": "2*T_x",
+        "y_dep_eq": "T_y"
+      }
+    },
+    {
+      "Y": {
+        "x": 4.5,
+        "y": 2.6,
+        "x_dep_eq": "Free",
+        "y_dep_eq": "Free"
+      }
+    },
+    {
+      "Z": {
+        "x": 7.5,
+        "y": 2.6,
+        "x_dep_eq": "2*S_x-1",
+        "y_dep_eq": "3*S_y-2"
+      }
+    }
+  ],
+  "construction_cdl": [
+    "Shape(RS,ST,TR)",
+    "Shape(XY,YZ,ZX)"
+  ],
+  "text_cdl": [
+    "CongruentBetweenTriangle(RST,XYZ)",
+    "Equal(LengthOfLine(TR),x+21)",
+    "Equal(LengthOfLine(ZX),2*x-14)",
+    "Equal(MeasureOfAngle(TRS),4*y-10)",
+    "Equal(MeasureOfAngle(ZXY),3*y+5)"
+  ],
+  "image_cdl": [
+    "Equal(LengthOfLine(TR),x+21)",
+    "Equal(LengthOfLine(ZX),2*x-14)",
+    "Equal(MeasureOfAngle(TRS),4*y-10)",
+    "Equal(MeasureOfAngle(ZXY),3*y+5)"
+  ],
+  "goal_cdl": "Value(y)",
+  "problem_answer": "15",
+  "theorem_seqs": [
+    "congruent_triangle_property_angle_equal(1,RST,XYZ)"
+  ],
+  "theorem_seqs_dag": {
+    "START": [
+      "congruent_triangle_property_angle_equal(1,RST,XYZ)"
+    ]
+  }
+}

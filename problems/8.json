@@ -1,0 +1,39 @@
+{
+  "problem_id": 8,
+  "annotation": "XiaokaiZhang_2023-03-12",
+  "annotation_img": "NaZhu_2024-01-01",
+  "source": "Geometry3k-7",
+  "problem_level": 2,
+  "problem_text_cn": "如图所示，AB=4/7，AC=x，BC=5/7，BA垂直于CA。求x的值。",
+  "problem_text_en": "As shown in the diagram, AB=4/7, AC=x, BC=5/7, BA⊥CA. Find the value of x.",
+  "problem_img": "8.png",
+  "construction_cdl": [
+    "Shape(AC,CB,BA)"
+  ],
+  "text_cdl": [
+    "Equal(LengthOfLine(AB),4/7)",
+    "Equal(LengthOfLine(AC),x)",
+    "Equal(LengthOfLine(BC),5/7)",
+    "PerpendicularBetweenLine(BA,CA)"
+  ],
+  "image_cdl": [
+    "Equal(LengthOfLine(AB),4/7)",
+    "Equal(LengthOfLine(AC),x)",
+    "Equal(LengthOfLine(BC),5/7)",
+    "PerpendicularBetweenLine(BA,CA)"
+  ],
+  "goal_cdl": "Value(x)",
+  "problem_answer": "3/7",
+  "theorem_seqs": [
+    "right_triangle_judgment_angle(1,BAC)",
+    "right_triangle_property_pythagorean(1,BAC)"
+  ],
+  "theorem_seqs_dag": {
+    "START": [
+      "right_triangle_judgment_angle(1,BAC)"
+    ],
+    "right_triangle_judgment_angle(1,BAC)": [
+      "right_triangle_property_pythagorean(1,BAC)"
+    ]
+  }
+}

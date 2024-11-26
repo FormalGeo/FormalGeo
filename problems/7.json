@@ -1,0 +1,39 @@
+{
+  "problem_id": 7,
+  "annotation": "XiaokaiZhang_2023-03-12",
+  "annotation_img": "NaZhu_2024-01-01",
+  "source": "Geometry3k-6",
+  "problem_level": 3,
+  "problem_text_cn": "如图所示，TR=7*sqrt(2)，TS=3*sqrt(2)，RS垂直于TS。求∠STR的大小。",
+  "problem_text_en": "As shown in the diagram, TR=7*sqrt(2), TS=3*sqrt(2), RS is perpendicular to TS. Find the measure of ∠STR.",
+  "problem_img": "7.png",
+  "construction_cdl": [
+    "Shape(TR,RS,ST)"
+  ],
+  "text_cdl": [
+    "Equal(LengthOfLine(TR),7*sqrt(2))",
+    "Equal(LengthOfLine(TS),3*sqrt(2))",
+    "PerpendicularBetweenLine(RS,TS)"
+  ],
+  "image_cdl": [
+    "Equal(LengthOfLine(TR),7*sqrt(2))",
+    "Equal(LengthOfLine(TS),3*sqrt(2))",
+    "PerpendicularBetweenLine(RS,TS)"
+  ],
+  "goal_cdl": "Value(MeasureOfAngle(STR))",
+  "problem_answer": "180*asin(2*sqrt(10)/7)/pi",
+  "theorem_seqs": [
+    "right_triangle_judgment_angle(1,RST)",
+    "right_triangle_property_pythagorean(1,RST)",
+    "sine_theorem(1,RST)"
+  ],
+  "theorem_seqs_dag": {
+    "START": [
+      "right_triangle_judgment_angle(1,RST)",
+      "sine_theorem(1,RST)"
+    ],
+    "right_triangle_judgment_angle(1,RST)": [
+      "right_triangle_property_pythagorean(1,RST)"
+    ]
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "problem_id": 12,
+  "annotation": "XiaokaiZhang_2023-04-02",
+  "annotation_img": "NaZhu_2024-01-01",
+  "source": "Geometry3k-11",
+  "problem_level": 8,
+  "problem_text_cn": "如图所示，AB=30，CD=30，⌒XCZ的角度为40，⊙X的圆心为X，AM垂直于YM，DN⊥ZN。求弧XBA的角度。",
+  "problem_text_en": "As shown in the diagram, AB=30, CD=30, the measure of arc XCZ is 40, the center of ⊙X is X, AM is perpendicular to YM, DN⊥ZN. Find the measure of arc XBA.",
+  "problem_img": "12.png",
+  "construction_cdl": [
+    "Shape(XBY,YM,MB)",
+    "Shape(XYA,AM,MY)",
+    "Shape(XM,MA,XAC,CN,NX)",
+    "Shape(NC,XCZ,ZN)",
+    "Shape(NZ,XZD,DN)",
+    "Shape(MX,XN,ND,XDB,BM)",
+    "Collinear(AMB)",
+    "Collinear(YMX)",
+    "Collinear(XNZ)",
+    "Collinear(CND)",
+    "Cocircular(X,ACZDBY)"
+  ],
+  "text_cdl": [
+    "Equal(LengthOfLine(AB),30)",
+    "Equal(LengthOfLine(CD),30)",
+    "Equal(MeasureOfArc(XCZ),40)",
+    "IsCentreOfCircle(X,X)",
+    "PerpendicularBetweenLine(AM,YM)",
+    "PerpendicularBetweenLine(DN,ZN)"
+  ],
+  "image_cdl": [
+    "Equal(LengthOfLine(AB),30)",
+    "Equal(LengthOfLine(CD),30)",
+    "Equal(MeasureOfArc(XCZ),40)",
+    "PerpendicularBetweenLine(AM,YM)",
+    "PerpendicularBetweenLine(DN,ZN)"
+  ],
+  "goal_cdl": "Value(MeasureOfArc(XBA))",
+  "problem_answer": "80",
+  "theorem_seqs": [
+    "vertical_angle(1,CNX,DNZ)",
+    "circle_property_chord_perpendicular_bisect_arc(1,XCD,XNZ)",
+    "arc_addition_length(1,XCZ,XZD)",
+    "similar_arc_judgment_cocircular(1,XCZ,XCD)",
+    "similar_arc_property_length_ratio(1,XCZ,XCD)",
+    "similar_arc_property_measure_ratio(1,XCZ,XCD)",
+    "congruent_arc_judgment_chord_equal(1,XCD,XBA)",
+    "congruent_arc_property_measure_equal(1,XCD,XBA)"
+  ],
+  "theorem_seqs_dag": {
+    "START": [
+      "vertical_angle(1,CNX,DNZ)",
+      "arc_addition_length(1,XCZ,XZD)",
+      "similar_arc_judgment_cocircular(1,XCZ,XCD)",
+      "congruent_arc_judgment_chord_equal(1,XCD,XBA)"
+    ],
+    "vertical_angle(1,CNX,DNZ)": [
+      "circle_property_chord_perpendicular_bisect_arc(1,XCD,XNZ)"
+    ],
+    "similar_arc_judgment_cocircular(1,XCZ,XCD)": [
+      "similar_arc_property_length_ratio(1,XCZ,XCD)",
+      "similar_arc_property_measure_ratio(1,XCZ,XCD)"
+    ],
+    "congruent_arc_judgment_chord_equal(1,XCD,XBA)": [
+      "congruent_arc_property_measure_equal(1,XCD,XBA)"
+    ]
+  }
+}

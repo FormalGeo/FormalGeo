@@ -1,0 +1,70 @@
+{
+  "problem_id": 9,
+  "annotation": "XiaokaiZhang_2023-04-02",
+  "annotation_img": "NaZhu_2024-01-01",
+  "source": "Geometry3k-8",
+  "problem_level": 11,
+  "problem_text_cn": "如图所示，JK=10，MN=16，⌒KMN的角度为98，⊙K的圆心为K，MP垂直于KP。求直线LN的长度。",
+  "problem_text_en": "As shown in the diagram, JK=10, MN=16, the measure of ⌒KMN is 98, the center of circle K is K, MP⊥KP. Find the length of line LN.",
+  "problem_img": "9.png",
+  "construction_cdl": [
+    "Shape(KJM,MK,KJ)",
+    "Shape(MP,PK,KM)",
+    "Shape(KML,LP,PM)",
+    "Shape(PL,LN,NP)",
+    "Shape(KLN,NL)",
+    "Shape(PN,KNJ,JK,KP)",
+    "Collinear(JKPL)",
+    "Collinear(MPN)",
+    "Cocircular(K,JMLN)"
+  ],
+  "text_cdl": [
+    "Equal(LengthOfLine(JK),10)",
+    "Equal(LengthOfLine(MN),16)",
+    "Equal(MeasureOfArc(KMN),98)",
+    "IsCentreOfCircle(K,K)",
+    "PerpendicularBetweenLine(MP,KP)"
+  ],
+  "image_cdl": [
+    "Equal(LengthOfLine(JK),10)",
+    "Equal(LengthOfLine(MN),16)",
+    "Equal(MeasureOfArc(KMN),98)",
+    "PerpendicularBetweenLine(MP,KP)"
+  ],
+  "goal_cdl": "Value(LengthOfLine(LN))",
+  "problem_answer": "4*sqrt(5)",
+  "theorem_seqs": [
+    "circle_property_chord_perpendicular_bisect_chord(1,K,KP,MN)",
+    "line_addition(1,MP,PN)",
+    "radius_of_circle_property_length_equal(1,KJ,K)",
+    "radius_of_circle_property_length_equal(1,KM,K)",
+    "radius_of_circle_property_length_equal(1,KL,K)",
+    "right_triangle_judgment_angle(1,MPK)",
+    "right_triangle_property_pythagorean(1,MPK)",
+    "line_addition(1,LP,PK)",
+    "vertical_angle(1,MPK,NPL)",
+    "right_triangle_judgment_angle(1,NPL)",
+    "right_triangle_property_pythagorean(1,NPL)"
+  ],
+  "theorem_seqs_dag": {
+    "START": [
+      "circle_property_chord_perpendicular_bisect_chord(1,K,KP,MN)",
+      "line_addition(1,MP,PN)",
+      "radius_of_circle_property_length_equal(1,KJ,K)",
+      "radius_of_circle_property_length_equal(1,KM,K)",
+      "radius_of_circle_property_length_equal(1,KL,K)",
+      "right_triangle_judgment_angle(1,MPK)",
+      "line_addition(1,LP,PK)",
+      "vertical_angle(1,MPK,NPL)"
+    ],
+    "right_triangle_judgment_angle(1,MPK)": [
+      "right_triangle_property_pythagorean(1,MPK)"
+    ],
+    "vertical_angle(1,MPK,NPL)": [
+      "right_triangle_judgment_angle(1,NPL)"
+    ],
+    "right_triangle_judgment_angle(1,NPL)": [
+      "right_triangle_property_pythagorean(1,NPL)"
+    ]
+  }
+}

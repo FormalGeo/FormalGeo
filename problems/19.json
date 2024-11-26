@@ -1,0 +1,37 @@
+{
+  "problem_id": 19,
+  "annotation": "XiaokaiZhang_2023-04-02",
+  "annotation_img": "NaZhu_2024-01-01",
+  "source": "Geometry3k-18",
+  "problem_level": 1,
+  "problem_text_cn": "如图所示，AB=4*x-17，CD=2*x-1，∠BCD=4*y-19°，∠CBA=3*y+3°，AB和CD是▱ACDB的一组对边。求y的值。",
+  "problem_text_en": "As shown in the diagram, AB=4*x-17, CD=2*x-1, ∠BCD=4*y-19°, ∠CBA=3*y+3°, quadrilateral ACDB is a ▱. Find the value of y.",
+  "problem_img": "19.png",
+  "construction_cdl": [
+    "Shape(AC,CB,BA)",
+    "Shape(BC,CD,DB)"
+  ],
+  "text_cdl": [
+    "Equal(LengthOfLine(AB),4*x-17)",
+    "Equal(LengthOfLine(CD),2*x-1)",
+    "Equal(MeasureOfAngle(BCD),4*y-19)",
+    "Equal(MeasureOfAngle(CBA),3*y+3)",
+    "Parallelogram(ACDB)"
+  ],
+  "image_cdl": [
+    "Equal(LengthOfLine(AB),4*x-17)",
+    "Equal(LengthOfLine(CD),2*x-1)",
+    "Equal(MeasureOfAngle(BCD),4*y-19)",
+    "Equal(MeasureOfAngle(CBA),3*y+3)"
+  ],
+  "goal_cdl": "Value(y)",
+  "problem_answer": "22",
+  "theorem_seqs": [
+    "parallel_property_alternate_interior_angle(2,AB,CD)"
+  ],
+  "theorem_seqs_dag": {
+    "START": [
+      "parallel_property_alternate_interior_angle(2,AB,CD)"
+    ]
+  }
+}

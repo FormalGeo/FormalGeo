@@ -1,0 +1,41 @@
+{
+  "problem_id": 14,
+  "annotation": "XiaokaiZhang_2023-04-02",
+  "annotation_img": "NaZhu_2024-01-01",
+  "source": "Geometry3k-13",
+  "problem_level": 1,
+  "problem_text_cn": "如图所示，AJ=2*x+3，CJ=8*y-36，JB=5*x，JD=4*y，AD和CB是▱ACBD的一组对边。求y的值。",
+  "problem_text_en": "As shown in the diagram, AJ=2*x+3, CJ=8*y-36, JB=5*x, JD=4*y, quadrilateral ACBD is a parallelogram. Find the value of y.",
+  "problem_img": "14.png",
+  "construction_cdl": [
+    "Shape(AC,CJ,JA)",
+    "Shape(JC,CB,BJ)",
+    "Shape(AJ,JD,DA)",
+    "Shape(JB,BD,DJ)",
+    "Collinear(AJB)",
+    "Collinear(CJD)"
+  ],
+  "text_cdl": [
+    "Equal(LengthOfLine(AJ),2*x+3)",
+    "Equal(LengthOfLine(CJ),8*y-36)",
+    "Equal(LengthOfLine(JB),5*x)",
+    "Equal(LengthOfLine(JD),4*y)",
+    "Parallelogram(ACBD)"
+  ],
+  "image_cdl": [
+    "Equal(LengthOfLine(AJ),2*x+3)",
+    "Equal(LengthOfLine(CJ),8*y-36)",
+    "Equal(LengthOfLine(JB),5*x)",
+    "Equal(LengthOfLine(JD),4*y)"
+  ],
+  "goal_cdl": "Value(y)",
+  "problem_answer": "9",
+  "theorem_seqs": [
+    "parallelogram_property_diagonal_bisection(1,CBDA,J)"
+  ],
+  "theorem_seqs_dag": {
+    "START": [
+      "parallelogram_property_diagonal_bisection(1,CBDA,J)"
+    ]
+  }
+}

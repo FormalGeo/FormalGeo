@@ -1,0 +1,51 @@
+{
+  "problem_id": 5,
+  "annotation": "XiaokaiZhang_2023-03-12",
+  "annotation_img": "NaZhu_2024-01-01",
+  "source": "Geometry3k-4",
+  "problem_level": 3,
+  "problem_text_cn": "如图所示，AB=y，AD=z，BC=x，BD=4，CD=10，AB⊥CB，DC垂直于AC。求x的值。",
+  "problem_text_en": "As shown in the diagram, AB=y, AD=z, BC=x, BD=4, CD=10, AB⊥CB, DC⊥AC. Find the value of x.",
+  "problem_img": "5.png",
+  "construction_cdl": [
+    "Shape(CA,AB,BC)",
+    "Shape(CB,BD,DC)",
+    "Collinear(ABD)"
+  ],
+  "text_cdl": [
+    "Equal(LengthOfLine(AB),y)",
+    "Equal(LengthOfLine(AD),z)",
+    "Equal(LengthOfLine(BC),x)",
+    "Equal(LengthOfLine(BD),4)",
+    "Equal(LengthOfLine(CD),10)",
+    "PerpendicularBetweenLine(AB,CB)",
+    "PerpendicularBetweenLine(DC,AC)"
+  ],
+  "image_cdl": [
+    "Equal(LengthOfLine(AB),y)",
+    "Equal(LengthOfLine(AD),z)",
+    "Equal(LengthOfLine(BC),x)",
+    "Equal(LengthOfLine(BD),4)",
+    "Equal(LengthOfLine(CD),10)",
+    "PerpendicularBetweenLine(AB,CB)",
+    "PerpendicularBetweenLine(DC,AC)"
+  ],
+  "goal_cdl": "Value(x)",
+  "problem_answer": "2*sqrt(21)",
+  "theorem_seqs": [
+    "adjacent_complementary_angle(1,ABC,CBD)",
+    "right_triangle_judgment_angle(1,CBD)",
+    "right_triangle_property_pythagorean(1,CBD)"
+  ],
+  "theorem_seqs_dag": {
+    "START": [
+      "adjacent_complementary_angle(1,ABC,CBD)"
+    ],
+    "adjacent_complementary_angle(1,ABC,CBD)": [
+      "right_triangle_judgment_angle(1,CBD)"
+    ],
+    "right_triangle_judgment_angle(1,CBD)": [
+      "right_triangle_property_pythagorean(1,CBD)"
+    ]
+  }
+}

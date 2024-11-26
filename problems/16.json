@@ -1,0 +1,37 @@
+{
+  "problem_id": 16,
+  "annotation": "XiaokaiZhang_2023-03-12",
+  "annotation_img": "NaZhu_2024-01-01",
+  "source": "Geometry3k-15",
+  "problem_level": 1,
+  "problem_text_cn": "如图所示，AB=10，AC=y，BC=x，∠ABC=60°，BC垂直于AC。求y的值。",
+  "problem_text_en": "As shown in the diagram, AB=10, AC=y, BC=x, ∠ABC=60°, BC is perpendicular to AC. Find the value of y.",
+  "problem_img": "16.png",
+  "construction_cdl": [
+    "Shape(AB,BC,CA)"
+  ],
+  "text_cdl": [
+    "Equal(LengthOfLine(AB),10)",
+    "Equal(LengthOfLine(AC),y)",
+    "Equal(LengthOfLine(BC),x)",
+    "Equal(MeasureOfAngle(ABC),60)",
+    "PerpendicularBetweenLine(BC,AC)"
+  ],
+  "image_cdl": [
+    "Equal(LengthOfLine(AB),10)",
+    "Equal(LengthOfLine(AC),y)",
+    "Equal(LengthOfLine(BC),x)",
+    "Equal(MeasureOfAngle(ABC),60)",
+    "PerpendicularBetweenLine(BC,AC)"
+  ],
+  "goal_cdl": "Value(y)",
+  "problem_answer": "5*sqrt(3)",
+  "theorem_seqs": [
+    "sine_theorem(1,ABC)"
+  ],
+  "theorem_seqs_dag": {
+    "START": [
+      "sine_theorem(1,ABC)"
+    ]
+  }
+}

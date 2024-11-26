@@ -1,0 +1,50 @@
+{
+  "problem_id": 17,
+  "annotation": "XiaokaiZhang_2023-04-02",
+  "annotation_img": "NaZhu_2024-01-01",
+  "source": "Geometry3k-16",
+  "problem_level": 5,
+  "problem_text_cn": "如图所示，AB=8，AD=27，AE=12，CD平行于BE。求直线BC的长度。",
+  "problem_text_en": "As shown in the diagram, AB=8, AD=27, AE=12, CD is parallel to BE. Find the length of line BC.",
+  "problem_img": "17.png",
+  "construction_cdl": [
+    "Shape(CB,BE,ED,DC)",
+    "Shape(BA,AE,EB)",
+    "Collinear(ABC)",
+    "Collinear(AED)"
+  ],
+  "text_cdl": [
+    "Equal(LengthOfLine(AB),8)",
+    "Equal(LengthOfLine(AD),27)",
+    "Equal(LengthOfLine(AE),12)",
+    "ParallelBetweenLine(CD,BE)"
+  ],
+  "image_cdl": [
+    "Equal(LengthOfLine(AB),8)",
+    "Equal(LengthOfLine(AD),27)",
+    "Equal(LengthOfLine(AE),12)",
+    "ParallelBetweenLine(CD,BE)"
+  ],
+  "goal_cdl": "Value(LengthOfLine(BC))",
+  "problem_answer": "10",
+  "theorem_seqs": [
+    "parallel_property_corresponding_angle(1,EB,DC,A)",
+    "similar_triangle_judgment_aa(1,BAE,CAD)",
+    "similar_triangle_property_line_ratio(1,BAE,CAD)",
+    "similar_triangle_property_line_ratio(1,EBA,DCA)",
+    "line_addition(1,AB,BC)"
+  ],
+  "theorem_seqs_dag": {
+    "START": [
+      "parallel_property_corresponding_angle(1,EB,DC,A)",
+      "line_addition(1,AB,BC)"
+    ],
+    "parallel_property_corresponding_angle(1,EB,DC,A)": [
+      "similar_triangle_judgment_aa(1,BAE,CAD)"
+    ],
+    "similar_triangle_judgment_aa(1,BAE,CAD)": [
+      "similar_triangle_property_line_ratio(1,BAE,CAD)",
+      "similar_triangle_property_line_ratio(1,EBA,DCA)"
+    ]
+  }
+}

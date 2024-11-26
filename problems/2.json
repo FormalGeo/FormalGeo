@@ -1,0 +1,53 @@
+{
+  "problem_id": 2,
+  "annotation": "XiaokaiZhang_2023-04-02",
+  "annotation_img": "NaZhu_2024-01-01",
+  "source": "Geometry3k-1",
+  "problem_level": 1,
+  "problem_text_cn": "如图所示，MN=3*x-4，NQ=15，PN=2*y+5，PQ=12，RM=18，RP=20，RQ=3*z-3，∠MRQ=38°，∠NQP=83°，∠QNM=33°，RM和PN是▱MRPN的一组对边。求y的值。",
+  "problem_text_en": "As shown in the diagram, MN=3*x-4, NQ=15, PN=2*y+5, PQ=12, RM=18, RP=20, RQ=3*z-3, ∠MRQ=38°, ∠NQP=83°, ∠QNM=33°, MN and RP are opposite sides of the ▱ MRPN. Find the value of y.",
+  "problem_img": "2.png",
+  "construction_cdl": [
+    "Shape(MR,RQ,QM)",
+    "Shape(QR,RP,PQ)",
+    "Shape(MQ,QN,NM)",
+    "Shape(QP,PN,NQ)",
+    "Collinear(MQP)",
+    "Collinear(RQN)"
+  ],
+  "text_cdl": [
+    "Equal(LengthOfLine(MN),3*x-4)",
+    "Equal(LengthOfLine(NQ),15)",
+    "Equal(LengthOfLine(PN),2*y+5)",
+    "Equal(LengthOfLine(PQ),12)",
+    "Equal(LengthOfLine(RM),18)",
+    "Equal(LengthOfLine(RP),20)",
+    "Equal(LengthOfLine(RQ),3*z-3)",
+    "Equal(MeasureOfAngle(MRQ),38)",
+    "Equal(MeasureOfAngle(NQP),83)",
+    "Equal(MeasureOfAngle(QNM),33)",
+    "Parallelogram(MRPN)"
+  ],
+  "image_cdl": [
+    "Equal(LengthOfLine(MN),3*x-4)",
+    "Equal(LengthOfLine(NQ),15)",
+    "Equal(LengthOfLine(PN),2*y+5)",
+    "Equal(LengthOfLine(PQ),12)",
+    "Equal(LengthOfLine(RM),18)",
+    "Equal(LengthOfLine(RP),20)",
+    "Equal(LengthOfLine(RQ),3*z-3)",
+    "Equal(MeasureOfAngle(MRQ),38)",
+    "Equal(MeasureOfAngle(NQP),83)",
+    "Equal(MeasureOfAngle(QNM),33)"
+  ],
+  "goal_cdl": "Value(y)",
+  "problem_answer": "13/2",
+  "theorem_seqs": [
+    "parallelogram_property_opposite_line_equal(1,MRPN)"
+  ],
+  "theorem_seqs_dag": {
+    "START": [
+      "parallelogram_property_opposite_line_equal(1,MRPN)"
+    ]
+  }
+}

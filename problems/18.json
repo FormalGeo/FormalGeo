@@ -1,0 +1,36 @@
+{
+  "problem_id": 18,
+  "annotation": "XiaokaiZhang_2023-04-02",
+  "annotation_img": "NaZhu_2024-01-01",
+  "source": "Geometry3k-17",
+  "problem_level": 1,
+  "problem_text_cn": "如图所示，∠NMQ=10*x°，∠PNM=20*x°，∠PNM=∠MQP，∠QPN=∠NMQ，四边形MQPN是平行四边形。求∠MQP的大小。",
+  "problem_text_en": "As shown in the diagram, ∠NMQ=10*x°, ∠PNM=20*x°, ∠PNM=∠MQP, ∠QPN=∠NMQ, MQPN is a parallelogram. Find the measure of ∠MQP.",
+  "problem_img": "18.png",
+  "construction_cdl": [
+    "Shape(MQ,QP,PN,NM)"
+  ],
+  "text_cdl": [
+    "Equal(MeasureOfAngle(NMQ),10*x)",
+    "Equal(MeasureOfAngle(PNM),20*x)",
+    "Equal(MeasureOfAngle(PNM),MeasureOfAngle(MQP))",
+    "Equal(MeasureOfAngle(QPN),MeasureOfAngle(NMQ))",
+    "Parallelogram(MQPN)"
+  ],
+  "image_cdl": [
+    "Equal(MeasureOfAngle(NMQ),10*x)",
+    "Equal(MeasureOfAngle(PNM),20*x)",
+    "Equal(MeasureOfAngle(PNM),MeasureOfAngle(MQP))",
+    "Equal(MeasureOfAngle(QPN),MeasureOfAngle(NMQ))"
+  ],
+  "goal_cdl": "Value(MeasureOfAngle(MQP))",
+  "problem_answer": "120",
+  "theorem_seqs": [
+    "parallel_property_ipsilateral_internal_angle(1,NP,MQ)"
+  ],
+  "theorem_seqs_dag": {
+    "START": [
+      "parallel_property_ipsilateral_internal_angle(1,NP,MQ)"
+    ]
+  }
+}

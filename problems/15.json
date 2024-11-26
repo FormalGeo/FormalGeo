@@ -1,0 +1,60 @@
+{
+  "problem_id": 15,
+  "annotation": "XiaokaiZhang_2023-04-02",
+  "annotation_img": "NaZhu_2024-01-01",
+  "source": "Geometry3k-14",
+  "problem_level": 4,
+  "problem_text_cn": "如图所示，IB=1/2*x-7，JI=1/4*x+5，LD=66-2/3*y，NL=1/3*y-6，NL=LD，CJ⊥NJ，IB⊥DB，JI垂直于LI。求x的值。",
+  "problem_text_en": "As shown in the diagram, IB=1/2*x-7, JI=1/4*x+5, LD=66-2/3*y, NL=1/3*y-6, NL=LD, CJ⊥NJ, IB is perpendicular to DB, JI is perpendicular to LI. Find the value of x.",
+  "problem_img": "15.png",
+  "construction_cdl": [
+    "Shape(JI,IL,LN,NJ)",
+    "Shape(IB,BD,DL,LI)",
+    "Shape(CJ,JN)",
+    "Collinear(CJIB)",
+    "Collinear(NLD)"
+  ],
+  "text_cdl": [
+    "Equal(LengthOfLine(IB),1/2*x-7)",
+    "Equal(LengthOfLine(JI),1/4*x+5)",
+    "Equal(LengthOfLine(LD),66-2/3*y)",
+    "Equal(LengthOfLine(NL),1/3*y-6)",
+    "Equal(LengthOfLine(NL),LengthOfLine(LD))",
+    "PerpendicularBetweenLine(CJ,NJ)",
+    "PerpendicularBetweenLine(IB,DB)",
+    "PerpendicularBetweenLine(JI,LI)"
+  ],
+  "image_cdl": [
+    "Equal(LengthOfLine(IB),1/2*x-7)",
+    "Equal(LengthOfLine(JI),1/4*x+5)",
+    "Equal(LengthOfLine(LD),66-2/3*y)",
+    "Equal(LengthOfLine(NL),1/3*y-6)",
+    "Equal(LengthOfLine(NL),LengthOfLine(LD))",
+    "PerpendicularBetweenLine(CJ,NJ)",
+    "PerpendicularBetweenLine(IB,DB)",
+    "PerpendicularBetweenLine(JI,LI)"
+  ],
+  "goal_cdl": "Value(x)",
+  "problem_answer": "48",
+  "theorem_seqs": [
+    "parallel_judgment_corresponding_angle(1,JN,BD,C)",
+    "trapezoid_judgment_parallel(1,JBDN)",
+    "parallel_judgment_corresponding_angle(1,IL,BD,J)",
+    "midsegment_of_quadrilateral_judgment_parallel(3,IL,JBDN)"
+  ],
+  "theorem_seqs_dag": {
+    "START": [
+      "parallel_judgment_corresponding_angle(1,JN,BD,C)",
+      "parallel_judgment_corresponding_angle(1,IL,BD,J)"
+    ],
+    "parallel_judgment_corresponding_angle(1,JN,BD,C)": [
+      "trapezoid_judgment_parallel(1,JBDN)"
+    ],
+    "trapezoid_judgment_parallel(1,JBDN)": [
+      "midsegment_of_quadrilateral_judgment_parallel(3,IL,JBDN)"
+    ],
+    "parallel_judgment_corresponding_angle(1,IL,BD,J)": [
+      "midsegment_of_quadrilateral_judgment_parallel(3,IL,JBDN)"
+    ]
+  }
+}

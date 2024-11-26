@@ -3,7 +3,7 @@
 
 import os
 from formalgeo.solver import Interactor
-from formalgeo.tools import load_json, save_json, show_solution, get_used_pid_and_theorem
+from formalgeo.tools import load_json, save_json, show_solution, get_used
 from formalgeo.parse import parse_theorem_seqs, parse_one_theorem
 
 

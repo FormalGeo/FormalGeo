@@ -23,6 +23,9 @@ class Condition:
         self.simplified_equation = {}  # <dict>, {simplified_equation: premises}, such as {a + b - 2: [1, 2, 3]}
         self.eq_solved = True  # <bool>, record whether the equation is solved
 
+        # add attributes for dynamic problem-solving and auxiliary construction
+        # try using func condition.add()
+
     def init_by_fl(self, fix_length_predicates, variable_length_predicates):
         """
         Initial condition by formal language.

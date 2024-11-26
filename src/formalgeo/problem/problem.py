@@ -68,6 +68,9 @@ class Problem:
         5.Angle expand (collinear).
         6.Angle expand (vertical angle).
         """
+        # 0.Get coordinates system and points
+        # for coord_sys_attr in self.parsed_problem_CDL["parsed_cdl"]["coord_sys_cdl"]:
+        #     pass
 
         # 1.Collinear expand.
         for predicate, item in self.parsed_problem_CDL["parsed_cdl"]["construction_cdl"]:  # Collinear
@@ -123,7 +126,7 @@ class Problem:
                         self.condition.add("Cocircular", extended_item, (_id,), ("extended", None, None))
 
         # 3.Shape expand.
-        jigsaw_unit = {}  # shape's jigsaw
+        jigsaw_unit = {}  # shape's jigsaw 拼图法
         shape_unit = []  # mini shape unit
         for predicate, item in self.parsed_problem_CDL["parsed_cdl"]["construction_cdl"]:  # Shape
             if predicate != "Shape":
@@ -151,8 +154,8 @@ class Problem:
                 jigsaw_unit[shape] = all_forms
                 shape_unit.append(shape)
 
-        shape_comb = shape_unit
-        jigsaw_comb = jigsaw_unit
+        shape_comb = shape_unit  # 形状组合
+        jigsaw_comb = jigsaw_unit  # 构图的拼图法
         while len(shape_comb):
             shape_comb_new = []
             jigsaw_comb_new = {}
@@ -287,6 +290,7 @@ class Problem:
 
         all_forms = [shape]
         l = len(shape)
+        # 循环群实现拼图法的所有组合形式
         for bias in range(1, l):  # all forms
             new_item = tuple([shape[(i + bias) % l] for i in range(l)])
             self.condition.add("Shape", new_item, (_id,), ("extended", None, None))
@@ -504,8 +508,10 @@ class Problem:
             if item is None or item == 0:
                 return False
             return True
+
         elif predicate in self.parsed_predicate_GDL["Preset"]["Construction"]:
             if predicate == "Shape":
+                # 通过集合筛选,检查与该谓词相关的点是否互斥
                 if len(item) != len(set(item)):  # default check 1: mutex points
                     return False
                 if len(item) == 1:

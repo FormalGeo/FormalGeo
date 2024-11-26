@@ -5,6 +5,7 @@ def parse_problem_cdl(problem_CDL):
     """parse problem_CDL to logic form."""
     parsed_CDL = {
         "id": problem_CDL["problem_id"],
+        "coord_system": problem_CDL["coord_system"],
         "cdl": {
             "construction_cdl": problem_CDL["construction_cdl"],
             "text_cdl": problem_CDL["text_cdl"],
@@ -12,11 +13,16 @@ def parse_problem_cdl(problem_CDL):
             "goal_cdl": problem_CDL["goal_cdl"]
         },
         "parsed_cdl": {
+            "points": [],
             "construction_cdl": [],
             "text_and_image_cdl": [],
             "goal": {},
-        }
+        },
     }
+
+    for point in problem_CDL["points"]:
+        parsed_CDL["parsed_cdl"]["points"].append(point)
+
     for fl in problem_CDL["construction_cdl"]:
         predicate, para = fl.split("(")
         para = para.replace(")", "")

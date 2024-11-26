@@ -1,6 +1,7 @@
 import sympy
 from sympy import sin, cos, tan, sqrt, pi
 
+# 运算符
 operation = ["Add", "Sub", "Mul", "Div", "Pow", "Mod", "Sqrt", "Sin", "Cos", "Tan"]
 
 
@@ -39,7 +40,7 @@ def parse_equal_predicate(s, make_vars=False):
     (('Equal', (('Add', (('LengthOfLine', ('o', 'a')), 'x+1')), 'y+2')),
      [('LengthOfLine', ('o', 'a'))])
     """
-    s = s[6:len(s) - 1]
+    s = s[6: len(s) - 1]
     count = 0
     m = 0
     for i in range(len(s)):
@@ -56,7 +57,7 @@ def parse_equal_predicate(s, make_vars=False):
         raise Exception(e_msg)
 
     left = s[0:m]
-    right = s[m + 1:len(s)]
+    right = s[m + 1: len(s)]
     attrs = []
     if left[0].isupper():
         left, l_attrs = parse_equal_to_tree(left, make_vars)

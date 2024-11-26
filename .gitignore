@@ -10,3 +10,19 @@ src/FormalGeo.egg-info
 
 # outputs
 outputs
+
+# tests
+tests
+
+# debug
+src/debug.py
+
+# GDL and problems
+/gdl/
+/problems/
+
+# vscode config
+.vscode
+
+# ggb related
+/ggb/

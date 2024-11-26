@@ -20,8 +20,14 @@ def parse_problem_cdl(problem_CDL):
         },
     }
 
+    # Parse all the points in the problem CDL
     for point in problem_CDL["points"]:
         parsed_CDL["parsed_cdl"]["points"].append(point)
+        for point_name, point_attr in point.items():
+            print(f"Point_Name: {point_name} ")
+            print(f"Coordinates: (point_attr['x'], point_attr['y'])")
+            print(f"{point_name}_x_dep_eq: {point_attr['x_dep_eq']}")
+            print(f"{point_name}_y_dep_eq: {point_attr['y_dep_eq']}")
 
     for fl in problem_CDL["construction_cdl"]:
         predicate, para = fl.split("(")

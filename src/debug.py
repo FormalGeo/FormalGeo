@@ -53,9 +53,10 @@ def run(clean_theorem=False, interactive=False):
                     continue
 
         if clean_theorem and solver.problem.goal.solved:
-            _, theorem_seqs = get_used_pid_and_theorem(
-                solver.problem
-            )  # clean theorem seqs
+            # _, theorem_seqs = get_used_pid_and_theorem(
+            #     solver.problem
+            # )  # clean theorem seqs
+            _, theorem_seqs = get_used(solver.problem)  # clean theorem seqs
             problem_CDL["theorem_seqs"] = theorem_seqs
             save_json(problem_CDL, os.path.join("../problems/", filename))
 

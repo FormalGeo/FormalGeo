@@ -12,14 +12,7 @@ src/FormalGeo.egg-info
 outputs
 
 # tests
-tests
-
-# debug
-src/debug.py
-
-# GDL and problems
-/gdl/
-/problems/
+/tests
 
 # vscode config
 .vscode

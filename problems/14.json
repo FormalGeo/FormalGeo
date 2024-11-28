@@ -7,6 +7,12 @@
   "problem_text_cn": "如图所示，AJ=2*x+3，CJ=8*y-36，JB=5*x，JD=4*y，AD和CB是▱ACBD的一组对边。求y的值。",
   "problem_text_en": "As shown in the diagram, AJ=2*x+3, CJ=8*y-36, JB=5*x, JD=4*y, quadrilateral ACBD is a parallelogram. Find the value of y.",
   "problem_img": "14.png",
+  "coord_system": {
+    "width": 1200,
+    "height": 1000,
+    "xZero": 600,
+    "yZero": 500
+  },
   "points": {
     "A": {
       "x": 0,

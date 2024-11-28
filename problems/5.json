@@ -7,6 +7,22 @@
   "problem_text_cn": "如图所示，AB=y，AD=z，BC=x，BD=4，CD=10，AB⊥CB，DC垂直于AC。求x的值。",
   "problem_text_en": "As shown in the diagram, AB=y, AD=z, BC=x, BD=4, CD=10, AB⊥CB, DC⊥AC. Find the value of x.",
   "problem_img": "5.png",
+  "coord_system": {
+    "width": 1200,
+    "height": 1000,
+    "xZero": 600,
+    "yZero": 500
+  },
+  "points": [
+    {
+      "A": {
+        "x": 0,
+        "y": 0,
+        "x_dep_eq": "Free",
+        "y_dep_eq": "Free"
+      }
+    }
+  ],
   "construction_cdl": [
     "Shape(CA,AB,BC)",
     "Shape(CB,BD,DC)",

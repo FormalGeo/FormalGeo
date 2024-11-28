@@ -7,6 +7,22 @@
   "problem_text_cn": "如图所示，AB=30，CD=30，⌒XCZ的角度为40，⊙X的圆心为X，AM垂直于YM，DN⊥ZN。求弧XBA的角度。",
   "problem_text_en": "As shown in the diagram, AB=30, CD=30, the measure of arc XCZ is 40, the center of ⊙X is X, AM is perpendicular to YM, DN⊥ZN. Find the measure of arc XBA.",
   "problem_img": "12.png",
+  "coord_system": {
+    "width": 1200,
+    "height": 1000,
+    "xZero": 600,
+    "yZero": 500
+  },
+  "points": [
+    {
+      "A": {
+        "x": 0,
+        "y": 0,
+        "x_dep_eq": "Free",
+        "y_dep_eq": "Free"
+      }
+    }
+  ],
   "construction_cdl": [
     "Shape(XBY,YM,MB)",
     "Shape(XYA,AM,MY)",

@@ -7,6 +7,22 @@
   "problem_text_cn": "如图所示，JK=10，MN=16，⌒KMN的角度为98，⊙K的圆心为K，MP垂直于KP。求直线LN的长度。",
   "problem_text_en": "As shown in the diagram, JK=10, MN=16, the measure of ⌒KMN is 98, the center of circle K is K, MP⊥KP. Find the length of line LN.",
   "problem_img": "9.png",
+  "coord_system": {
+    "width": 1200,
+    "height": 1000,
+    "xZero": 600,
+    "yZero": 500
+  },
+  "points": [
+    {
+      "A": {
+        "x": 0,
+        "y": 0,
+        "x_dep_eq": "Free",
+        "y_dep_eq": "Free"
+      }
+    }
+  ],
   "construction_cdl": [
     "Shape(KJM,MK,KJ)",
     "Shape(MP,PK,KM)",

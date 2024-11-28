@@ -7,6 +7,22 @@
   "problem_text_cn": "如图所示，AC=20，CM=12，MB=30，CM⊥AM。求三角形AMB的周长。",
   "problem_text_en": "As shown in the diagram, AC=20, CM=12, MB=30, CM is perpendicular to AM. Find the perimeter of △AMB.",
   "problem_img": "6.png",
+  "coord_system": {
+    "width": 1200,
+    "height": 1000,
+    "xZero": 600,
+    "yZero": 500
+  },
+  "points": [
+    {
+      "A": {
+        "x": 0,
+        "y": 0,
+        "x_dep_eq": "Free",
+        "y_dep_eq": "Free"
+      }
+    }
+  ],
   "construction_cdl": [
     "Shape(AC,CM,MA)",
     "Shape(AM,MB,BA)",

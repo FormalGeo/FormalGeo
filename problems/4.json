@@ -7,6 +7,22 @@
   "problem_text_cn": "如图所示，WZ=23，XY=23，∠ZWX=112°，XW平行于YZ，XY和ZW是梯形XYZW的腰。求∠YZW的大小。",
   "problem_text_en": "As shown in the diagram, WZ=23, XY=23, ∠ZWX=112°, XW is parallel to YZ, XYZW is a trapezoid. Find the measure of ∠YZW.",
   "problem_img": "4.png",
+  "coord_system": {
+    "width": 1200,
+    "height": 1000,
+    "xZero": 600,
+    "yZero": 500
+  },
+  "points": [
+    {
+      "A": {
+        "x": 0,
+        "y": 0,
+        "x_dep_eq": "Free",
+        "y_dep_eq": "Free"
+      }
+    }
+  ],
   "construction_cdl": [
     "Shape(WX,XY,YZ,ZW)"
   ],

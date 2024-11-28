@@ -7,6 +7,22 @@
   "problem_text_cn": "如图所示，∠CFK=28°，∠GKF=35°，∠KAC=25°，∠KHC=51°，EG⊥FG，HC垂直于KC，KF垂直于EF。求∠FEK的大小。",
   "problem_text_en": "As shown in the diagram, ∠CFK=28°, ∠GKF=35°, ∠KAC=25°, ∠KHC=51°, EG is perpendicular to FG, HC is perpendicular to KC, KF is perpendicular to EF. Find the measure of ∠FEK.",
   "problem_img": "11.png",
+  "coord_system": {
+    "width": 1200,
+    "height": 1000,
+    "xZero": 600,
+    "yZero": 500
+  },
+  "points": [
+    {
+      "A": {
+        "x": 0,
+        "y": 0,
+        "x_dep_eq": "Free",
+        "y_dep_eq": "Free"
+      }
+    }
+  ],
   "construction_cdl": [
     "Shape(KA,AH,HK)",
     "Shape(KH,HC,CK)",

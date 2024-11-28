@@ -7,6 +7,22 @@
   "problem_text_cn": "如图所示，BT=SB，QA=RA，QT=86，RS=54，JK是四边形AQTB的中位线。求直线JK的长度。",
   "problem_text_en": "As shown in the diagram, BT=SB, QA=RA, QT=86, RS=54, the midsegment of quadrilateral AQTB is JK. Find the length of line JK.",
   "problem_img": "3.png",
+  "coord_system": {
+    "width": 1200,
+    "height": 1000,
+    "xZero": 600,
+    "yZero": 500
+  },
+  "points": [
+    {
+      "A": {
+        "x": 0,
+        "y": 0,
+        "x_dep_eq": "Free",
+        "y_dep_eq": "Free"
+      }
+    }
+  ],
   "construction_cdl": [
     "Shape(RA,AB,BS,SR)",
     "Shape(AJ,JK,KB,BA)",

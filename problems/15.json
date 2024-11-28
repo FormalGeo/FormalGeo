@@ -7,6 +7,22 @@
   "problem_text_cn": "如图所示，IB=1/2*x-7，JI=1/4*x+5，LD=66-2/3*y，NL=1/3*y-6，NL=LD，CJ⊥NJ，IB⊥DB，JI垂直于LI。求x的值。",
   "problem_text_en": "As shown in the diagram, IB=1/2*x-7, JI=1/4*x+5, LD=66-2/3*y, NL=1/3*y-6, NL=LD, CJ⊥NJ, IB is perpendicular to DB, JI is perpendicular to LI. Find the value of x.",
   "problem_img": "15.png",
+  "coord_system": {
+    "width": 1200,
+    "height": 1000,
+    "xZero": 600,
+    "yZero": 500
+  },
+  "points": [
+    {
+      "A": {
+        "x": 0,
+        "y": 0,
+        "x_dep_eq": "Free",
+        "y_dep_eq": "Free"
+      }
+    }
+  ],
   "construction_cdl": [
     "Shape(JI,IL,LN,NJ)",
     "Shape(IB,BD,DL,LI)",

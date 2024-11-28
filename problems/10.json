@@ -7,6 +7,22 @@
   "problem_text_cn": "如图所示，∠FCD=x°，弧EDB的角度为10*x，弧EFD的角度为40，圆O的切线为CD。求x的值。",
   "problem_text_en": "As shown in the diagram, ∠FCD=x°, the measure of arc EDB is 10*x, the measure of arc EFD is 40, CD is the tangent to circle E. Find the value of x.",
   "problem_img": "10.png",
+  "coord_system": {
+    "width": 1200,
+    "height": 1000,
+    "xZero": 600,
+    "yZero": 500
+  },
+  "points": [
+    {
+      "A": {
+        "x": 0,
+        "y": 0,
+        "x_dep_eq": "Free",
+        "y_dep_eq": "Free"
+      }
+    }
+  ],
   "construction_cdl": [
     "Shape(EDB,BF,EFD)",
     "Shape(CD,EFD,FC)",

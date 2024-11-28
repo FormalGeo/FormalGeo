@@ -7,6 +7,22 @@
   "problem_text_cn": "如图所示，AB=4/7，AC=x，BC=5/7，BA垂直于CA。求x的值。",
   "problem_text_en": "As shown in the diagram, AB=4/7, AC=x, BC=5/7, BA⊥CA. Find the value of x.",
   "problem_img": "8.png",
+  "coord_system": {
+    "width": 1200,
+    "height": 1000,
+    "xZero": 600,
+    "yZero": 500
+  },
+  "points": [
+    {
+      "A": {
+        "x": 0,
+        "y": 0,
+        "x_dep_eq": "Free",
+        "y_dep_eq": "Free"
+      }
+    }
+  ],
   "construction_cdl": [
     "Shape(AC,CB,BA)"
   ],

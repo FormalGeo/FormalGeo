@@ -7,6 +7,22 @@
   "problem_text_cn": "如图所示，TR=7*sqrt(2)，TS=3*sqrt(2)，RS垂直于TS。求∠STR的大小。",
   "problem_text_en": "As shown in the diagram, TR=7*sqrt(2), TS=3*sqrt(2), RS is perpendicular to TS. Find the measure of ∠STR.",
   "problem_img": "7.png",
+  "coord_system": {
+    "width": 1200,
+    "height": 1000,
+    "xZero": 600,
+    "yZero": 500
+  },
+  "points": [
+    {
+      "A": {
+        "x": 0,
+        "y": 0,
+        "x_dep_eq": "Free",
+        "y_dep_eq": "Free"
+      }
+    }
+  ],
   "construction_cdl": [
     "Shape(TR,RS,ST)"
   ],

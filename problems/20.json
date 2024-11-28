@@ -7,6 +7,22 @@
   "problem_text_cn": "如图所示，AE=BE，BA=8，BC=8，BE=CE，DA=10，DC=10，∠ADE=x°，DE垂直于AE。求sin(x)。",
   "problem_text_en": "As shown in the diagram, AE=BE, BA=8, BC=8, BE=CE, DA=10, DC=10, ∠ADE=x°, DE⊥AE. Find sin(x).",
   "problem_img": "20.png",
+  "coord_system": {
+    "width": 1200,
+    "height": 1000,
+    "xZero": 600,
+    "yZero": 500
+  },
+  "points": [
+    {
+      "A": {
+        "x": 0,
+        "y": 0,
+        "x_dep_eq": "Free",
+        "y_dep_eq": "Free"
+      }
+    }
+  ],
   "construction_cdl": [
     "Shape(AD,DE,EA)",
     "Shape(AE,EB,BA)",

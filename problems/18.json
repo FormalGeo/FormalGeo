@@ -7,6 +7,22 @@
   "problem_text_cn": "如图所示，∠NMQ=10*x°，∠PNM=20*x°，∠PNM=∠MQP，∠QPN=∠NMQ，四边形MQPN是平行四边形。求∠MQP的大小。",
   "problem_text_en": "As shown in the diagram, ∠NMQ=10*x°, ∠PNM=20*x°, ∠PNM=∠MQP, ∠QPN=∠NMQ, MQPN is a parallelogram. Find the measure of ∠MQP.",
   "problem_img": "18.png",
+  "coord_system": {
+    "width": 1200,
+    "height": 1000,
+    "xZero": 600,
+    "yZero": 500
+  },
+  "points": [
+    {
+      "A": {
+        "x": 0,
+        "y": 0,
+        "x_dep_eq": "Free",
+        "y_dep_eq": "Free"
+      }
+    }
+  ],
   "construction_cdl": [
     "Shape(MQ,QP,PN,NM)"
   ],

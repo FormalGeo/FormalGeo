@@ -7,6 +7,22 @@
   "problem_text_cn": "如图所示，AB=8，AD=27，AE=12，CD平行于BE。求直线BC的长度。",
   "problem_text_en": "As shown in the diagram, AB=8, AD=27, AE=12, CD is parallel to BE. Find the length of line BC.",
   "problem_img": "17.png",
+  "coord_system": {
+    "width": 1200,
+    "height": 1000,
+    "xZero": 600,
+    "yZero": 500
+  },
+  "points": [
+    {
+      "A": {
+        "x": 0,
+        "y": 0,
+        "x_dep_eq": "Free",
+        "y_dep_eq": "Free"
+      }
+    }
+  ],
   "construction_cdl": [
     "Shape(CB,BE,ED,DC)",
     "Shape(BA,AE,EB)",

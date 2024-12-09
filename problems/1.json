@@ -8,58 +8,66 @@
   "problem_text_en": "As shown in the diagram, triangle RST is congruent to triangle XYZ, TR=x+21, ZX=2*x-14, ∠TRS=4*y-10°, ∠ZXY=3*y+5°. Find the value of y.",
   "problem_img": "1.png",
   "coord_system": {
-    "width": 1200,
-    "height": 1000,
-    "xZero": 600,
-    "yZero": 500
+    "width": "1208",
+    "height": "1070",
+    "xZero": "604",
+    "yZero": "535"
   },
   "points": [
     {
       "R": {
-        "x": 0,
-        "y": 0,
-        "x_dep_eq": "Free",
-        "y_dep_eq": "Free"
+        "x": "-10.22",
+        "y": "0.44",
+        "dep_eqs": [],
+        "dep_ineqs": []
       }
     },
     {
       "S": {
-        "x": 3,
-        "y": 0,
-        "x_dep_eq": "Free",
-        "y_dep_eq": "Free"
+        "x": "-6.56",
+        "y": "-7.04",
+        "dep_eqs": [],
+        "dep_ineqs": []
       }
     },
     {
       "T": {
-        "x": 1.5,
-        "y": 2.6,
-        "x_dep_eq": "2*S_x-1",
-        "y_dep_eq": "3*S_y-2"
+        "x": "1.42",
+        "y": "5.62",
+        "dep_eqs": [],
+        "dep_ineqs": []
+      }
+    },
+    {
+      "unk1": {
+        "x": "0",
+        "y": "0",
+        "dep_eqs": [],
+        "dep_ineqs": []
       }
     },
     {
       "X": {
-        "x": 6,
-        "y": 0,
-        "x_dep_eq": "2*T_x",
-        "y_dep_eq": "T_y"
+        "x": "10.22",
+        "y": "-0.44",
+        "dep_eqs": [],
+        "dep_ineqs": []
       }
     },
     {
       "Y": {
-        "x": 4.5,
-        "y": 2.6,
-        "x_dep_eq": "Free",
-        "y_dep_eq": "Free"
+        "x": "6.56",
+        "y": "7.04",
+        "dep_eqs": [],
+        "dep_ineqs": []
       }
     },
     {
       "Z": {
-        "x": 7.5,
-        "y": 2.6,
-        "x_dep_eq": "2*S_x-1",
-        "y_dep_eq": "3*S_y-2"
+        "x": "-1.42",
+        "y": "-5.62",
+        "dep_eqs": [],
+        "dep_ineqs": []
       }
     }
   ],

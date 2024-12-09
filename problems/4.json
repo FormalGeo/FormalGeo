@@ -8,18 +8,58 @@
   "problem_text_en": "As shown in the diagram, WZ=23, XY=23, ∠ZWX=112°, XW is parallel to YZ, XYZW is a trapezoid. Find the measure of ∠YZW.",
   "problem_img": "4.png",
   "coord_system": {
-    "width": 1200,
-    "height": 1000,
-    "xZero": 600,
-    "yZero": 500
+    "width": "1208",
+    "height": "1070",
+    "xZero": "604",
+    "yZero": "535"
   },
   "points": [
     {
+      "W": {
+        "x": "-8.5",
+        "y": "4",
+        "dep_eqs": [],
+        "dep_ineqs": []
+      }
+    },
+    {
+      "X": {
+        "x": "-8.5",
+        "y": "-4",
+        "dep_eqs": [],
+        "dep_ineqs": []
+      }
+    },
+    {
+      "Y": {
+        "x": "8.5",
+        "y": "-9",
+        "dep_eqs": [],
+        "dep_ineqs": []
+      }
+    },
+    {
+      "Z": {
+        "x": "8.5",
+        "y": "9",
+        "dep_eqs": [],
+        "dep_ineqs": []
+      }
+    },
+    {
       "A": {
-        "x": 0,
-        "y": 0,
-        "x_dep_eq": "Free",
-        "y_dep_eq": "Free"
+        "x": "-8.5",
+        "y": "0.11628685258964833",
+        "dep_eqs": [],
+        "dep_ineqs": []
+      }
+    },
+    {
+      "B": {
+        "x": "8.5",
+        "y": "0.11892973560305364",
+        "dep_eqs": [],
+        "dep_ineqs": []
       }
     }
   ],

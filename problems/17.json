@@ -8,18 +8,66 @@
   "problem_text_en": "As shown in the diagram, AB=8, AD=27, AE=12, CD is parallel to BE. Find the length of line BC.",
   "problem_img": "17.png",
   "coord_system": {
-    "width": 1200,
-    "height": 1000,
-    "xZero": 600,
-    "yZero": 500
+    "width": "1043",
+    "height": "1070",
+    "xZero": "528",
+    "yZero": "535.0000000000003"
   },
   "points": [
     {
       "A": {
-        "x": 0,
-        "y": 0,
-        "x_dep_eq": "Free",
-        "y_dep_eq": "Free"
+        "x": "-9",
+        "y": "-5",
+        "dep_eqs": [],
+        "dep_ineqs": []
+      }
+    },
+    {
+      "D": {
+        "x": "8",
+        "y": "-5",
+        "dep_eqs": [],
+        "dep_ineqs": []
+      }
+    },
+    {
+      "C": {
+        "x": "3",
+        "y": "7",
+        "dep_eqs": [],
+        "dep_ineqs": []
+      }
+    },
+    {
+      "B": {
+        "x": "0",
+        "y": "4",
+        "dep_eqs": [],
+        "dep_ineqs": []
+      }
+    },
+    {
+      "E": {
+        "x": "4",
+        "y": "-5",
+        "dep_eqs": [],
+        "dep_ineqs": []
+      }
+    },
+    {
+      "F": {
+        "x": "2.062914827277498",
+        "y": "-0.6415583613743712",
+        "dep_eqs": [],
+        "dep_ineqs": []
+      }
+    },
+    {
+      "G": {
+        "x": "5.558579881656804",
+        "y": "0.8594082840236688",
+        "dep_eqs": [],
+        "dep_ineqs": []
       }
     }
   ],

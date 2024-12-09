@@ -8,18 +8,50 @@
   "problem_text_en": "As shown in the diagram, MN=3*x-4, NQ=15, PN=2*y+5, PQ=12, RM=18, RP=20, RQ=3*z-3, ∠MRQ=38°, ∠NQP=83°, ∠QNM=33°, MN and RP are opposite sides of the ▱ MRPN. Find the value of y.",
   "problem_img": "2.png",
   "coord_system": {
-    "width": 1200,
-    "height": 1000,
-    "xZero": 600,
-    "yZero": 500
+    "width": "1208",
+    "height": "1070",
+    "xZero": "604",
+    "yZero": "535"
   },
   "points": [
     {
+      "M": {
+        "x": "-6",
+        "y": "8",
+        "dep_eqs": [],
+        "dep_ineqs": []
+      }
+    },
+    {
+      "N": {
+        "x": "10",
+        "y": "8",
+        "dep_eqs": [],
+        "dep_ineqs": []
+      }
+    },
+    {
+      "P": {
+        "x": "6",
+        "y": "-7",
+        "dep_eqs": [],
+        "dep_ineqs": []
+      }
+    },
+    {
       "R": {
-        "x": 0,
-        "y": 0,
-        "x_dep_eq": "Free",
-        "y_dep_eq": "Free"
+        "x": "-10",
+        "y": "-7",
+        "dep_eqs": [],
+        "dep_ineqs": []
+      }
+    },
+    {
+      "Q": {
+        "x": "0",
+        "y": "240",
+        "dep_eqs": [],
+        "dep_ineqs": []
       }
     }
   ],

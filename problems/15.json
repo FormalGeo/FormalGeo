@@ -8,18 +8,98 @@
   "problem_text_en": "As shown in the diagram, IB=1/2*x-7, JI=1/4*x+5, LD=66-2/3*y, NL=1/3*y-6, NL=LD, CJ⊥NJ, IB is perpendicular to DB, JI is perpendicular to LI. Find the value of x.",
   "problem_img": "15.png",
   "coord_system": {
-    "width": 1200,
-    "height": 1000,
-    "xZero": 600,
-    "yZero": 500
+    "width": "1043",
+    "height": "1070",
+    "xZero": "528",
+    "yZero": "535.0000000000003"
   },
   "points": [
     {
+      "B": {
+        "x": "-7",
+        "y": "-7",
+        "dep_eqs": [],
+        "dep_ineqs": []
+      }
+    },
+    {
+      "D": {
+        "x": "7",
+        "y": "-7",
+        "dep_eqs": [],
+        "dep_ineqs": []
+      }
+    },
+    {
+      "N": {
+        "x": "7",
+        "y": "6",
+        "dep_eqs": [],
+        "dep_ineqs": []
+      }
+    },
+    {
+      "J": {
+        "x": "-7",
+        "y": "6",
+        "dep_eqs": [],
+        "dep_ineqs": []
+      }
+    },
+    {
+      "I": {
+        "x": "-91",
+        "y": "0",
+        "dep_eqs": [],
+        "dep_ineqs": []
+      }
+    },
+    {
+      "L": {
+        "x": "91",
+        "y": "0",
+        "dep_eqs": [],
+        "dep_ineqs": []
+      }
+    },
+    {
+      "C": {
+        "x": "-7",
+        "y": "9",
+        "dep_eqs": [],
+        "dep_ineqs": []
+      }
+    },
+    {
       "A": {
-        "x": 0,
-        "y": 0,
-        "x_dep_eq": "Free",
-        "y_dep_eq": "Free"
+        "x": "6.76",
+        "y": "-3.84",
+        "dep_eqs": [],
+        "dep_ineqs": []
+      }
+    },
+    {
+      "E": {
+        "x": "7.28",
+        "y": "-3.84",
+        "dep_eqs": [],
+        "dep_ineqs": []
+      }
+    },
+    {
+      "A_{1}": {
+        "x": "6.74",
+        "y": "2.72",
+        "dep_eqs": [],
+        "dep_ineqs": []
+      }
+    },
+    {
+      "E_{1}": {
+        "x": "7.26",
+        "y": "2.72",
+        "dep_eqs": [],
+        "dep_ineqs": []
       }
     }
   ],

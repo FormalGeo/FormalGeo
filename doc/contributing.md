@@ -13,7 +13,7 @@ good option. Projects that meet the **Dataset Structure** will be merged into *F
 
 ### Dataset Structure
 
-You can look at the other datasets in  `datasets.josn` to get a general idea of the structure of a project.  
+You can look at the other datasets in  `datasets.json` to get a general idea of the structure of a project.  
 A standardized dataset release project is as follows:
 
     project_name/

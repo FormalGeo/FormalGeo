@@ -2,6 +2,7 @@ from sympy import Float
 from formalgeo.parse import inverse_parse_one, inverse_parse_logic_to_cdl, inverse_parse_one_theorem
 from graphviz import Digraph
 import os
+import random
 
 
 def simple_show(problem, timing):
@@ -201,10 +202,7 @@ def get_meta_hypertree(problem):
                 theorem == "extended":
             continue  # skip construction cdl extending process
 
-        if predicate == "Equation":
-            cdl[node_id] = "Equation" + "(" + str(item).replace(" ", "") + ")"
-        else:
-            cdl[node_id] = inverse_parse_one(predicate, item, problem)
+        cdl[node_id] = inverse_parse_one(predicate, item, problem)
 
         if theorem == "prerequisite":  # prerequisite not show in graph
             init_nodes.append(node_id)
@@ -385,3 +383,34 @@ def draw_theorem_dag(problem, file_path_and_name):
     if f"{filename}.png" in os.listdir(path):
         os.remove(f"{path}/{filename}.png")
     os.rename(f"{path}/{filename}.gv.png", f"{path}/{filename}.png")
+
+
+def topological_sort(theorem_dag, random_seed=0):
+    """Generate a theorem sequences according to the theorem DAG."""
+    random.seed(random_seed)
+    in_degree = {}
+    for theorems in theorem_dag.values():
+        for theorem in theorems:
+            if theorem not in in_degree:
+                in_degree[theorem] = 1
+            else:
+                in_degree[theorem] += 1
+
+    for theorem in theorem_dag.keys():
+        if theorem not in in_degree:
+            in_degree[theorem] = 0
+
+    theorem_seqs = []
+    zero_in_degree = [theorem for theorem, degree in in_degree.items() if degree == 0]
+    while len(zero_in_degree) > 0:
+        theorem = random.choice(zero_in_degree)  # apply theorem and update state
+        theorem_seqs.append(theorem)
+        zero_in_degree.remove(theorem)
+
+        if theorem in theorem_dag:
+            for tail in theorem_dag[theorem]:
+                in_degree[tail] -= 1
+                if in_degree[tail] == 0:
+                    zero_in_degree.append(tail)
+
+    return theorem_seqs[1:]

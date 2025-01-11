@@ -39,7 +39,7 @@ def inverse_parse_one(predicate, item, problem, remove_predicate=False):
     Called by <inverse_parse_logic_to_cdl>.
     """
     if predicate == "Equation":
-        inverse_parsed = inverse_parse_equation(item, problem)
+        inverse_parsed = "Equation" + "(" + str(item).replace(" ", "") + ")"
     elif (predicate in problem.parsed_predicate_GDL["Preset"]["Construction"] or
           predicate in problem.parsed_predicate_GDL["Preset"]["BasicEntity"]):
         inverse_parsed = inverse_parse_preset(predicate, item)
@@ -69,44 +69,6 @@ def inverse_parse_logic(predicate, item, problem):
                 result[-1] += item[i]
                 i += 1
         return predicate + "(" + ",".join(result) + ")"
-
-
-def inverse_parse_equation(item, problem):
-    """
-    Inverse parse algebra conditions.
-    >> inverse_parse_one(ll_ac - ll_cd, problem)
-    'Equal(LengthOfLine(AC),LengthOfLine(CD))'
-    >> inverse_parse_one(ll_ac - 1, problem)
-    'Value(LengthOfLine(AC))'
-    >> inverse_parse_one(ll_ac - ll_cd - ll_ef, problem)
-    'Equation(ll_ac-ll_cd-ll_ef)'
-    """
-    syms = list(item.free_symbols)
-    if len(syms) == 1:
-        if problem.condition.value_of_sym[syms[0]] is not None and \
-                syms[0] - problem.condition.value_of_sym[syms[0]] == item:
-            attr, items = problem.condition.attr_of_sym[syms[0]]
-            if attr == "Free":
-                attr = items[0][0]
-            else:
-                attr = attr + "(" + "".join(items[0]) + ")"
-            return "Value({},{})".format(attr, str(problem.condition.value_of_sym[syms[0]]).replace(" ", ""))
-    elif len(syms) == 2 and (item == (syms[0] - syms[1]) or item == (syms[1] - syms[0])):
-        attr1, items1 = problem.condition.attr_of_sym[syms[0]]
-        if attr1 == "Free":
-            attr1 = items1[0][0]
-        else:
-            attr1 = attr1 + "(" + "".join(items1[0]) + ")"
-        attr2, items2 = problem.condition.attr_of_sym[syms[1]]
-        if attr2 == "Free":
-            attr2 = items2[0][0]
-        else:
-            attr2 = attr2 + "(" + "".join(items2[0]) + ")"
-        if item == (syms[0] - syms[1]):
-            return "Equal({},{})".format(attr1, attr2)
-        return "Equal({},{})".format(attr2, attr1)
-
-    return "Equation" + "(" + str(item).replace(" ", "") + ")"
 
 
 def inverse_parse_preset(predicate, item):

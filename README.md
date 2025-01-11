@@ -44,8 +44,8 @@ If you don't want to read `doc`, here is a short usage, start Python and:
 The `DatasetLoader` is used for dataset management, the `Interactor` act as an interactive solver. Download and load
 dataset `formalgeo7k_v1`.
 
-    >>> download_dataset(dataset_name="formalgeo7k_v1", datasets_path="your_datasets_path")
-    >>> dl = DatasetLoader(dataset_name="formalgeo7k_v1", datasets_path="your_datasets_path")
+    >>> download_dataset(dataset_name="formalgeo7k_v1", datasets_path="path/to/your/datasets")
+    >>> dl = DatasetLoader(dataset_name="formalgeo7k_v1", datasets_path="path/to/your/datasets")
 
 Initialize the solver, load the problems, and apply the annotated sequence of theorems for solving:
 
@@ -62,28 +62,40 @@ Print the problem-solving process:
 
 ## Available Datasets
 
-### formalgeo7k-v1
+### FormalGeo7K-v2
 
-**Dataset Name:** formalgeo7k_v1  
+**Download:** `download_dataset(dataset_name="formalgeo7k_v2", datasets_path="path/to/your/datasets")`  
+**Release Datetime:** 2024-11-12 11:33:23  
+**Description:** 7000 SAT-level geometry problems with complete natural language description, geometric shapes, formal
+language annotations, and theorem sequences annotations. On the basis of version v1, we have redrawn the geometric
+images using Geogebra, standardized the style of natural language descriptions for the problems, added Chinese natural
+language descriptions for the problems, and corrected annotation errors in some of the questions. We recommend using
+this version.  
+**Citation:** *Zhang, X., Zhu, N., Qin, C., Yang, L. I., Zeng, Z., & Leng, T. Formal Representation and Solution of
+Plane Geometric Problems. In The 4th Workshop on Mathematical Reasoning and AI at NeurIPS'24.*
+
+### FormalGeo7K
+
+**Download:** `download_dataset(dataset_name="formalgeo7k_v1", datasets_path="path/to/your/datasets")`  
 **Release Datetime:** 2023-11-08 13:01:26  
-**Description:** 6,981 SAT-level geometry problems with complete natural language description, geometric shapes, formal
-language annotations, and theorem sequences annotations.
+**Description:** We develop FormalGeo, a consistent geometry formal system based on rigorous geometry formalization
+theory. We further construct the formalgeo7k dataset, which contains 6,981 geometric problems. All problems are
+annotated with problem text, problem diagrams, formal descriptions, and solutions. This dataset can serve as a benchmark
+for various tasks, such as geometric problem solving, geometric diagram parsing, geometric relation extraction,
+geometric problem formalization and the evaluation of LLMs reasoning abilities.  
+**Citation:** *Zhang, X., Zhu, N., He, Y., Zou, J., Qin, C., Li, Y., & Leng, T. (2024). FGeo-SSS: A Search-Based
+Symbolic Solver for Human-like Automated Geometric Reasoning. Symmetry, 16(4), 404.*
 
-### formalgeo-imo
+### FormalGeo-IMO
 
-**Dataset Name:** formalgeo-imo_v1  
+**Download:** `download_dataset(dataset_name="formalgeo-imo_v1", datasets_path="path/to/your/datasets")`
 **Release Datetime:** 2023-11-26 19:21:26  
 **Description:** We have attempted to annotate 18 IMO-level geometric problems, sourced from carefully
 selected International Olympiads, Chinese Olympiads, and others. During the annotation process, we discovered that
 IMO-level problems require more efficient construction algorithms and a more comprehensive formalization system. A
-larger and more comprehensive dataset will be published after these problems are solved.
-
-### formalgeo7k-v2
-
-**Dataset Name:** formalgeo7k_v2  
-**Release Datetime:** 2024-08-31 16:35:36  
-**Description:** 7000 SAT-level geometry problems with complete natural language description, geometric shapes, formal
-language annotations, and theorem sequences annotations.
+larger and more comprehensive dataset will be published after these problems are solved.  
+**Citation:** *Zhang, X., Zhu, N., He, Y., Zou, J., Qin, C., Li, Y., & Leng, T. (2024). FGeo-SSS: A Search-Based
+Symbolic Solver for Human-like Automated Geometric Reasoning. Symmetry, 16(4), 404.*
 
 ## Contributing
 
@@ -99,19 +111,20 @@ contributions of all sizes and are happy to assist newcomers to git with their p
 ## Citation
 
 To cite FormalGeo in publications use:
-> Xiaokai, Zhang., Na, Zhu., Yiming, He., Jia, Zou., ... & Tuo, Leng. (2023). FormalGeo: The First Step Toward
-> Human-like IMO-level Geometric Automated Reasoning. arXiv preprint arXiv:2310.18021.
+> Zhang, X., Zhu, N., He, Y., Zou, J., Huang, Q., Jin, X., ... & Leng, T. (2024). FormalGeo: An Extensible Formalized
+> Framework for Olympiad Geometric Problem Solving
 
 A BibTeX entry for LaTeX users is:
-> @misc{arxiv2023formalgeo,  
-> title={FormalGeo: The First Step Toward Human-like IMO-level Geometric Automated Reasoning},  
+> @misc{arxiv2024formalgeo,  
+> title={FormalGeo: An Extensible Formalized Framework for Olympiad Geometric Problem Solving},  
 > author={Xiaokai Zhang and Na Zhu and Yiming He and Jia Zou and Qike Huang and Xiaoxiao Jin and Yanjun Guo and Chenyang
 > Mao and Zhe Zhu and Dengfeng Yue and Fangzhen Zhu and Yang Li and Yifan Wang and Yiwen Huang and Runan Wang and Cheng
 > Qin and Zhenbing Zeng and Shaorong Xie and Xiangfeng Luo and Tuo Leng},  
-> year={2023},  
+> year={2024},  
 > eprint={2310.18021},  
 > archivePrefix={arXiv},  
-> primaryClass={cs.AI}  
+> primaryClass={cs.AI},  
+> url={https://arxiv.org/abs/2310.18021}  
 > }
 
 FormalGeo is MIT licensed, so you are free to use it whatever you like, be it academic, commercial, creating forks or

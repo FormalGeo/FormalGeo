@@ -88,7 +88,7 @@ Symbolic Solver for Human-like Automated Geometric Reasoning. Symmetry, 16(4), 4
 
 ### FormalGeo-IMO
 
-**Download:** `download_dataset(dataset_name="formalgeo-imo_v1", datasets_path="path/to/your/datasets")`
+**Download:** `download_dataset(dataset_name="formalgeo-imo_v1", datasets_path="path/to/your/datasets")`  
 **Release Datetime:** 2023-11-26 19:21:26  
 **Description:** We have attempted to annotate 18 IMO-level geometric problems, sourced from carefully
 selected International Olympiads, Chinese Olympiads, and others. During the annotation process, we discovered that

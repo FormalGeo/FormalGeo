@@ -1,4 +1,18 @@
 {
+  "formalgeo7k_v2": {
+    "dataset_name": "formalgeo7k",
+    "dataset_version": "v2",
+    "short_description": "7000 SAT-level problems with complete formal language, geometry image and theorem sequence annotation.",
+    "license": "MIT",
+    "problem_number": 7000,
+    "formalgeo_version": "0.0.5",
+    "gdl_name": "GFS-Basic",
+    "gdl_version": "v2",
+    "problem_source": "Geometry3k (https://github.com/lupantech/InterGPS), GeoQA (https://github.com/chen-judge/GeoQA), GeoQA+ (https://github.com/SCNU203/GeoQA-Plus) and online resources.",
+    "release_datetime": "2024-11-12 11:33:23",
+    "downloads": "https://drive.usercontent.google.com/download?id=1aBzBjW9r26_v4re2rnF6Mm_4LFxfcacm&export=download&authuser=1&confirm=t&uuid=41761b33-2e46-4751-911c-f3f852e01b4c&at=AENtkXbflkrOsyIWtHC1G5msUlom:1731500601457",
+    "citation": "Zhang, X., Zhu, N., Qin, C., Yang, L. I., Zeng, Z., & Leng, T. Formal Representation and Solution of Plane Geometric Problems. In The 4th Workshop on Mathematical Reasoning and AI at NeurIPS'24."
+  },
   "formalgeo7k_v1": {
     "dataset_name": "formalgeo7k",
     "dataset_version": "v1",
@@ -10,7 +24,8 @@
     "gdl_version": "v1",
     "problem_source": "Geometry3k (https://github.com/lupantech/InterGPS), GeoQA (https://github.com/chen-judge/GeoQA), GeoQA+ (https://github.com/SCNU203/GeoQA-Plus) and online resources.",
     "release_datetime": "2023-11-08 13:01:26",
-    "downloads": "https://drive.usercontent.google.com/download?id=1w93L9ap4nrOtdyIjH9lkglgYYBni7fgS&export=download&authuser=0&confirm=t&uuid=8334c10d-2cdb-474b-ba80-08f87f506e4d&at=APZUnTWwbK0C21JRH8u_lMV8tN26%3A1713340917366"
+    "downloads": "https://drive.usercontent.google.com/download?id=1w93L9ap4nrOtdyIjH9lkglgYYBni7fgS&export=download&authuser=0&confirm=t&uuid=8334c10d-2cdb-474b-ba80-08f87f506e4d&at=APZUnTWwbK0C21JRH8u_lMV8tN26%3A1713340917366",
+    "citation": "Zhang, X., Zhu, N., He, Y., Zou, J., Qin, C., Li, Y., & Leng, T. (2024). FGeo-SSS: A Search-Based Symbolic Solver for Human-like Automated Geometric Reasoning. Symmetry, 16(4), 404."
   },
   "formalgeo-imo_v1": {
     "dataset_name": "formalgeo-imo",
@@ -23,19 +38,7 @@
     "gdl_version": "v1",
     "problem_source": "WeChat mini program 数之谜 and online resources",
     "release_datetime": "2023-11-26 19:21:26",
-    "downloads": "https://drive.usercontent.google.com/download?id=16nuLyRQ1n4frO6mM9lrlhPCMJelq71lx&export=download&authuser=0"
-  },
-  "formalgeo7k_v2": {
-    "dataset_name": "formalgeo7k",
-    "dataset_version": "v2",
-    "short_description": "7000 SAT-level problems with complete formal language, geometry image and theorem sequence annotation.",
-    "license": "MIT",
-    "problem_number": 7000,
-    "formalgeo_version": "0.0.5",
-    "gdl_name": "GFS-Basic",
-    "gdl_version": "v2",
-    "problem_source": "Geometry3k (https://github.com/lupantech/InterGPS), GeoQA (https://github.com/chen-judge/GeoQA), GeoQA+ (https://github.com/SCNU203/GeoQA-Plus) and online resources.",
-    "release_datetime": "2024-11-12 11:33:23",
-    "downloads": "https://drive.usercontent.google.com/download?id=1aBzBjW9r26_v4re2rnF6Mm_4LFxfcacm&export=download&authuser=1&confirm=t&uuid=41761b33-2e46-4751-911c-f3f852e01b4c&at=AENtkXbflkrOsyIWtHC1G5msUlom:1731500601457"
+    "downloads": "https://drive.usercontent.google.com/download?id=16nuLyRQ1n4frO6mM9lrlhPCMJelq71lx&export=download&authuser=0",
+    "citation": "Zhang, X., Zhu, N., He, Y., Zou, J., Qin, C., Li, Y., & Leng, T. (2024). FGeo-SSS: A Search-Based Symbolic Solver for Human-like Automated Geometric Reasoning. Symmetry, 16(4), 404."
   }
 }

@@ -1,18 +1,25 @@
 # FormalGeo
 
-[![Version](https://img.shields.io/badge/Version-0.0.6-brightgreen)](https://github.com/FormalGeo/FormalGeo)
+[![Version](https://img.shields.io/badge/Version-2.0.1-brightgreen)](https://github.com/FormalGeo/FormalGeo)
 [![License](https://img.shields.io/badge/License-MIT-green)](https://opensource.org/licenses/MIT)
 [![Survey](https://img.shields.io/badge/Survey-FormalGeo-blue)](https://github.com/FormalGeo/FormalGeo)
 
 Formal representation and solving for Euclidean plane geometry problems. Our goal is to build a crucial bridge between
-IMO-level plane geometry challenges and readable AI automated reasoning.  
-More information about FormalGeo will be found in [homepage](https://formalgeo.github.io/). FormalGeo is in its early
-stages and brimming with potential. We welcome anyone to join us in this exciting endeavor.
+IMO-level plane geometry challenges and readable AI automated reasoning. More information about FormalGeo will be found
+in [homepage](https://formalgeo.github.io/).
+
+Older versions before 2.0.1, which we refer to as alpha versions, have been unmaintained since December 1, 2025. If you
+still wish to access the alpha version code, you can check out the alpha branch. The new beta version is scheduled to be
+released by March 1, 2026. Compared to the alpha version, the beta version enables shape construction and a unified
+bidirectional reasoning process.
+
+The released open-source datasets can be found in the `datasets.json` file. If you use these datasets, please cite them 
+properly according to the Citation requirements.
 
 ## Installation
 
 **For users:**  
-We recommend using Conda to manage Python development environments. FormalGeo has been uploaded to PyPi, allowing for
+We recommend using Conda to manage Python development environments. FormalGeo has been deployed to PyPi, allowing for
 easy installation via the `pip` command.
 
     $ conda create -n <your_env_name> python=3.10
@@ -31,82 +38,39 @@ project development and testing.
     $ conda activate <your_env_name>
     $ pip install -e .
 
-## Documentation and Usage
+## Usage
 
-Everything is at [doc](./doc/doc.md). You can gain a deeper understanding of the **Geometry Formalization Theory**
-by reading the [original paper](https://arxiv.org/abs/2310.18021) of FormalGeo.  
-If you don't want to read `doc`, here is a short usage, start Python and:
+You can gain a deeper understanding of the **Geometry Formalization Theory** by reading the 
+[paper](https://arxiv.org/abs/2310.18021).
 
-    >>> from formalgeo.data import download_dataset, DatasetLoader
-    >>> from formalgeo.solver import Interactor
-    >>> from formalgeo.parse import parse_theorem_seqs
+Start Python and:
 
-The `DatasetLoader` is used for dataset management, the `Interactor` act as an interactive solver. Download and load
-dataset `formalgeo7k_v1`.
+    >>> from formalgeo.configuration import Configuration
+    >>> from formalgeo.tools import parse_gdl
 
-    >>> download_dataset(dataset_name="formalgeo7k_v1", datasets_path="path/to/your/datasets")
-    >>> dl = DatasetLoader(dataset_name="formalgeo7k_v1", datasets_path="path/to/your/datasets")
+Load GDL, construct geometric configuration, and apply theorems to expand facts or decompose goals:
 
-Initialize the solver, load the problems, and apply the annotated sequence of theorems for solving:
+    >>> gc = Configuration(parsed_gdl=parse_gdl('gdl_path'))
+    >>> gc.construct('gcl')
+    >>> gc.apply('theorem')
+    >>> gc.decompose('theorem')
 
-    >>> solver = Interactor(dl.predicate_GDL, dl.theorem_GDL)
-    >>> problem_CDL = dl.get_problem(pid=1)
-    >>> solver.load_problem(problem_CDL)
-    >>> for t_name, t_branch, t_para in parse_theorem_seqs(problem_CDL["theorem_seqs"]): solver.apply_theorem(t_name, t_branch, t_para)
-    >>> solver.problem.check_goal()
+Print the problem-solving process, geometric configuration or solving graph:
 
-Print the problem-solving process:
-
-    >>> from formalgeo.tools import show_solution
-    >>> show_solution(solver.problem)
-
-## Available Datasets
-
-### FormalGeo7K-v2
-
-**Download:** `download_dataset(dataset_name="formalgeo7k_v2", datasets_path="path/to/your/datasets")`  
-**Release Datetime:** 2024-11-12 11:33:23  
-**Description:** 7000 SAT-level geometry problems with complete natural language description, geometric shapes, formal
-language annotations, and theorem sequences annotations. On the basis of version v1, we have redrawn the geometric
-images using Geogebra, standardized the style of natural language descriptions for the problems, added Chinese natural
-language descriptions for the problems, and corrected annotation errors in some of the questions. We recommend using
-this version.  
-**Citation:** *Zhang, X., Zhu, N., Qin, C., Yang, L. I., Zeng, Z., & Leng, T. Formal Representation and Solution of
-Plane Geometric Problems. In The 4th Workshop on Mathematical Reasoning and AI at NeurIPS'24.*
-
-### FormalGeo7K
-
-**Download:** `download_dataset(dataset_name="formalgeo7k_v1", datasets_path="path/to/your/datasets")`  
-**Release Datetime:** 2023-11-08 13:01:26  
-**Description:** We develop FormalGeo, a consistent geometry formal system based on rigorous geometry formalization
-theory. We further construct the formalgeo7k dataset, which contains 6,981 geometric problems. All problems are
-annotated with problem text, problem diagrams, formal descriptions, and solutions. This dataset can serve as a benchmark
-for various tasks, such as geometric problem solving, geometric diagram parsing, geometric relation extraction,
-geometric problem formalization and the evaluation of LLMs reasoning abilities.  
-**Citation:** *Zhang, X., Zhu, N., He, Y., Zou, J., Qin, C., Li, Y., & Leng, T. (2024). FGeo-SSS: A Search-Based
-Symbolic Solver for Human-like Automated Geometric Reasoning. Symmetry, 16(4), 404.*
-
-### FormalGeo-IMO
-
-**Download:** `download_dataset(dataset_name="formalgeo-imo_v1", datasets_path="path/to/your/datasets")`  
-**Release Datetime:** 2023-11-26 19:21:26  
-**Description:** We have attempted to annotate 18 IMO-level geometric problems, sourced from carefully
-selected International Olympiads, Chinese Olympiads, and others. During the annotation process, we discovered that
-IMO-level problems require more efficient construction algorithms and a more comprehensive formalization system. A
-larger and more comprehensive dataset will be published after these problems are solved.  
-**Citation:** *Zhang, X., Zhu, N., He, Y., Zou, J., Qin, C., Li, Y., & Leng, T. (2024). FGeo-SSS: A Search-Based
-Symbolic Solver for Human-like Automated Geometric Reasoning. Symmetry, 16(4), 404.*
+    >>> from formalgeo.tools import show_gc, draw_gc, get_sg, draw_sg
+    >>> show_gc(gc)
+    >>> draw_gc(gc, 'save_path')
+    >>> get_sg(gc, forward=True, serialize=False)
+    >>> draw_sg(gc, 'save_path', forward=True)
 
 ## Contributing
 
-We welcome contributions from anyone, even if you are new to open source. Please read our [Introduction to Contributing
-page](./doc/contributing.md).
-
-## Bugs
+We welcome contributions from anyone, even if you are new to open source. Fork our repository on GitHub and submit a
+pull request. We appreciate contributions of all sizes and are happy to assist newcomers to git with their pull
+requests.
 
 Our bug reporting platform is available at [here](https://github.com/FormalGeo/FormalGeo/issues). We encourage you to
-report any issues you encounter. Or even better, fork our repository on GitHub and submit a pull request. We appreciate
-contributions of all sizes and are happy to assist newcomers to git with their pull requests.
+report any issues you encounter.
 
 ## Citation
 
@@ -128,5 +92,4 @@ A BibTeX entry for LaTeX users is:
 > }
 
 FormalGeo is MIT licensed, so you are free to use it whatever you like, be it academic, commercial, creating forks or
-derivatives, as long as you copy the MIT statement if you redistribute it (see the LICENSE file for details). That said,
-if it is convenient for you, please cite FormalGeo when using it in your work.
+derivatives. If it is convenient for you, please cite FormalGeo when using it in your work.

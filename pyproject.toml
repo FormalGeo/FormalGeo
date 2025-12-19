@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 [project]
 name = "FormalGeo"
-version = "0.0.6"
+version = "2.0.1"
 authors = [
     { name = "Xiaokai Zhang", email = "xiaokaizhang1999@163.com" },
 ]
@@ -16,12 +16,9 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "sympy>=1.10",
-    "func-timeout>=4.3",
-    "requests>=2.31",
-    "chardet==5.2.0",
-    "tqdm>=4.66.1",
-    "graphviz>=0.20.1"
+    "sympy>=1.14",
+    "func-timeout>=4.3.5",
+    "graphviz>=0.21"
 ]
 [project.urls]
 "Homepage" = "https://github.com/FormalGeo/FormalGeo"

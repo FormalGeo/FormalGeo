@@ -157,6 +157,7 @@ def parse_gdl(gdl):
             raise Exception(f"Duplicate definition of theorem '{name}'.")
 
         premises = serialize_gpl(gdl['Theorems'][theorem]['premises'])
+        geometric_constraints = []
         algebraic_forms = []
         for i in range(len(premises)):
             if premises[i] in {'&', '|', '~', '(', ')'}:
@@ -167,7 +168,8 @@ def parse_gdl(gdl):
                     premises[i] = (algebraic_relation, expr)
                 else:  # geometric relation
                     premises[i] = parse_geometric_fact(premises[i])
-                algebraic_forms.extend(_parse_algebraic_forms(premises[i][0], premises[i][1], parsed_gdl))
+                geometric_constraints.extend(parse_dependent_entities(premises[i][0], premises[i][1], parsed_gdl))
+                algebraic_forms.extend(parse_algebraic_forms(premises[i][0], premises[i][1], parsed_gdl))
 
         if gdl['Theorems'][theorem]['conclusion'].startswith('Eq('):
             conclusion = parse_algebraic_fact(gdl['Theorems'][theorem]['conclusion'])
@@ -175,7 +177,7 @@ def parse_gdl(gdl):
             conclusion = parse_geometric_fact(gdl['Theorems'][theorem]['conclusion'])
 
         algebraic_forms = ['('] + algebraic_forms + [')', '&']
-        algebraic_forms.extend(_parse_algebraic_forms(conclusion[0], conclusion[1], parsed_gdl))
+        algebraic_forms.extend(parse_algebraic_forms(conclusion[0], conclusion[1], parsed_gdl))
 
         premises = parse_gpl_to_tree(premises)
         premises = negation_inward(premises)
@@ -187,6 +189,7 @@ def parse_gdl(gdl):
 
         parsed_gdl['Theorems'][name] = {
             'paras': paras,
+            'geometric_constraints': tuple(sorted(list(set(geometric_constraints)), key=lambda x: paras.index(x[1]))),
             'algebraic_forms': algebraic_forms,
             'premises': premises,
             'conclusion': conclusion
@@ -211,7 +214,7 @@ def _parse_geometric_constraints(geometric_constraints, paras):
     return tuple(entities)
 
 
-def _parse_algebraic_forms(predicate, instance, parsed_gdl):
+def parse_algebraic_forms(predicate, instance, parsed_gdl):
     if predicate == 'Eq':  # algebraic relation
         for sym in list(instance.free_symbols):
             entities, attr = str(sym).split('.')
@@ -418,7 +421,7 @@ def replace_instance(instance, replace):
     Returns:
         replaced_instances: Replaced instances. Such as ['B', 'C', 'D'].
     """
-    return [replace[entity] for entity in instance]
+    return tuple([replace[entity] for entity in instance])
 
 
 def replace_expr(expr, replace):
@@ -656,11 +659,11 @@ def parse_dependent_entities(predicate, instance, parsed_gdl):
             entities, attr = str(sym).split('.')
             replace = dict(zip(parsed_gdl['Attributions'][attr]['paras'], entities))
             for entity, paras in parsed_gdl['Attributions'][attr]['geometric_constraints']:
-                dependent_entities.append((entity, tuple(replace_instance(paras, replace))))
+                dependent_entities.append((entity, replace_instance(paras, replace)))
     else:
         replace = dict(zip(parsed_gdl['Relations'][predicate]['paras'], instance))
         for entity, paras in parsed_gdl['Relations'][predicate]['geometric_constraints']:
-            dependent_entities.append((entity, tuple(replace_instance(paras, replace))))
+            dependent_entities.append((entity, replace_instance(paras, replace)))
 
     return sorted(dependent_entities)
 
@@ -709,7 +712,7 @@ def parse_construction(construction, parsed_gdl):
                 raise Exception(f"No target entity in constraints branch '{constraints}'.")
             dependent_entities.update(constraint_dependent_entities)
 
-            constraint_algebraic_forms = _parse_algebraic_forms(predicate, instance, parsed_gdl)
+            constraint_algebraic_forms = parse_algebraic_forms(predicate, instance, parsed_gdl)
 
             if len(algebraic_forms) > 0 and len(constraint_algebraic_forms) > 0:
                 algebraic_forms.append('&')
@@ -718,7 +721,7 @@ def parse_construction(construction, parsed_gdl):
                 added_facts.append(constraint)
             else:
                 algebraic_forms.append('~')
-            algebraic_forms.extend(_parse_algebraic_forms(predicate, instance, parsed_gdl))
+            algebraic_forms.extend(parse_algebraic_forms(predicate, instance, parsed_gdl))
 
         dependent_entities = sorted(list(dependent_entities))
 

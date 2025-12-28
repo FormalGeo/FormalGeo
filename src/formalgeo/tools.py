@@ -91,8 +91,8 @@ def _satisfy_ueq(expr, sym_to_value=None):
     return expr.subs(sym_to_value).evalf(n=precision, chop=chop) != 0
 
 
-satisfy_algebraic = {'Eq': _satisfy_eq, 'G': _satisfy_g, 'Geq': _satisfy_geq,
-                     'L': _satisfy_l, 'Leq': _satisfy_leq, 'Ueq': _satisfy_ueq}
+_satisfy_algebraic = {'Eq': _satisfy_eq, 'G': _satisfy_g, 'Geq': _satisfy_geq,
+                      'L': _satisfy_l, 'Leq': _satisfy_leq, 'Ueq': _satisfy_ueq}
 
 negation_map = {'Eq': 'Ueq', 'G': 'Leq', 'Geq': 'L', 'L': 'Geq', 'Leq': 'G', 'Ueq': 'Eq'}
 
@@ -115,94 +115,156 @@ def parse_gdl(gdl):
 
     # parse Attributions
     for attr in gdl['Attributions']:
-        name, paras = parse_geometric_fact(attr)
+        try:
+            _parse_one_attribution(attr, gdl, parsed_gdl)
+        except Exception as e:
+            e_msg = f"An error occurred while parsing attribution '{attr}'."
+            raise Exception(e_msg) from e
 
-        sym = gdl['Attributions'][attr]['sym']
-        if sym in parsed_gdl['Attributions']:
-            e_msg = f"Conflicting symbol '{sym}' in '{parsed_gdl['Attributions'][sym]['name']}' and '{name}'."
-            raise Exception(e_msg)
+    update = True
+    while update:
+        update = False
+        for relation in gdl['Relations']:  # parse Relations
+            try:
+                update = _parse_one_relation(relation, gdl, parsed_gdl) or update
+            except Exception as e:
+                e_msg = f"An error occurred while parsing relation '{relation}'."
+                raise Exception(e_msg) from e
 
-        geometric_constraints = _parse_geometric_constraints(gdl['Attributions'][attr]['geometric_constraints'], paras)
-        _, algebraic_forms = parse_algebraic_fact('Af(' + gdl['Attributions'][attr]['algebraic_forms'] + ')')
-
-        parsed_gdl['Attributions'][sym] = {
-            'name': name,
-            'paras': paras,
-            'geometric_constraints': geometric_constraints,
-            'algebraic_forms': algebraic_forms
-        }
-
-    # parse Relations
-    for relation in gdl['Relations']:
-        name, paras = parse_geometric_fact(relation)
-        if name in parsed_gdl['Relations']:
-            raise Exception(f"Duplicate definition of relation '{name}'.")
-
-        geometric_constraints = _parse_geometric_constraints(gdl['Relations'][relation]['geometric_constraints'], paras)
-        algebraic_forms = serialize_gpl(gdl['Relations'][relation]['algebraic_forms'])
-        for i in range(len(algebraic_forms)):
-            if algebraic_forms[i] not in {'&', '|', '~', '(', ')'}:
-                algebraic_forms[i] = parse_algebraic_fact(algebraic_forms[i])
-
-        parsed_gdl['Relations'][name] = {
-            'paras': paras,
-            'geometric_constraints': geometric_constraints,
-            'algebraic_forms': tuple(algebraic_forms)
-        }
-
-    # parse Theorems
-    for theorem in gdl['Theorems']:
-        name, paras = parse_geometric_fact(theorem)
-        if name in parsed_gdl['Theorems']:
-            raise Exception(f"Duplicate definition of theorem '{name}'.")
-
-        premises = serialize_gpl(gdl['Theorems'][theorem]['premises'])
-        geometric_constraints = []
-        algebraic_forms = []
-        for i in range(len(premises)):
-            if premises[i] in {'&', '|', '~', '(', ')'}:
-                algebraic_forms.append(premises[i])
-            else:
-                if premises[i].startswith('Eq('):  # algebraic relation
-                    algebraic_relation, expr = parse_algebraic_fact(premises[i])
-                    premises[i] = (algebraic_relation, expr)
-                else:  # geometric relation
-                    premises[i] = parse_geometric_fact(premises[i])
-                geometric_constraints.extend(parse_dependent_entities(premises[i][0], premises[i][1], parsed_gdl))
-                algebraic_forms.extend(parse_algebraic_forms(premises[i][0], premises[i][1], parsed_gdl))
-
-        if gdl['Theorems'][theorem]['conclusion'].startswith('Eq('):
-            conclusion = parse_algebraic_fact(gdl['Theorems'][theorem]['conclusion'])
-        else:
-            conclusion = parse_geometric_fact(gdl['Theorems'][theorem]['conclusion'])
-
-        algebraic_forms = ['('] + algebraic_forms + [')', '&']
-        algebraic_forms.extend(parse_algebraic_forms(conclusion[0], conclusion[1], parsed_gdl))
-
-        premises = parse_gpl_to_tree(premises)
-        premises = negation_inward(premises)
-        premises = _format_premises(premises)
-
-        algebraic_forms = parse_gpl_to_tree(algebraic_forms)
-        algebraic_forms = negation_inward(algebraic_forms)
-        algebraic_forms = _format_algebraic_forms(algebraic_forms, parsed_gdl, add_dependent=True)
-
-        parsed_gdl['Theorems'][name] = {
-            'paras': paras,
-            'geometric_constraints': tuple(sorted(list(set(geometric_constraints)), key=lambda x: paras.index(x[1]))),
-            'algebraic_forms': algebraic_forms,
-            'premises': premises,
-            'conclusion': conclusion
-        }
+    for theorem in gdl['Theorems']:  # parse Theorems
+        try:
+            _parse_one_theorem(theorem, gdl, parsed_gdl)
+        except Exception as e:
+            e_msg = f"An error occurred while parsing theorem '{theorem}'."
+            raise Exception(e_msg) from e
 
     return parsed_gdl
+
+
+def _parse_one_attribution(attr, gdl, parsed_gdl):
+    name, paras = _parse_geometric_fact(attr)
+
+    sym = gdl['Attributions'][attr]['sym']
+    if sym in parsed_gdl['Attributions']:
+        e_msg = f"Conflicting symbol '{sym}' in '{parsed_gdl['Attributions'][sym]['name']}' and '{name}'."
+        raise Exception(e_msg)
+
+    geometric_constraints = _parse_geometric_constraints(gdl['Attributions'][attr]['geometric_constraints'], paras)
+    _, algebraic_forms = _parse_algebraic_fact('Af(' + gdl['Attributions'][attr]['algebraic_forms'] + ')')
+
+    parsed_gdl['Attributions'][sym] = {
+        'name': name,
+        'paras': paras,
+        'geometric_constraints': geometric_constraints,
+        'algebraic_forms': algebraic_forms
+    }
+
+
+def _parse_one_relation(relation, gdl, parsed_gdl):
+    name, paras = _parse_geometric_fact(relation)
+    if name in parsed_gdl['Relations']:
+        return False
+
+    geometric_constraints = _parse_geometric_constraints(
+        gdl['Relations'][relation]['geometric_constraints'], paras)
+
+    algebraic_forms = []
+    for algebraic_form in _serialize_gpl(gdl['Relations'][relation]['algebraic_forms']):
+        if algebraic_form in {'&', '|', '~', '(', ')'}:
+            algebraic_forms.append(algebraic_form)
+        elif (algebraic_form.startswith('Eq(') or algebraic_form.startswith('G(') or
+              algebraic_form.startswith('Geq(') or algebraic_form.startswith('L(') or
+              algebraic_form.startswith('Leq(') or algebraic_form.startswith('Ueq(')):
+            algebraic_forms.append(_parse_algebraic_fact(algebraic_form))
+        else:
+            predicate, instance = _parse_geometric_fact(algebraic_form)
+            if predicate not in parsed_gdl['Relations']:
+                return False
+            replace = dict(zip(parsed_gdl['Relations'][predicate]['paras'], instance))
+            algebraic_forms.append('(')
+            for dependent_algebraic_form in parsed_gdl['Relations'][predicate]['algebraic_forms']:
+                if dependent_algebraic_form in {'&', '|', '~', '(', ')'}:
+                    algebraic_forms.append(dependent_algebraic_form)
+                else:
+                    algebraic_relation, expr = dependent_algebraic_form
+                    expr = _replace_expr(expr, replace)
+                    algebraic_forms.append((algebraic_relation, expr))
+            algebraic_forms.append(')')
+
+    parsed_gdl['Relations'][name] = {
+        'paras': paras,
+        'geometric_constraints': geometric_constraints,
+        'algebraic_forms': tuple(algebraic_forms)
+    }
+
+    return True
+
+
+def _parse_one_theorem(theorem, gdl, parsed_gdl):
+    name, paras = _parse_geometric_fact(theorem)
+    if name in parsed_gdl['Theorems']:
+        raise Exception(f"Duplicate definition of theorem '{name}'.")
+
+    premises = _serialize_gpl(gdl['Theorems'][theorem]['premises'])
+    geometric_constraints = []
+    algebraic_forms = []
+    for i in range(len(premises)):
+        if premises[i] in {'&', '|', '~', '(', ')'}:
+            algebraic_forms.append(premises[i])
+        else:
+            if premises[i].startswith('Eq('):  # algebraic relation
+                algebraic_relation, expr = _parse_algebraic_fact(premises[i])
+                premises[i] = (algebraic_relation, expr)
+                geometric_constraints.extend(_parse_dependent_entities(premises[i][0], premises[i][1], parsed_gdl))
+                algebraic_forms.extend(_parse_algebraic_forms(premises[i][0], premises[i][1], parsed_gdl))
+            else:  # geometric relation
+                premises[i] = _parse_geometric_fact(premises[i])
+                geometric_constraints.extend(_parse_dependent_entities(premises[i][0], premises[i][1], parsed_gdl))
+                algebraic_forms.extend(_parse_algebraic_forms(premises[i][0], premises[i][1], parsed_gdl))
+
+    if gdl['Theorems'][theorem]['conclusion'].startswith('Eq('):
+        conclusion = _parse_algebraic_fact(gdl['Theorems'][theorem]['conclusion'])
+    else:
+        conclusion = _parse_geometric_fact(gdl['Theorems'][theorem]['conclusion'])
+
+    geometric_constraints.extend(_parse_dependent_entities(conclusion[0], conclusion[1], parsed_gdl))
+    geometric_constraints = tuple(sorted(list(set(geometric_constraints)), key=lambda x: paras.index(x[1][0])))
+    if len(geometric_constraints) != len(paras):
+        e_msg = (f"Theorem '{theorem}' is incorrectly defined."
+                 f"geometric_constraints: '{geometric_constraints}', paras: '{paras}'")
+        raise Exception(e_msg)
+
+    if len(algebraic_forms) > 0:
+        algebraic_forms = ['('] + algebraic_forms + [')', '&']
+    algebraic_forms.extend(_parse_algebraic_forms(conclusion[0], conclusion[1], parsed_gdl))
+
+    if len(premises) == 0:
+        premises = list(geometric_constraints)
+        for i in range(1, len(geometric_constraints))[::-1]:
+            premises.insert(i, '&')
+
+    premises = _parse_gpl_to_tree(premises)
+    premises = _negation_inward(premises)
+    premises = _format_premises(premises)
+
+    algebraic_forms = _parse_gpl_to_tree(algebraic_forms)
+    algebraic_forms = _negation_inward(algebraic_forms)
+    algebraic_forms = _format_algebraic_forms(algebraic_forms, parsed_gdl, add_dependent=True)
+
+    parsed_gdl['Theorems'][name] = {
+        'paras': paras,
+        'geometric_constraints': geometric_constraints,
+        'algebraic_forms': algebraic_forms,
+        'premises': premises,
+        'conclusion': conclusion
+    }
 
 
 def _parse_geometric_constraints(geometric_constraints, paras):
     entities = []
     entity_paras = []
     for entity in geometric_constraints.split('&'):
-        entity_name, entity_para = parse_geometric_fact(entity)
+        entity_name, entity_para = _parse_geometric_fact(entity)
         if entity_name not in {'Point', 'Line', 'Circle'}:
             raise Exception(f"'{entity_name}' is not an valid entity used for EE Check.")
         entities.append((entity_name, entity_para))
@@ -214,12 +276,12 @@ def _parse_geometric_constraints(geometric_constraints, paras):
     return tuple(entities)
 
 
-def parse_algebraic_forms(predicate, instance, parsed_gdl):
+def _parse_algebraic_forms(predicate, instance, parsed_gdl):
     if predicate == 'Eq':  # algebraic relation
         for sym in list(instance.free_symbols):
             entities, attr = str(sym).split('.')
             replace = dict(zip(parsed_gdl['Attributions'][attr]['paras'], entities))
-            sym_replace = replace_expr(parsed_gdl['Attributions'][attr]['algebraic_forms'], replace)
+            sym_replace = _replace_expr(parsed_gdl['Attributions'][attr]['algebraic_forms'], replace)
             instance = instance.subs(sym, sym_replace)
         return [('Eq', instance)]
     else:  # geometric relation
@@ -228,7 +290,7 @@ def parse_algebraic_forms(predicate, instance, parsed_gdl):
         for j in range(len(algebraic_forms)):
             if algebraic_forms[j] in {'&', '|', '~', '(', ')'}:
                 continue
-            expr = replace_expr(algebraic_forms[j][1], replace)
+            expr = _replace_expr(algebraic_forms[j][1], replace)
             algebraic_forms[j] = (algebraic_forms[j][0], expr)
         if len(algebraic_forms) > 1:
             return ['('] + algebraic_forms + [')']
@@ -283,7 +345,7 @@ def _format_algebraic_forms(algebraic_forms, parsed_gdl, add_dependent=False):
         if not add_dependent:
             return algebraic_relation, expr
         dependent_entities = {}
-        for entity_type, para in parse_dependent_entities(algebraic_relation, expr, parsed_gdl):
+        for entity_type, para in _parse_dependent_entities(algebraic_relation, expr, parsed_gdl):
             dependent_entities[para[0]] = entity_type
         return algebraic_relation, expr, dependent_entities
 
@@ -299,7 +361,7 @@ def _format_algebraic_forms(algebraic_forms, parsed_gdl, add_dependent=False):
         raise Exception(f"Syntax error in algebraic_forms '{algebraic_forms}'.")
 
 
-def parse_geometric_fact(fact):
+def _parse_geometric_fact(fact):
     """Parse fact to logic form.
 
     Args:
@@ -319,7 +381,7 @@ def parse_geometric_fact(fact):
     return predicate, tuple(paras)
 
 
-def parse_algebraic_fact(fact):
+def _parse_algebraic_fact(fact):
     """
     Parse an algebra constraint to logic form.
 
@@ -397,6 +459,8 @@ def parse_algebraic_fact(fact):
                 result = (atan(paras[0]) - atan(paras[1])) * 180 / pi
             elif operation == 'Mma':  # Mma(k1,k2)
                 result = ((atan(paras[0]) - atan(paras[1])) * 180 / pi + 180) % 180
+            elif operation == 'Pp':  # Pp(x,y,cx,cy,r)
+                result = (paras[2] - paras[0]) ** 2 + (paras[3] - paras[1]) ** 2 - paras[4] ** 2
             elif operation == 'Log':  # Log(x)
                 result = log(paras[0])
             else:
@@ -412,7 +476,7 @@ def parse_algebraic_fact(fact):
     return algebraic_relation, stack.pop()
 
 
-def replace_instance(instance, replace):
+def _replace_instance(instance, replace):
     """Replace instances according to the replacement mapping.
 
     Args:
@@ -424,7 +488,7 @@ def replace_instance(instance, replace):
     return tuple([replace[entity] for entity in instance])
 
 
-def replace_expr(expr, replace):
+def _replace_expr(expr, replace):
     """Replace instances according to the replacement mapping.
 
     Args:
@@ -450,7 +514,7 @@ def replace_expr(expr, replace):
     return expr
 
 
-def serialize_gpl(gpl):
+def _serialize_gpl(gpl):
     """
 
     Args:
@@ -504,7 +568,7 @@ def serialize_gpl(gpl):
     return gpl_serialized
 
 
-def parse_gpl_to_tree(gpl_serialized):
+def _parse_gpl_to_tree(gpl_serialized):
     """
 
     Args:
@@ -540,16 +604,16 @@ def parse_gpl_to_tree(gpl_serialized):
         for i in operators:
             if gpl_serialized[i] != '|':
                 continue
-            # disjunctive form: [..., '|', ...] -> [parse_gpl_to_tree(...), '|', parse_gpl_to_tree(...)]
-            return [parse_gpl_to_tree(gpl_serialized[:i]), '|', parse_gpl_to_tree(gpl_serialized[i + 1:])]
-        # conjunctive form: [..., '&', ...] -> [parse_gpl_to_tree(...), '&', parse_gpl_to_tree(...)]
-        return [parse_gpl_to_tree(gpl_serialized[:operators[0]]), '&',
-                parse_gpl_to_tree(gpl_serialized[operators[0] + 1:])]
+            # disjunctive form: [..., '|', ...] -> [_parse_gpl_to_tree(...), '|', _parse_gpl_to_tree(...)]
+            return [_parse_gpl_to_tree(gpl_serialized[:i]), '|', _parse_gpl_to_tree(gpl_serialized[i + 1:])]
+        # conjunctive form: [..., '&', ...] -> [_parse_gpl_to_tree(...), '&', _parse_gpl_to_tree(...)]
+        return [_parse_gpl_to_tree(gpl_serialized[:operators[0]]), '&',
+                _parse_gpl_to_tree(gpl_serialized[operators[0] + 1:])]
 
     else:  # negative form (~) or atomic form
         if gpl_serialized[0] == '(' and gpl_serialized[-1] == ')' and priorities[0] == priorities[-1]:
-            # redundant '(' and ')': ['(', ..., ')'] -> parse_gpl_to_tree(...)
-            return parse_gpl_to_tree(gpl_serialized[1:-1])
+            # redundant '(' and ')': ['(', ..., ')'] -> _parse_gpl_to_tree(...)
+            return _parse_gpl_to_tree(gpl_serialized[1:-1])
         elif len(gpl_serialized) == 1 and gpl_serialized[0] not in {'&', '|', '~', '(', ')'}:
             # atomic form: [A] -> A
             return gpl_serialized[0]
@@ -559,13 +623,13 @@ def parse_gpl_to_tree(gpl_serialized):
             return gpl_serialized
         elif (gpl_serialized[0] == '~' and
               gpl_serialized[1] == '(' and gpl_serialized[-1] == ')' and priorities[1] == priorities[-1]):
-            # negative form: ['~', '(', ..., ')'] -> ['~', parse_gpl_to_tree(...)]
-            return ['~', parse_gpl_to_tree(gpl_serialized[2:-1])]
+            # negative form: ['~', '(', ..., ')'] -> ['~', _parse_gpl_to_tree(...)]
+            return ['~', _parse_gpl_to_tree(gpl_serialized[2:-1])]
         else:
             raise Exception(f"Syntax error in serialized GPL '{gpl_serialized}'.")
 
 
-def negation_inward(gpl_tree):
+def _negation_inward(gpl_tree):
     """
 
     Args:
@@ -588,30 +652,30 @@ def negation_inward(gpl_tree):
             # negative atomic form: ['~', A] -> ('~', A)
             return '~', gpl_tree[1]
         elif len(gpl_tree[1]) == 2:
-            # merge negation: ['~', ['~', ...]] -> negation_inward(...)
-            return negation_inward(gpl_tree[1][1])
+            # merge negation: ['~', ['~', ...]] -> _negation_inward(...)
+            return _negation_inward(gpl_tree[1][1])
         elif len(gpl_tree[1]) == 3 and gpl_tree[1][1] == '&':
-            # ~ conjunction: [~, [..., '&', ...]] -> [negation_inward(['~', ...]), '|', negation_inward(['~', ...])]
-            return [negation_inward(['~', gpl_tree[1][0]]), '|', negation_inward(['~', gpl_tree[1][2]])]
+            # ~ conjunction: [~, [..., '&', ...]] -> [_negation_inward(['~', ...]), '|', _negation_inward(['~', ...])]
+            return [_negation_inward(['~', gpl_tree[1][0]]), '|', _negation_inward(['~', gpl_tree[1][2]])]
         elif len(gpl_tree[1]) == 3 and gpl_tree[1][1] == '|':
-            # ~ disjunction: [~, [..., '|', ...]] -> [negation_inward(['~', ...]), '&', negation_inward(['~', ...])]
-            return [negation_inward(['~', gpl_tree[1][0]]), '&', negation_inward(['~', gpl_tree[1][2]])]
+            # ~ disjunction: [~, [..., '|', ...]] -> [_negation_inward(['~', ...]), '&', _negation_inward(['~', ...])]
+            return [_negation_inward(['~', gpl_tree[1][0]]), '&', _negation_inward(['~', gpl_tree[1][2]])]
         else:
             raise Exception(f"Syntax error in tree GPL '{gpl_tree}'.")
 
     elif len(gpl_tree) == 3 and gpl_tree[1] == '&':
-        # conjunction: [..., '&', ...] -> [negation_inward(...), '&', negation_inward(...)]
-        return [negation_inward(gpl_tree[0]), '&', negation_inward(gpl_tree[2])]
+        # conjunction: [..., '&', ...] -> [_negation_inward(...), '&', _negation_inward(...)]
+        return [_negation_inward(gpl_tree[0]), '&', _negation_inward(gpl_tree[2])]
 
     elif len(gpl_tree) == 3 and gpl_tree[1] == '|':
-        # disjunction: [..., '|', ...] -> [negation_inward(...), '|', negation_inward(...)]
-        return [negation_inward(gpl_tree[0]), '|', negation_inward(gpl_tree[2])]
+        # disjunction: [..., '|', ...] -> [_negation_inward(...), '|', _negation_inward(...)]
+        return [_negation_inward(gpl_tree[0]), '|', _negation_inward(gpl_tree[2])]
 
     else:
         raise Exception(f"Syntax error in tree GPL '{gpl_tree}'.")
 
 
-def parse_gpl_tree_to_dnf(gpl_tree_no_negation):
+def _parse_gpl_tree_to_dnf(gpl_tree_no_negation):
     """
 
     Args:
@@ -630,20 +694,20 @@ def parse_gpl_tree_to_dnf(gpl_tree_no_negation):
         raise Exception(f"Syntax error in tree GPL '{gpl_tree_no_negation}'.")
 
     elif len(gpl_tree_no_negation) == 3 and gpl_tree_no_negation[1] == '&':  # conjunction
-        norm_form1 = parse_gpl_tree_to_dnf(gpl_tree_no_negation[0])
-        norm_form2 = parse_gpl_tree_to_dnf(gpl_tree_no_negation[2])
+        norm_form1 = _parse_gpl_tree_to_dnf(gpl_tree_no_negation[0])
+        norm_form2 = _parse_gpl_tree_to_dnf(gpl_tree_no_negation[2])
         norm_forms = []
         for a in norm_form1:
             for b in norm_form2:
                 norm_forms.append(a + b)
-        # [left, '&', right] -> parse_gpl_tree_to_dnf(left) × parse_gpl_tree_to_dnf(right)
+        # [left, '&', right] -> _parse_gpl_tree_to_dnf(left) × _parse_gpl_tree_to_dnf(right)
         # example: (A1|A2)&(B1|B2) -> A1&B1|A1&B2|A2&B1|A2&B2
         return norm_forms
 
     elif len(gpl_tree_no_negation) == 3 and gpl_tree_no_negation[1] == '|':  # disjunction
-        norm_form1 = parse_gpl_tree_to_dnf(gpl_tree_no_negation[0])
-        norm_form2 = parse_gpl_tree_to_dnf(gpl_tree_no_negation[2])
-        # [left, '|', right] -> parse_gpl_tree_to_dnf(left) + parse_gpl_tree_to_dnf(right)
+        norm_form1 = _parse_gpl_tree_to_dnf(gpl_tree_no_negation[0])
+        norm_form2 = _parse_gpl_tree_to_dnf(gpl_tree_no_negation[2])
+        # [left, '|', right] -> _parse_gpl_tree_to_dnf(left) + _parse_gpl_tree_to_dnf(right)
         # example: (A1|A2)|(B1|B2) -> A1|A2|B1|B2
         return norm_form1 + norm_form2
 
@@ -652,23 +716,23 @@ def parse_gpl_tree_to_dnf(gpl_tree_no_negation):
         return [[gpl_tree_no_negation]]
 
 
-def parse_dependent_entities(predicate, instance, parsed_gdl):
+def _parse_dependent_entities(predicate, instance, parsed_gdl):
     dependent_entities = []
     if predicate in {'Eq', 'G', 'Geq', 'L', 'Leq', 'Ueq'}:
         for sym in instance.free_symbols:
             entities, attr = str(sym).split('.')
             replace = dict(zip(parsed_gdl['Attributions'][attr]['paras'], entities))
             for entity, paras in parsed_gdl['Attributions'][attr]['geometric_constraints']:
-                dependent_entities.append((entity, replace_instance(paras, replace)))
+                dependent_entities.append((entity, _replace_instance(paras, replace)))
     else:
         replace = dict(zip(parsed_gdl['Relations'][predicate]['paras'], instance))
         for entity, paras in parsed_gdl['Relations'][predicate]['geometric_constraints']:
-            dependent_entities.append((entity, replace_instance(paras, replace)))
+            dependent_entities.append((entity, _replace_instance(paras, replace)))
 
     return sorted(dependent_entities)
 
 
-def parse_construction(construction, parsed_gdl):
+def _parse_construction(construction, parsed_gdl):
     """
     Point(C)&Line(m):PointOnLine(C,m)&~(PointOnLine(C,l)|~PointOnLine(C,n))&EqualAngle(m,l,l,n)
     """
@@ -678,20 +742,20 @@ def parse_construction(construction, parsed_gdl):
 
     target_entities = target_entities.split('&')
     for i in range(len(target_entities)):
-        target_entities[i] = parse_geometric_fact(target_entities[i])
+        target_entities[i] = _parse_geometric_fact(target_entities[i])
     target_entities = sorted(list(set(target_entities)))
 
-    constraints = serialize_gpl(constraints)
+    constraints = _serialize_gpl(constraints)
     for i in range(len(constraints)):  # parse to logic form
         if constraints[i] in {'&', '|', '~', '(', ')'}:
             continue
 
         if constraints[i].startswith('Eq('):  # algebraic relation
-            constraints[i] = parse_algebraic_fact(constraints[i])
+            constraints[i] = _parse_algebraic_fact(constraints[i])
         else:  # geometric relation
-            constraints[i] = parse_geometric_fact(constraints[i])
+            constraints[i] = _parse_geometric_fact(constraints[i])
 
-    for constraints in parse_gpl_tree_to_dnf(negation_inward(parse_gpl_to_tree(constraints))):
+    for constraints in _parse_gpl_tree_to_dnf(_negation_inward(_parse_gpl_to_tree(constraints))):
         dependent_entities = set()
         added_facts = []
 
@@ -707,12 +771,12 @@ def parse_construction(construction, parsed_gdl):
 
             predicate, instance = constraint
 
-            constraint_dependent_entities = parse_dependent_entities(predicate, instance, parsed_gdl)
+            constraint_dependent_entities = _parse_dependent_entities(predicate, instance, parsed_gdl)
             if len(set(target_entities) & set(constraint_dependent_entities)) == 0:
                 raise Exception(f"No target entity in constraints branch '{constraints}'.")
             dependent_entities.update(constraint_dependent_entities)
 
-            constraint_algebraic_forms = parse_algebraic_forms(predicate, instance, parsed_gdl)
+            constraint_algebraic_forms = _parse_algebraic_forms(predicate, instance, parsed_gdl)
 
             if len(algebraic_forms) > 0 and len(constraint_algebraic_forms) > 0:
                 algebraic_forms.append('&')
@@ -721,12 +785,12 @@ def parse_construction(construction, parsed_gdl):
                 added_facts.append(constraint)
             else:
                 algebraic_forms.append('~')
-            algebraic_forms.extend(parse_algebraic_forms(predicate, instance, parsed_gdl))
+            algebraic_forms.extend(_parse_algebraic_forms(predicate, instance, parsed_gdl))
 
         dependent_entities = sorted(list(dependent_entities))
 
-        algebraic_forms = _format_algebraic_forms(negation_inward(parse_gpl_to_tree(algebraic_forms)), parsed_gdl)
-        for algebraic_forms_dnf in parse_gpl_tree_to_dnf(algebraic_forms):
+        algebraic_forms = _format_algebraic_forms(_negation_inward(_parse_gpl_to_tree(algebraic_forms)), parsed_gdl)
+        for algebraic_forms_dnf in _parse_gpl_tree_to_dnf(algebraic_forms):
             equations = set()
             inequalities = set()
             for algebraic_relation, expr in algebraic_forms_dnf:
@@ -742,9 +806,9 @@ def parse_construction(construction, parsed_gdl):
     return parsed_construction
 
 
-def parse_theorem(theorem, parsed_gdl):
+def _parse_theorem(theorem, parsed_gdl):
     if '(' not in theorem:
-        theorem_name, theorem_paras = parse_geometric_fact(theorem)
+        theorem_name, theorem_paras = _parse_geometric_fact(theorem)
     else:
         theorem_name = theorem
         theorem_paras = None
@@ -805,11 +869,11 @@ def show_gc(gc, target=None):
     if target is not None:
         if target.startswith('Eq('):
             predicate = 'Equation'
-            _, instance = parse_algebraic_fact(target)
+            _, instance = _parse_algebraic_fact(target)
             if str(instance)[0] == '-':
                 instance = -instance
         else:
-            predicate, instance = parse_geometric_fact(target)
+            predicate, instance = _parse_geometric_fact(target)
 
         if (predicate, instance) in gc.id:
             used_premise_ids.append(gc.id[(predicate, instance)])
@@ -1022,7 +1086,7 @@ def split_construction(construction, letters):
 
     entity, constraints = construction.split(':')
 
-    predicate, paras = parse_geometric_fact(entity)  # parse target entity
+    predicate, paras = _parse_geometric_fact(entity)  # parse target entity
     parsed_construction.append(predicate)
     parsed_construction.extend(paras)
     parsed_construction.append(':')
@@ -1034,12 +1098,12 @@ def split_construction(construction, letters):
         if (constraint.startswith('Eq(') or constraint.startswith('G(')  # parse algebraic constraint
                 or constraint.startswith('Geq(') or constraint.startswith('L(')
                 or constraint.startswith('Leq(') or constraint.startswith('Ueq(')):
-            algebraic_relation, expr = parse_algebraic_fact(constraint)
+            algebraic_relation, expr = _parse_algebraic_fact(constraint)
             expr = split_expr(expr, letters)
             parsed_construction.append(algebraic_relation)
             parsed_construction.extend(expr)
         else:  # parse predefined constraint
-            predicate, paras = parse_geometric_fact(constraint)
+            predicate, paras = _parse_geometric_fact(constraint)
             parsed_construction.append(predicate)
             parsed_construction.extend(paras)
 
@@ -1083,7 +1147,7 @@ def get_sg(gc, forward=True, serialize=False):
         elif edge in theorem_letters:  # theorem with no paras
             edge = [edge]
         else:  # theorem with paras
-            edge_predicate, edge_instance = parse_geometric_fact(edge)
+            edge_predicate, edge_instance = _parse_geometric_fact(edge)
             edge = tuple([edge_predicate] + edge_instance)
 
         hypergraph['edges'].append(edge)  # add edge
@@ -1131,19 +1195,19 @@ if __name__ == '__main__':
     # print(s)
     # print()
     #
-    # serialized_s = serialize_gpl(s)
+    # serialized_s = _serialize_gpl(s)
     # print(serialized_s)
     # print()
     #
-    # parsed_s = parse_gpl_to_tree(serialized_s)
+    # parsed_s = _parse_gpl_to_tree(serialized_s)
     # print(parsed_s)
     # print()
     #
-    # tree_no_negation = negation_inward(parsed_s)
+    # tree_no_negation = _negation_inward(parsed_s)
     # print(tree_no_negation)
     # print()
     #
-    # for ps in parse_gpl_tree_to_dnf(tree_no_negation):
+    # for ps in _parse_gpl_tree_to_dnf(tree_no_negation):
     #     print(ps)
 
     parsed_gdl_test = parse_gdl(load_json('gdl.json'))
@@ -1155,6 +1219,6 @@ if __name__ == '__main__':
     # draw_gpl(parsed_gdl_test['Theorems']['parallel_property']['algebraic_forms'],
     #          'algebraic_forms')
 
-    parse_construction(
+    _parse_construction(
         'Point(C)&Line(m):PointOnLine(C,m)&~(PointOnLine(C,a)|PointOnLine(C,b)&~PointOnLine(C,c))&EqualAngle(m,l,l,n)',
         parsed_gdl_test)

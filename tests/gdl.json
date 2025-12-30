@@ -3,62 +3,99 @@
     "XOfPoint(A)": {
       "geometric_constraints": "Point(A)",
       "algebraic_forms": "A.x",
-      "sym": "x"
+      "sym": "x",
+      "multiple_forms": [
+        "XOfPoint(A)"
+      ]
     },
     "YOfPoint(A)": {
       "geometric_constraints": "Point(A)",
       "algebraic_forms": "A.y",
-      "sym": "y"
+      "sym": "y",
+      "multiple_forms": [
+        "YOfPoint(A)"
+      ]
     },
     "KOfLine(l)": {
       "geometric_constraints": "Line(l)",
       "algebraic_forms": "l.k",
-      "sym": "k"
+      "sym": "k",
+      "multiple_forms": [
+        "KOfLine(l)"
+      ]
     },
     "BOfLine(l)": {
       "geometric_constraints": "Line(l)",
       "algebraic_forms": "l.b",
-      "sym": "b"
+      "sym": "b",
+      "multiple_forms": [
+        "BOfLine(l)"
+      ]
     },
     "UOfCircle(O)": {
       "geometric_constraints": "Circle(O)",
       "algebraic_forms": "O.u",
-      "sym": "u"
+      "sym": "u",
+      "multiple_forms": [
+        "UOfCircle(O)"
+      ]
     },
     "VOfCircle(O)": {
       "geometric_constraints": "Circle(O)",
       "algebraic_forms": "O.v",
-      "sym": "v"
+      "sym": "v",
+      "multiple_forms": [
+        "VOfCircle(O)"
+      ]
     },
     "ROfCircle(O)": {
       "geometric_constraints": "Circle(O)",
       "algebraic_forms": "O.r",
-      "sym": "r"
+      "sym": "r",
+      "multiple_forms": [
+        "ROfCircle(O)"
+      ]
     },
     "DistanceBetweenPointAndPoint(A,B)": {
       "geometric_constraints": "Point(A)&Point(B)",
       "algebraic_forms": "Norm(A.x,A.y,B.x,B.y)",
-      "sym": "dpp"
+      "sym": "dpp",
+      "multiple_forms": [
+        "DistanceBetweenPointAndPoint(A,B)",
+        "DistanceBetweenPointAndPoint(B,A)"
+      ]
     },
     "DistanceBetweenPointAndLine(A,l)": {
       "geometric_constraints": "Point(A)&Line(l)",
       "algebraic_forms": "Pow(Div(Pow(Add(Sub(Mul(l.k,A.x),A.y),l.b),2),Add(Pow(l.k,2),1)),1/2)",
-      "sym": "dpl"
+      "sym": "dpl",
+      "multiple_forms": [
+        "DistanceBetweenPointAndLine(A,l)"
+      ]
     },
     "DistanceBetweenPointAndCircle(A,O)": {
       "geometric_constraints": "Point(A)&Circle(O)",
       "algebraic_forms": "Norm(A.x,A.y,O.u,O.v)",
-      "sym": "dpc"
+      "sym": "dpc",
+      "multiple_forms": [
+        "DistanceBetweenPointAndCircle(A,O)"
+      ]
     },
     "MeasureOfAngle(l,k)": {
       "geometric_constraints": "Line(l)&Line(k)",
       "algebraic_forms": "Ma(l.k,k.k)",
-      "sym": "ma"
+      "sym": "ma",
+      "multiple_forms": [
+        "MeasureOfAngle(l,k)"
+      ]
     },
     "RadiusOfCircle(O)": {
       "geometric_constraints": "Circle(O)",
       "algebraic_forms": "O.r",
-      "sym": "rc"
+      "sym": "rc",
+      "multiple_forms": [
+        "RadiusOfCircle(O)"
+      ]
     }
   },
   "Relations": {
@@ -72,7 +109,7 @@
     },
     "FreeCircle(O)": {
       "geometric_constraints": "Circle(O)",
-      "algebraic_forms": ""
+      "algebraic_forms": "G(O.r)"
     },
     "SamePoint(A,B)": {
       "geometric_constraints": "Point(A)&Point(B)",
@@ -84,7 +121,7 @@
     },
     "SameCircle(O,P)": {
       "geometric_constraints": "Circle(O)&Circle(P)",
-      "algebraic_forms": "Eq(Norm(O.u,O.v,P.u,P.v))&Eq(Sub(O.r,P.r))"
+      "algebraic_forms": "Eq(Norm(O.u,O.v,P.u,P.v))&Eq(Sub(O.r,P.r))&G(O.r)&G(P.r)"
     },
     "PointOnLine(A,l)": {
       "geometric_constraints": "Point(A)&Line(l)",
@@ -92,7 +129,7 @@
     },
     "PointOnCircle(A,O)": {
       "geometric_constraints": "Point(A)&Circle(O)",
-      "algebraic_forms": "Eq(Pp(A.x,A.y,O.u,O.v,O.r))"
+      "algebraic_forms": "Eq(Pp(A.x,A.y,O.u,O.v,O.r))&G(O.r)"
     },
     "PointLeftSegment(P,A,B)": {
       "geometric_constraints": "Point(P)&Point(A)&Point(B)",
@@ -108,11 +145,11 @@
     },
     "EqualAngle(l,m,x,y)": {
       "geometric_constraints": "Line(l)&Line(m)&Line(x)&Line(y)",
-      "algebraic_forms": "(Eq(Sub(Ma(l.k,m.k),Ma(x.k,y.k)))|Eq(Sub(Mma(l.k,m.k),Mma(x.k,y.k))))&Ueq(Norm(l.k,l.b,m.k,m.b))&Ueq(Norm(l.k,l.b,x.k,x.b))"
+      "algebraic_forms": "Eq(Sub(Ma(l.k,m.k),Ma(x.k,y.k)))&Ueq(Norm(l.k,l.b,m.k,m.b))&Ueq(Norm(l.k,l.b,x.k,x.b))"
     },
     "AngleBisector(O,l,a,b)": {
       "geometric_constraints": "Point(O)&Line(l)&Line(a)&Line(b)",
-      "algebraic_forms": "PointOnLine(O,l)&PointOnLine(O,a)&PointOnLine(O,b)&~SameLine(a,b)&EqualAngle(a,l,l,b)"
+      "algebraic_forms": "PointOnLine(O,l)&PointOnLine(O,a)&PointOnLine(O,b)&~SameLine(a,b)&EqualAngle(a,l,l,b)&Eq(Sub(Add(Ma(a.k,l.k),Ma(l.k,b.k)),Ma(a.k,b.k)))"
     },
     "MidpointOfArc(M,O,A,B)": {
       "geometric_constraints": "Point(M)&Circle(O)&Point(A)&Point(B)",

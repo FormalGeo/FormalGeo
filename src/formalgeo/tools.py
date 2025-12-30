@@ -6,10 +6,6 @@ import re
 from pprint import pprint
 from graphviz import Digraph, Graph
 
-matplotlib.use('TkAgg')  # Resolve backend compatibility issues
-plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']  # Use Microsoft YaHei font
-plt.rcParams['axes.unicode_minus'] = False  # Fix negative sign display issues
-
 """↓-------------Vocabulary------------↓"""
 
 _lu = ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
@@ -151,10 +147,15 @@ def _parse_one_attribution(attr, gdl, parsed_gdl):
 
     geometric_constraints = _parse_geometric_constraints(gdl['Attributions'][attr]['geometric_constraints'], paras)
     _, algebraic_forms = _parse_algebraic_fact('Af(' + gdl['Attributions'][attr]['algebraic_forms'] + ')')
+    multiple_forms = []
+    for multiple_form in gdl['Attributions'][attr]['multiple_forms']:
+        _, multiple_form = _parse_geometric_fact(multiple_form)
+        multiple_forms.append(multiple_form)
 
     parsed_gdl['Attributions'][sym] = {
         'name': name,
         'paras': paras,
+        'multiple_forms': tuple(multiple_forms),
         'geometric_constraints': geometric_constraints,
         'algebraic_forms': algebraic_forms
     }
@@ -333,7 +334,7 @@ def _format_premises(premises):
 def _format_algebraic_forms(algebraic_forms, parsed_gdl, add_dependent=False):
     """Substitute algebraic relations (e.g., replace ('~', 'Eq') with 'Ueq') and parse dependent entities."""
     if len(algebraic_forms) == 0:  # syntax error
-        raise Exception(f"Syntax error in algebraic_forms '{algebraic_forms}'.")
+        return ()
 
     elif not isinstance(algebraic_forms, list):  # atomic form
         if algebraic_forms[0] == '~':
@@ -456,9 +457,7 @@ def _parse_algebraic_fact(fact):
             elif operation == 'Norm':  # Norm(x1,y1,x2,y2)
                 result = (paras[2] - paras[0]) ** 2 + (paras[3] - paras[1]) ** 2
             elif operation == 'Ma':  # Ma(k1,k2)
-                result = (atan(paras[0]) - atan(paras[1])) * 180 / pi
-            elif operation == 'Mma':  # Mma(k1,k2)
-                result = ((atan(paras[0]) - atan(paras[1])) * 180 / pi + 180) % 180
+                result = ((atan(paras[0]) - atan(paras[1])) * 180 / pi) % 180
             elif operation == 'Pp':  # Pp(x,y,cx,cy,r)
                 result = (paras[2] - paras[0]) ** 2 + (paras[3] - paras[1]) ** 2 - paras[4] ** 2
             elif operation == 'Log':  # Log(x)
@@ -582,7 +581,7 @@ def _parse_gpl_to_tree(gpl_serialized):
                       ['D', '&', ['E', '|', [['~', 'F'], '|', 'G(g)']]]]
     """
     if len(gpl_serialized) == 0:
-        raise Exception(f"Syntax error in serialized GPL '{gpl_serialized}'.")
+        return []
 
     priority = 0
     priorities = []
@@ -641,7 +640,7 @@ def _negation_inward(gpl_tree):
                                   ['D', '&', ['E', '|', [('~', 'F'), '|', 'G(g)']]]]
     """
     if len(gpl_tree) == 0:  # syntax error
-        raise Exception(f"Syntax error in tree GPL '{gpl_tree}'.")
+        return []
 
     elif not isinstance(gpl_tree, list):  # atomic form
         # atomic form: A -> A
@@ -691,7 +690,7 @@ def _parse_gpl_tree_to_dnf(gpl_tree_no_negation):
                      [('~', 'A(a,b)'), 'C(c)', 'D', 'G(g)']]
     """
     if len(gpl_tree_no_negation) == 0:
-        raise Exception(f"Syntax error in tree GPL '{gpl_tree_no_negation}'.")
+        return [[]]
 
     elif len(gpl_tree_no_negation) == 3 and gpl_tree_no_negation[1] == '&':  # conjunction
         norm_form1 = _parse_gpl_tree_to_dnf(gpl_tree_no_negation[0])
@@ -787,7 +786,7 @@ def _parse_construction(construction, parsed_gdl):
                 algebraic_forms.append('~')
             algebraic_forms.extend(_parse_algebraic_forms(predicate, instance, parsed_gdl))
 
-        dependent_entities = sorted(list(dependent_entities))
+        dependent_entities = sorted(list(dependent_entities - set(target_entities)))
 
         algebraic_forms = _format_algebraic_forms(_negation_inward(_parse_gpl_to_tree(algebraic_forms)), parsed_gdl)
         for algebraic_forms_dnf in _parse_gpl_tree_to_dnf(algebraic_forms):
@@ -795,23 +794,34 @@ def _parse_construction(construction, parsed_gdl):
             inequalities = set()
             for algebraic_relation, expr in algebraic_forms_dnf:
                 if algebraic_relation == 'Eq':
-                    equations.add(expr)
+                    replace = {}
+                    _find_mod(expr, replace)
+                    equations.add(expr.subs(replace))
                 else:
                     inequalities.add((algebraic_relation, expr))
             equations = list(equations)
             inequalities = list(inequalities)
 
-            parsed_construction.append((target_entities, dependent_entities, equations, inequalities, added_facts))
+            parsed_construction.append([target_entities, dependent_entities,
+                                        added_facts, equations, inequalities, None])
 
-    return parsed_construction
+    return parsed_construction  # [target_entities, dependent_entities, added_facts, equations, inequalities, values]
+
+
+def _find_mod(expr, replace):
+    if type(expr).__name__ == 'Mod':
+        replace[expr] = expr.args[0]
+    else:
+        for arg in expr.args:
+            _find_mod(arg, replace)
 
 
 def _parse_theorem(theorem, parsed_gdl):
     if '(' not in theorem:
-        theorem_name, theorem_paras = _parse_geometric_fact(theorem)
-    else:
         theorem_name = theorem
         theorem_paras = None
+    else:
+        theorem_name, theorem_paras = _parse_geometric_fact(theorem)
 
     if theorem_name not in parsed_gdl['Theorems']:
         raise Exception(f"Theorem '{theorem_name}' not defined in GDL.")
@@ -819,6 +829,28 @@ def _parse_theorem(theorem, parsed_gdl):
         raise Exception(f"Incorrect number of paras in theorem '{theorem}'.")
 
     return theorem_name, theorem_paras
+
+
+def _anti_parse_operation(operation):
+    operation_type, operation_predicate, operation_instance = operation
+    if operation_type == 'construction':
+        return operation_predicate + ':' + operation_instance
+    elif operation_type == 'auto':
+        return 'Auto' + ':' + operation_predicate
+    elif operation_type == 'apply':
+        return 'Apply' + ':' + operation_predicate + '(' + ','.join(operation_instance) + ')'
+    elif operation_type == 'decompose':
+        return 'Decompose' + ':' + operation_predicate + '(' + ','.join(operation_instance) + ')'
+    else:
+        raise Exception(f"Unknown operation type '{operation_type}'.")
+
+
+def _anti_parse_fact(fact):
+    predicate, instance = fact
+    if predicate in {'Eq', 'G', 'Geq', 'L', 'Leq', 'Ueq'}:
+        return f"{predicate}({str(instance).replace(' ', '')})"
+    else:
+        return f"{predicate}({','.join(instance)})"
 
 
 """↑---------------Parser--------------↑"""
@@ -839,7 +871,7 @@ def show_json(dict_data):
     pprint(dict_data, sort_dicts=False, compact=True)
 
 
-def draw_gpl(gpl_tree, filename):
+def draw_gpl(gpl_tree, save_path='./', filename='gpl', file_format='pdf'):
     dot = Graph()
     node_id_count = [0]
 
@@ -852,6 +884,12 @@ def draw_gpl(gpl_tree, filename):
             right_node_id = draw_one_node(tree[2])
             dot.edge(node_id, left_node_id)
             dot.edge(node_id, right_node_id)
+        elif len(tree) == 2 and tree[0] == '~':
+            node_id = str(node_id_count[0])
+            node_id_count[0] += 1
+            dot.node(node_id, tree[0])
+            child_node_id = draw_one_node(tree[1])
+            dot.edge(node_id, child_node_id)
         else:
             node_id = str(node_id_count[0])
             node_id_count[0] += 1
@@ -859,202 +897,7 @@ def draw_gpl(gpl_tree, filename):
         return node_id
 
     draw_one_node(gpl_tree)
-    dot.render(filename, view=True, cleanup=True)
-
-
-def show_gc(gc, target=None):
-    operation_ids = set()
-    used_operation_ids = []
-    used_premise_ids = []
-    if target is not None:
-        if target.startswith('Eq('):
-            predicate = 'Equation'
-            _, instance = _parse_algebraic_fact(target)
-            if str(instance)[0] == '-':
-                instance = -instance
-        else:
-            predicate, instance = _parse_geometric_fact(target)
-
-        if (predicate, instance) in gc.id:
-            used_premise_ids.append(gc.id[(predicate, instance)])
-
-        i = 0
-        while i < len(used_premise_ids):
-            for fact_id in gc.facts[used_premise_ids[i]][2]:
-                if fact_id in used_premise_ids:
-                    continue
-                used_premise_ids.append(fact_id)
-            if gc.facts[used_premise_ids[i]][4] not in used_operation_ids:
-                used_operation_ids.append(gc.facts[used_premise_ids[i]][4])
-            i += 1
-
-    entity_print_format = '{0:<6}{1:<15}{2:<60}{3:<60}{4:<6}{5:<30}'
-    relation_print_format = '{0:<6}{1:<15}{2:<60}{3:<60}{4:<6}'
-    equation_print_format = "{0:<6}{1:<15}{2:<60}{3:<60}{4:<6}"
-    sym_print_format = '{0:<6}{1:<25}{2:<25}{3:<6}'
-    operation_print_format = '{0:<6}{1:<50}'
-
-    entity_print_format_used = '\033[35m{0:<6}{1:<15}{2:<60}{3:<60}{4:<6}{5:<30}\033[0m'
-    relation_print_format_used = '\033[35m{0:<6}{1:<15}{2:<60}{3:<60}{4:<6}\033[0m'
-    equation_print_format_used = '\033[35m{0:<6}{1:<15}{2:<60}{3:<60}{4:<6}\033[0m'
-    operation_print_format_used = '\033[35m{0:<6}{1:<50}\033[0m'
-
-    print("\033[33mConstructions:\033[0m")
-    for operation_id in gc.constructions:
-        print('{0:<4}{1:<40}'.format(operation_id, gc.operations[operation_id]))
-        implicit_entities = [f'{p}({i})' for p, i in gc.constructions[operation_id][0]]
-        print(f'    target entities: {implicit_entities}')
-        implicit_entities = [f'{p}({i})' for p, i in gc.constructions[operation_id][1]]
-        print(f'    implicit entities: {implicit_entities}')
-        dependent_entities = [f'{p}({i})' for p, i in gc.constructions[operation_id][2]]
-        print(f'    dependent entities: {dependent_entities}')
-        print(f"    constraints: {str(gc.constructions[operation_id][3]).replace(' ', '')}")
-    print()
-
-    print('\033[33mEntities:\033[0m')
-    for entity in ['Point', 'Line', 'Circle']:
-        if len(gc.ids_of_predicate[entity]) == 0:
-            continue
-        print(f'{entity}:')
-        for fact_id in gc.ids_of_predicate[entity]:
-            operation_ids.add(gc.facts[fact_id][4])
-            if entity == 'Point':
-                values = [(round(float(gc.value_of_para_sym[symbols(f'{gc.facts[fact_id][1][0]}.x')]), 4),
-                           round(float(gc.value_of_para_sym[symbols(f'{gc.facts[fact_id][1][0]}.y')]), 4))]
-            elif entity == 'Line':
-                values = [(round(float(gc.value_of_para_sym[symbols(f'{gc.facts[fact_id][1][0]}.k')]), 4),
-                           round(float(gc.value_of_para_sym[symbols(f'{gc.facts[fact_id][1][0]}.b')]), 4))]
-            else:
-                values = [(round(float(gc.value_of_para_sym[symbols(f'{gc.facts[fact_id][1][0]}.cx')]), 4),
-                           round(float(gc.value_of_para_sym[symbols(f'{gc.facts[fact_id][1][0]}.cy')]), 4),
-                           round(float(gc.value_of_para_sym[symbols(f'{gc.facts[fact_id][1][0]}.r')]), 4))]
-            if fact_id in used_premise_ids:
-                print(entity_print_format_used.format(
-                    fact_id,
-                    gc.facts[fact_id][1][0],
-                    str(gc.facts[fact_id][2]).replace(' ', ''),
-                    str(gc.facts[fact_id][3]).replace(' ', ''),
-                    gc.facts[fact_id][4],
-                    str(values).replace(' ', '')
-                ))
-            else:
-                print(entity_print_format.format(
-                    fact_id,
-                    gc.facts[fact_id][1][0],
-                    str(gc.facts[fact_id][2]).replace(' ', ''),
-                    str(gc.facts[fact_id][3]).replace(' ', ''),
-                    gc.facts[fact_id][4],
-                    str(values).replace(' ', '')
-                ))
-    print()
-
-    print("\033[33mRelations:\033[0m")
-    for predicate in gc.ids_of_predicate:
-        if len(gc.ids_of_predicate[predicate]) == 0:
-            continue
-        if predicate in ['Point', 'Line', 'Circle', 'Equation']:
-            continue
-        print(f"{predicate}:")
-        for fact_id in gc.ids_of_predicate[predicate]:
-            operation_ids.add(gc.facts[fact_id][4])
-            if fact_id in used_premise_ids:
-                print(relation_print_format_used.format(
-                    fact_id,
-                    ','.join(gc.facts[fact_id][1]),
-                    str(gc.facts[fact_id][2]).replace(' ', ''),
-                    str(gc.facts[fact_id][3]).replace(' ', ''),
-                    gc.facts[fact_id][4]
-                ))
-            else:
-                print(relation_print_format.format(
-                    fact_id,
-                    ','.join(gc.facts[fact_id][1]),
-                    str(gc.facts[fact_id][2]).replace(' ', ''),
-                    str(gc.facts[fact_id][3]).replace(' ', ''),
-                    gc.facts[fact_id][4]
-                ))
-    print()
-
-    print("\033[33mEquations:\033[0m")
-    for fact_id in gc.ids_of_predicate['Equation']:
-        operation_ids.add(gc.facts[fact_id][4])
-        if fact_id in used_premise_ids:
-            print(equation_print_format_used.format(
-                fact_id,
-                str(gc.facts[fact_id][1]).replace(' ', ''),
-                str(gc.facts[fact_id][2]).replace(' ', ''),
-                str(gc.facts[fact_id][3]).replace(' ', ''),
-                gc.facts[fact_id][4]
-            ))
-        else:
-            print(equation_print_format.format(
-                fact_id,
-                str(gc.facts[fact_id][1]).replace(' ', ''),
-                str(gc.facts[fact_id][2]).replace(' ', ''),
-                str(gc.facts[fact_id][3]).replace(' ', ''),
-                gc.facts[fact_id][4]
-            ))
-    print()
-
-    print("\033[33mSymbols and Values:\033[0m")
-    for sym in gc.value_of_attr_sym:
-        equation_id = gc.id['Equation', sym - gc.value_of_attr_sym[sym]]
-        predicate = gc.parsed_gdl['sym_to_measure'][str(sym).split('.')[1]]
-        instance = ",".join(list(str(sym).split('.')[0]))
-        print(sym_print_format.format(
-            equation_id,
-            f"{predicate}({instance})",
-            str(sym),
-            str(gc.value_of_attr_sym[sym])
-        ))
-    print()
-
-    print("\033[33mOperations:\033[0m")
-    for operation_id in range(len(gc.operations)):
-        if operation_id not in operation_ids:
-            continue
-        if operation_id in used_operation_ids:
-            print(operation_print_format_used.format(
-                operation_id,
-                f'{gc.operations[operation_id]}'
-            ))
-        else:
-            print(operation_print_format.format(
-                operation_id,
-                f'{gc.operations[operation_id]}'
-            ))
-    print()
-
-
-def draw_gc(gc, filename):
-    _, ax = plt.subplots()
-    ax.axis('equal')  # maintain the circle's aspect ratio
-    ax.axis('off')  # hide the axes
-    middle_x = (gc.range['x_max'] + gc.range['x_min']) / 2
-    range_x = (gc.range['x_max'] - gc.range['x_min']) / 2 * gc.rate
-    middle_y = (gc.range['y_max'] + gc.range['y_min']) / 2
-    range_y = (gc.range['y_max'] - gc.range['y_min']) / 2 * gc.rate
-    ax.set_xlim(float(middle_x - range_x), float(middle_x + range_x))
-    ax.set_ylim(float(middle_y - range_y), float(middle_y + range_y))
-
-    for line in gc.instances_of_predicate['Line']:
-        k = float(gc.value_of_para_sym[symbols(f'{line[0]}.k')])
-        b = float(gc.value_of_para_sym[symbols(f'{line[0]}.b')])
-        ax.axline((0, b), slope=k, color='blue')
-
-    for circle in gc.instances_of_predicate['Circle']:
-        u = float(gc.value_of_para_sym[symbols(f'{circle[0]}.u')])
-        v = float(gc.value_of_para_sym[symbols(f'{circle[0]}.v')])
-        r = float(gc.value_of_para_sym[symbols(f'{circle[0]}.r')])
-        ax.add_artist(plt.Circle((u, v), r, color="green", fill=False))
-
-    for point in gc.instances_of_predicate['Point']:
-        x = float(gc.value_of_para_sym[symbols(f'{point[0]}.x')])
-        y = float(gc.value_of_para_sym[symbols(f'{point[0]}.y')])
-        ax.plot(x, y, "o", color='red')
-        ax.text(x, y, point[0], ha='center', va='bottom')
-
-    plt.savefig(filename)
+    dot.render(save_path + filename, view=False, cleanup=True, format=file_format)
 
 
 def split_expr(expr, letters):
@@ -1188,37 +1031,3 @@ def draw_sg(gc, filename, forward=True):
 
 
 """↑---------------Output--------------↑"""
-
-if __name__ == '__main__':
-    print()
-    # s = '~(~(~A(a,b))|B(c(d,e))&~C(c))&(D)&(E|~F|G(g))'
-    # print(s)
-    # print()
-    #
-    # serialized_s = _serialize_gpl(s)
-    # print(serialized_s)
-    # print()
-    #
-    # parsed_s = _parse_gpl_to_tree(serialized_s)
-    # print(parsed_s)
-    # print()
-    #
-    # tree_no_negation = _negation_inward(parsed_s)
-    # print(tree_no_negation)
-    # print()
-    #
-    # for ps in _parse_gpl_tree_to_dnf(tree_no_negation):
-    #     print(ps)
-
-    parsed_gdl_test = parse_gdl(load_json('gdl.json'))
-
-    show_json(parsed_gdl_test)
-    #
-    # draw_gpl(parsed_gdl_test['Theorems']['parallel_property']['premises'],
-    #          'premises')
-    # draw_gpl(parsed_gdl_test['Theorems']['parallel_property']['algebraic_forms'],
-    #          'algebraic_forms')
-
-    _parse_construction(
-        'Point(C)&Line(m):PointOnLine(C,m)&~(PointOnLine(C,a)|PointOnLine(C,b)&~PointOnLine(C,c))&EqualAngle(m,l,l,n)',
-        parsed_gdl_test)

@@ -1,12 +1,19 @@
 from formalgeo.tools import entity_letters, _parse_dependent_entities
 from formalgeo.tools import _parse_algebraic_forms, _parse_gpl_to_tree, _negation_inward, _format_algebraic_forms
-from formalgeo.tools import _parse_construction, _parse_theorem, _replace_instance, _replace_expr, _parse_geometric_fact
-from formalgeo.tools import _parse_geometric_fact, _parse_algebraic_fact
-from formalgeo.tools import _satisfy_algebraic, precision
+from formalgeo.tools import _parse_construction, _parse_theorem, _replace_instance, _replace_expr
+from formalgeo.tools import _parse_geometric_fact, _parse_algebraic_fact, _anti_parse_operation, _anti_parse_fact
+from formalgeo.tools import _satisfy_algebraic, precision, draw_gpl, chop
 from sympy import symbols, nonlinsolve, tan, pi, FiniteSet, EmptySet
 from func_timeout import func_timeout, FunctionTimedOut
 import random
 import copy
+import time
+import matplotlib
+import matplotlib.pyplot as plt
+
+matplotlib.use('TkAgg')  # resolve backend compatibility issues
+plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']  # use Microsoft YaHei font
+plt.rcParams['axes.unicode_minus'] = False  # fix negative sign display issues
 
 
 class GeometricConfiguration:
@@ -104,15 +111,16 @@ class GeometricConfiguration:
         """
         self.parsed_gdl = parsed_gdl
         self.letters = set(entity_letters)  # available entity letters
-        self.random = random.Random(random_seed)  # the random number generator of the current instance
+        self.random_backup = random.Random(random_seed)  # the random number generator backup
+        self.random = None  # the random number generator of the current instance
         self.sample_max_number = sample_max_number  # Maximum sampling quantity for symbolic value random sampling
         self.sample_max_epoch = sample_max_epoch  # Maximum epoch of sampling attempts
         self.sample_rate = sample_rate  # Range expansion ratio during random sampling
-        self.range = {'x_max': 1, 'x_min': -1, 'y_max': 1, 'y_min': -1}  # Coordinate range of all points
-        self.timeout = timeout  # Maximum tolerance time for solving algebraic premises
+        self.sample_range = {'x_max': 1, 'x_min': -1, 'y_max': 1, 'y_min': -1}  # Coordinate range of all points
+        self.timeout = timeout  # Maximum tolerance time for solving algebraic equations
 
         # construction
-        self.constructions = {}  # operation_id -> (t_entity, d_entities, constraints, solved_values)
+        self.constructions = {}  # operation_id -> (used_branch, parsed_construction)
 
         # forward solving
         self.facts = []  # fact_id -> (predicate, instance, {premise_id}, {entity_id}, operation_id)
@@ -122,8 +130,10 @@ class GeometricConfiguration:
             self.predicate_to_fact_ids[relation] = set()
 
         # backward solving
-        self.goals = []  # goal_id -> (sub_goal_id, operation_id, root_sub_goal_id)
+        self.goals = []  # goal_id -> ((first_sub_goal_id, last_sub_goal_id), operation_id, root_sub_goal_id)
         self.status_of_goal = {}  # goal_id -> int (0: not check, 1: solved, -1: skip or unsolved)
+        self.premise_ids_of_goal = {}  # goal_id -> {premise_id}
+
         self.sub_goals = []  # sub_goal_id -> (predicate, instance, goal_id, root_sub_goal_id)
         self.status_of_sub_goal = {}  # sub_goal_id -> int (0: not check, 1: solved, -1: skip or unsolved)
         self.premise_ids_of_sub_goal = {}  # sub_goal_id -> {premise_id}
@@ -149,11 +159,11 @@ class GeometricConfiguration:
         self.sym_to_syms = {}  # sym_unified_form -> {sym_multiple_form}
         self.equations = {}  # group_id -> ((simplified_eq), ({premise_id}), {sym})
         self.group_count = 0  # generate group_id
-        self.algebraic_sub_goal = {}  # sub_goal_id -> ({group_id}, {syms})
+        self.simplified_algebraic_sub_goal = {}  # sub_goal_id -> (simplified_eq, {premise_id})
         self.solved_target_cache = {}  # target_expr -> {premise_id}
         self.attempted_equations_cache = {}  # (target_dependent_equation) -> passed
 
-    def construct(self, construction, added=True):
+    def construct(self, construction, added=True, debug=False):
         """Construct a new point, line, or circle.
         1.Parse the geometric construction statement, extract the target entity, implicit entities, and dependent
         entities, perform entity existence checks, format validity checks, and linear construction checks, and add the
@@ -175,25 +185,26 @@ class GeometricConfiguration:
 
         Args:
             construction (str): Constructed entities and constraints. The constraints can be either constraints defined
-            in GDL or algebraic constraints. The constraints need to be connected by '&'. Each constraint must include
-            the entity currently being constructed, and the remaining entities must all be known entities. Furthermore,
-            the temporary forms of entities are also permitted for use here.
-            examples: 'Point(A):FreePoint(A)'  # free entity
-                      'Line(l):PointOnLine(A,l)&PointOnLine(B,l)'  # constraints defined in GDL
-                      'Point(C):Eq(Sub(AC.dpp,CB.dpp))'  # algebraic constraints
+                in GDL or algebraic constraints. The constraints need to be connected by '&'. Each constraint must
+                include the entity currently being constructed, and the remaining entities must all be known entities.
+                Furthermore, the temporary forms of entities are also permitted for use here.
+                examples: 'Point(A):FreePoint(A)'  # free entity
+                          'Line(l):PointOnLine(A,l)&PointOnLine(B,l)'  # constraints defined in GDL
+                          'Point(C):Eq(Sub(AC.dpp,CB.dpp))'  # algebraic constraints
 
         Returns:
             result (bool): If successfully construct the entity, return True; otherwise, return False.
         """
+        timing = time.time()
         if added:
-            random_instance = self.random
+            self.random = self.random_backup
         else:
-            random_instance = copy.copy(self.random)
+            self.random = copy.copy(self.random_backup)
 
-        # construction
+        # (target_entities, dependent_entities, added_facts, equations, inequalities, values)
         parsed_construction = _parse_construction(construction, self.parsed_gdl)
         for branch in range(len(parsed_construction)):
-            t_entities, d_entities, equations, inequalities, added_facts = parsed_construction[branch]
+            t_entities, d_entities, added_facts, equations, inequalities, _ = parsed_construction[branch]
 
             # parse entity symbols
             t_syms = []
@@ -215,48 +226,57 @@ class GeometricConfiguration:
                 premise_ids.add(self.fact_id[dependent_entity])
 
             # solve constraint
-            solved_values = self._solve_constraints(t_syms, equations, inequalities, random_instance)
+            solved_values = self._solve_constraints(t_syms, equations, inequalities)
             if len(solved_values) == 0:  # no solved entity, solve next branch
                 continue
-
             if not added:
+                if debug:
+                    print(f"\033[32mconstruction: '{construction}', timing={round(time.time() - timing, 4)}s.\033[0m")
                 return True
 
             # add entity to self.operations
-            operation_id = self._add_operation(construction)
+            operation_id = self._add_operation(('construction', construction.split(':')[0], construction.split(':')[1]))
 
             # add target entity to self.facts
             for entity, instance in t_entities:
                 self._add_fact(entity, instance, premise_ids, premise_ids, operation_id)
 
             # set target entity's attribution to solved value
-            solved_value = solved_values.pop(0)
+            solved_value = solved_values[0]
             for i in range(len(t_syms)):
                 self.entity_sym_to_value[t_syms[i]] = solved_value[i]
                 entity, attr = str(t_syms[i]).split('.')
                 if attr == 'x':  # update sample range
-                    if solved_value[i] > self.range['x_max']:
-                        self.range['x_max'] = solved_value[i]
-                    elif solved_value[i] < self.range['x_min']:
-                        self.range['x_min'] = solved_value[i]
+                    if solved_value[i] > self.sample_range['x_max']:
+                        self.sample_range['x_max'] = solved_value[i]
+                    elif solved_value[i] < self.sample_range['x_min']:
+                        self.sample_range['x_min'] = solved_value[i]
                 elif attr == 'y':
-                    if solved_value[i] > self.range['y_max']:
-                        self.range['y_max'] = solved_value[i]
-                    elif solved_value[i] < self.range['y_min']:
-                        self.range['y_min'] = solved_value[i]
+                    if solved_value[i] > self.sample_range['y_max']:
+                        self.sample_range['y_max'] = solved_value[i]
+                    elif solved_value[i] < self.sample_range['y_min']:
+                        self.sample_range['y_min'] = solved_value[i]
 
             # add relations to self.facts
             for predicate, instance in added_facts:
                 entity_ids = self._get_entity_ids(predicate, instance)
                 self._add_fact(predicate, instance, premise_ids, entity_ids, operation_id)
 
+            # save constructions
+            parsed_construction[branch][5] = (t_syms, solved_values)
+            self.constructions[operation_id] = (branch + 1, parsed_construction)
+
             # a certain branch completes construction, return True
+            if debug:
+                print(f"\033[32mconstruct: '{construction}', timing={round(time.time() - timing, 4)}s.\033[0m")
             return True
 
         # no branch completes construction, return False
+        if debug:
+            print(f"\033[31mconstruct: '{construction}', timing={round(time.time() - timing, 4)}s.\033[0m")
         return False
 
-    def _solve_constraints(self, t_syms, equations, inequalities, random_instance):
+    def _solve_constraints(self, t_syms, equations, inequalities):
         constraint_values = []  # list of constraint values, contains symbols, such as [[y, y - 1], [x, 0.5]]
         solved_values = []  # list of values, such as [[1, 0.5], [1.5, 0.5]]
 
@@ -320,7 +340,7 @@ class GeometricConfiguration:
         epoch = 0  # start random sampling
         while len(solved_values) < self.sample_max_number and epoch < self.sample_max_epoch:
             constraint_value = constraint_values[epoch % len(constraint_values)]  # iterative select constraint value
-            random_value = self._random_value(t_syms, constraint_value, random_instance)
+            random_value = self._random_value(t_syms, constraint_value)
             sym_to_value = dict(zip(t_syms, random_value))
 
             satisfied = True
@@ -335,7 +355,7 @@ class GeometricConfiguration:
 
         return solved_values
 
-    def _random_value(self, syms, constraint_value, random_instance):
+    def _random_value(self, syms, constraint_value):
         random_values = {}
         free_symbols = set()
         for i in range(len(syms)):  # save k for sampling b
@@ -348,75 +368,71 @@ class GeometricConfiguration:
         for sym in free_symbols:  # sample k first, because the value of k is used when sampling b
             if str(sym).split('.')[1] != 'k':
                 continue
-            random_k = tan(random_instance.random.uniform(-89, 89) * pi / 180)
+            random_k = tan(self.random.uniform(-89, 89) * pi / 180)
             random_values[sym] = random_k
 
         for sym in free_symbols:
             if str(sym).split('.')[1] in ['x', 'u']:
-                middle_x = (self.range['x_max'] + self.range['x_min']) / 2
-                range_x = (self.range['x_max'] - self.range['x_min']) / 2 * self.sample_rate
-                random_x = random_instance.random.uniform(float(middle_x - range_x), float(middle_x + range_x))
+                middle_x = (self.sample_range['x_max'] + self.sample_range['x_min']) / 2
+                range_x = (self.sample_range['x_max'] - self.sample_range['x_min']) / 2 * self.sample_rate
+                random_x = self.random.uniform(float(middle_x - range_x), float(middle_x + range_x))
                 random_values[sym] = random_x
             elif str(sym).split('.')[1] in ['y', 'v']:
-                middle_y = (self.range['y_max'] + self.range['y_min']) / 2
-                range_y = (self.range['y_max'] - self.range['y_min']) / 2 * self.sample_rate
-                random_y = random_instance.random.uniform(float(middle_y - range_y), float(middle_y + range_y))
+                middle_y = (self.sample_range['y_max'] + self.sample_range['y_min']) / 2
+                range_y = (self.sample_range['y_max'] - self.sample_range['y_min']) / 2 * self.sample_rate
+                random_y = self.random.uniform(float(middle_y - range_y), float(middle_y + range_y))
                 random_values[sym] = random_y
             elif str(sym).split('.')[1] == 'r':
-                max_distance = float(((self.range['y_max'] - self.range['y_min']) ** 2 +
-                                      (self.range['x_max'] - self.range['x_min']) ** 2) ** 0.5) / 2 * self.sample_rate
-                random_r = random_instance.random.uniform(0, max_distance)
+                max_distance = float(((self.sample_range['y_max'] - self.sample_range['y_min']) ** 2 +
+                                      (self.sample_range['x_max'] - self.sample_range[
+                                          'x_min']) ** 2) ** 0.5) / 2 * self.sample_rate
+                random_r = self.random.uniform(0, max_distance)
                 random_values[sym] = random_r
             elif str(sym).split('.')[1] == 'b':
-                middle_x = (self.range['x_max'] + self.range['x_min']) / 2
-                range_x = (self.range['x_max'] - self.range['x_min']) / 2 * self.sample_rate
-                middle_y = (self.range['y_max'] + self.range['y_min']) / 2
-                range_y = (self.range['y_max'] - self.range['y_min']) / 2 * self.sample_rate
+                middle_x = (self.sample_range['x_max'] + self.sample_range['x_min']) / 2
+                range_x = (self.sample_range['x_max'] - self.sample_range['x_min']) / 2 * self.sample_rate
+                middle_y = (self.sample_range['y_max'] + self.sample_range['y_min']) / 2
+                range_y = (self.sample_range['y_max'] - self.sample_range['y_min']) / 2 * self.sample_rate
 
                 k_value = random_values[symbols(str(sym).split('.')[0] + '.k')]
                 b_range = [float(middle_y + range_y - k_value * (middle_x - range_x)),
                            float(middle_y - range_y - k_value * (middle_x - range_x)),
                            float(middle_y + range_y - k_value * (middle_x + range_x)),
                            float(middle_y - range_y - k_value * (middle_x + range_x))]
-                random_b = random_instance.random.uniform(min(b_range), max(b_range))
+                random_b = self.random.uniform(min(b_range), max(b_range))
                 random_values[sym] = random_b
 
         solved_value = [item.subs(random_values).evalf(n=15, chop=False) for item in constraint_value]
 
         return solved_value
 
-    def apply(self, theorem):
+    def apply(self, theorem, debug=False):
         """Apply a theorem with parameterized form or parameter-free form.
 
         Args:
             theorem (str): Theorem to be applied. Two forms: a parameterized form and a parameter-free form.
-            examples: 'adjacent_complementary_angle(l,k)'  # parameterized form
-                      'adjacent_complementary_angle'  # parameter-free form
+                examples: 'adjacent_complementary_angle(l,k)'  # parameterized form
+                          'adjacent_complementary_angle'  # parameter-free form
 
         Returns:
             result (bool): If applying the theorem adds new conditions, return True; otherwise, return False.
         """
+        timing = time.time()
         theorem_name, theorem_para = _parse_theorem(theorem, self.parsed_gdl)
+
+        # [(premises, conclusion, operation)]
+        theorem_instances = self._get_theorem_instances('apply', theorem_name, theorem_para)
+
         update = False
         all_sub_goal_ids = set()
-
-        if theorem_para is not None:  # parameterized form
-            if theorem_name in self.theorem_instances:
-                if theorem_para not in self.theorem_instances[theorem_name]:
-                    return False
-                premises, conclusion = self.theorem_instances[theorem_name][theorem_para]
-            else:
-                generated = self._generate_premises_and_conclusion(theorem_name, theorem_para)
-                if generated is None:
-                    return False
-                premises, conclusion = generated
-
+        for premises, conclusion, operation in theorem_instances:
+            # check premises
             passed, premise_ids = self._recursively_check_premises(premises)
             if not passed:
-                return False
+                continue
 
             # add conclusion
-            operation_id = self._add_operation(theorem_name + '(' + ','.join(theorem_para) + ')')
+            operation_id = self._add_operation(operation)
             entity_ids = self._get_entity_ids(conclusion[0], conclusion[1])
             fact_id, sub_goal_ids = self._add_fact(conclusion[0], conclusion[1], premise_ids, entity_ids, operation_id)
 
@@ -425,81 +441,88 @@ class GeometricConfiguration:
                 all_sub_goal_ids.update(sub_goal_ids)
                 update = True
 
-        else:  # parameter-free form
-            self._generate_theorem_instance(theorem_name)
-
-            for theorem_instance in self.theorem_instances[theorem_name]:
-                premises, conclusion = self.theorem_instances[theorem_name][theorem_instance]
-                passed, premise_ids = self._recursively_check_premises(premises)
-                if not passed:
-                    continue
-
-                # add conclusion
-                operation_id = self._add_operation(theorem_name + '(' + ','.join(theorem_instance) + ')')
-                entity_ids = self._get_entity_ids(conclusion[0], conclusion[1])
-                fact_id, sub_goal_ids = self._add_fact(
-                    conclusion[0], conclusion[1], premise_ids, entity_ids, operation_id)
-
-                # remove applied theorem_instance
-                self.theorem_instances[theorem_name].pop(theorem_instance)
-
-                # record the influenced sub goal nodes
-                if fact_id is not None:
-                    all_sub_goal_ids.update(sub_goal_ids)
-                    update = True
-
         # update influenced sub goal nodes
         self._check_sub_goals(all_sub_goal_ids)
+
+        if debug:
+            if update:
+                print(f"\033[32mapply: '{theorem}', timing={round(time.time() - timing, 4)}s.\033[0m")
+            else:
+                print(f"\033[31mapply: '{theorem}', timing={round(time.time() - timing, 4)}s.\033[0m")
         return update
 
-    def _generate_premises_and_conclusion(self, theorem_name, theorem_para):
-        if theorem_name in self.theorem_instances:
-            if theorem_para not in self.theorem_instances[theorem_name]:
-                return None
-            return self.theorem_instances[theorem_name][theorem_para]
-        else:
-            replace = dict(zip(self.parsed_gdl['Theorems'][theorem_name]['paras'], theorem_para))
-
-            for entity, entity_instance in self.parsed_gdl['Theorems'][theorem_name]['geometric_constraints']:
-                entity_instance = _replace_instance(entity_instance, replace)
-                if (entity, entity_instance) not in self.fact_id:
-                    return None
-
-            passed = self._recursively_check_algebraic_forms(
-                self.parsed_gdl['Theorems'][theorem_name]['algebraic_forms'], replace)
-            if not passed:
-                return None
-
-            premises = self._recursively_generate_premises(
-                self.parsed_gdl['Theorems'][theorem_name]['premises'], replace)
-            if premises is None:
-                return None
-
-            conclusion_predicate, conclusion_instance = self.parsed_gdl['Theorems'][theorem_name]['conclusion']
-            if conclusion_predicate == 'Eq':
-                conclusion_instance = self._adjust_expr(_replace_expr(conclusion_instance, replace))
-                if len(conclusion_instance.free_symbols) == 0 and not _satisfy_algebraic['Eq'](conclusion_instance):
-                    return None
+    def _get_theorem_instances(self, operation_type, theorem_name, theorem_para):
+        theorem_instances = []  # (premises, conclusion, operation)
+        if theorem_para is not None:  # parameterized form
+            if theorem_name in self.theorem_instances:
+                if theorem_para not in self.theorem_instances[theorem_name]:
+                    return []
+                premises, conclusion = self.theorem_instances[theorem_name][theorem_para]
+                theorem_instances.append((premises, conclusion, (operation_type, theorem_name, theorem_para)))
             else:
-                conclusion_instance = _replace_instance(conclusion_instance, replace)
+                premises = self._generate_premises(theorem_name, theorem_para)
+                if premises is None:
+                    return []
+                conclusion = self._generate_conclusion(theorem_name, theorem_para)
+                if conclusion is None:
+                    return []
+                theorem_instances.append((premises, conclusion, (operation_type, theorem_name, theorem_para)))
 
-            return premises, (conclusion_predicate, conclusion_instance)
+        else:  # parameter-free form
+            self._generate_theorem_instances(theorem_name)
+            for theorem_instance in self.theorem_instances[theorem_name]:
+                premises, conclusion = self.theorem_instances[theorem_name][theorem_instance]
+                theorem_instances.append((premises, conclusion, (operation_type, theorem_name, theorem_instance)))
 
-    def _generate_theorem_instance(self, theorem_name):
+        return theorem_instances
+
+    def _generate_premises(self, theorem_name, theorem_para):
+        replace = dict(zip(self.parsed_gdl['Theorems'][theorem_name]['paras'], theorem_para))
+
+        for entity, entity_instance in self.parsed_gdl['Theorems'][theorem_name]['geometric_constraints']:
+            entity_instance = _replace_instance(entity_instance, replace)
+            if (entity, entity_instance) not in self.fact_id:
+                return None
+
+        passed = self._recursively_check_algebraic_forms(
+            self.parsed_gdl['Theorems'][theorem_name]['algebraic_forms'], replace)
+        if not passed:
+            return None
+
+        premises = self._recursively_generate_premises(
+            self.parsed_gdl['Theorems'][theorem_name]['premises'], replace)
+        if premises is None:
+            return None
+
+        return premises
+
+    def _generate_conclusion(self, theorem_name, theorem_para):
+        replace = dict(zip(self.parsed_gdl['Theorems'][theorem_name]['paras'], theorem_para))
+
+        predicate, instance = self.parsed_gdl['Theorems'][theorem_name]['conclusion']
+        if predicate == 'Eq':
+            instance = self._adjust_expr(_replace_expr(instance, replace))
+            if len(instance.free_symbols) == 0 and not _satisfy_algebraic['Eq'](instance):
+                return None
+        else:
+            instance = _replace_instance(instance, replace)
+
+        return predicate, instance
+
+    def _generate_theorem_instances(self, theorem_name):
         if theorem_name not in self.theorem_instances:
             theorem_gdl = self.parsed_gdl['Theorems'][theorem_name]
             theorem_paras = theorem_gdl['paras']
             algebraic_forms = theorem_gdl['algebraic_forms']
-            conclusion_predicate, conclusion_instance = theorem_gdl['conclusion']
-
             self.theorem_instances[theorem_name] = {}
-            if conclusion_predicate == 'Eq':  # algebraic conclusion
+            if theorem_gdl['conclusion'][0] == 'Eq':  # algebraic conclusion
+                draw_gpl(algebraic_forms)
                 paras, instances = self._recursively_generate_theorem_instance(algebraic_forms, None)
                 for instance in instances:
                     replace = dict(zip(paras, instance))
-                    conclusion_instance = _replace_expr(conclusion_instance, replace)
+                    conclusion_instance = _replace_expr(theorem_gdl['conclusion'][1], replace)
                     if (len(conclusion_instance.free_symbols) == 0 or
-                            (conclusion_predicate, conclusion_instance) in self.fact_id):
+                            (theorem_gdl['conclusion'][0], conclusion_instance) in self.fact_id):
                         continue
 
                     theorem_premises = self._recursively_generate_premises(theorem_gdl['premises'], replace)
@@ -509,14 +532,14 @@ class GeometricConfiguration:
                     theorem_instance = tuple([instance[paras.index(p)] for p in theorem_paras])
 
                     self.theorem_instances[theorem_name][theorem_instance] = (
-                        theorem_premises, (conclusion_predicate, conclusion_instance)
+                        theorem_premises, (theorem_gdl['conclusion'][0], conclusion_instance)
                     )
             else:  # geometric conclusion
                 paras, instances = self._recursively_generate_theorem_instance(algebraic_forms, None)
                 for instance in instances:
                     replace = dict(zip(paras, instance))
-                    conclusion_instance = _replace_instance(conclusion_instance, replace)
-                    if (conclusion_predicate, conclusion_instance) in self.fact_id:
+                    conclusion_instance = _replace_instance(theorem_gdl['conclusion'][1], replace)
+                    if (theorem_gdl['conclusion'][0], conclusion_instance) in self.fact_id:
                         continue
 
                     theorem_premises = self._recursively_generate_premises(theorem_gdl['premises'], replace)
@@ -526,7 +549,7 @@ class GeometricConfiguration:
                     theorem_instance = tuple([instance[paras.index(p)] for p in theorem_paras])
 
                     self.theorem_instances[theorem_name][theorem_instance] = (
-                        theorem_premises, (conclusion_predicate, conclusion_instance)
+                        theorem_premises, (theorem_gdl['conclusion'][0], conclusion_instance)
                     )
 
     def _recursively_generate_theorem_instance(self, algebraic_forms, theorem_instances):
@@ -570,7 +593,7 @@ class GeometricConfiguration:
                 new_instances = []
                 for instance in instances:
                     for fact_id in self.predicate_to_fact_ids[dependent_entities[p]]:
-                        entity_instance = self.facts[fact_id][1]
+                        entity_instance = self.facts[fact_id][1][0]
                         new_instance = list(instance)
                         new_instance.append(entity_instance)
                         new_instances.append(tuple(new_instance))
@@ -579,7 +602,13 @@ class GeometricConfiguration:
 
             for i in range(len(instances))[::-1]:
                 replace = dict(zip(paras, instances[i]))
-                replaced_expr = expr.subs(replace)
+                replaced_expr = _replace_expr(expr, replace)
+                # if instances[i] == ('a', 'z', 'z', 'b'):
+                #     print(instances[i])
+                #     print(algebraic_relation, replaced_expr)
+                #     print(replaced_expr.subs(self.entity_sym_to_value).evalf(n=precision, chop=chop))
+                #     print(_satisfy_algebraic[algebraic_relation](replaced_expr, self.entity_sym_to_value))
+                #     print()
                 if not _satisfy_algebraic[algebraic_relation](replaced_expr, self.entity_sym_to_value):
                     instances.pop(i)
 
@@ -690,7 +719,7 @@ class GeometricConfiguration:
         # atomic node: (algebraic_relation, expr, dependent_entities)
         else:
             algebraic_relation, expr, _ = algebraic_forms_gdl
-            return _satisfy_algebraic[algebraic_relation](_replace_expr(expr, replace))
+            return _satisfy_algebraic[algebraic_relation](_replace_expr(expr, replace), self.entity_sym_to_value)
 
     def _pass_algebraic_premise(self, expr):
         """return status, premise_ids
@@ -768,6 +797,12 @@ class GeometricConfiguration:
         else:
             fact_id, sub_goal_ids = self._add_relation(predicate, instance, premise_ids, entity_ids, operation_id)
 
+        # remove applied theorem_instance
+        operation_type, operation_predicate, operation_instance = self.operations[operation_id]
+        if operation_type == 'apply' and operation_predicate in self.theorem_instances:
+            if operation_instance in self.theorem_instances[operation_predicate]:
+                self.theorem_instances[operation_predicate].pop(operation_instance)
+
         return fact_id, sub_goal_ids
 
     def _add_entity(self, predicate, instance, premise_ids, entity_ids, operation_id):
@@ -778,7 +813,7 @@ class GeometricConfiguration:
         self.facts.append((predicate, instance, set(premise_ids), set(entity_ids), operation_id))
         self.fact_id[(predicate, instance)] = fact_id
         self.predicate_to_fact_ids[predicate].add(fact_id)
-        self.groups[operation_id].append(fact_id)
+        self.groups[operation_id].add(fact_id)
 
         self.letters.remove(instance[0])
 
@@ -792,7 +827,7 @@ class GeometricConfiguration:
         self.facts.append((predicate, instance, set(premise_ids), set(entity_ids), operation_id))
         self.fact_id[(predicate, instance)] = fact_id
         self.predicate_to_fact_ids[predicate].add(fact_id)
-        self.groups[operation_id].append(fact_id)
+        self.groups[operation_id].add(fact_id)
 
         if (predicate, instance) in self.sub_goal_ids:
             return fact_id, self.sub_goal_ids[(predicate, instance)]
@@ -818,7 +853,7 @@ class GeometricConfiguration:
         self.facts.append((predicate, instance, set(premise_ids), set(entity_ids), operation_id))
         self.fact_id[(predicate, instance)] = fact_id
         self.predicate_to_fact_ids[predicate].add(fact_id)
-        self.groups[operation_id].append(fact_id)
+        self.groups[operation_id].add(fact_id)
         sub_goal_ids_total = set()
 
         # Replace B with A in all relations and add new relation to self.facts
@@ -829,7 +864,7 @@ class GeometricConfiguration:
             if B not in instance:
                 continue
             instance = tuple([e if e != B else A for e in instance])
-            operation_id = self._add_operation('same_entity_extend')
+            operation_id = self._add_operation(('auto', 'same_entity_extend', None))
             entity_ids = self._get_entity_ids(predicate, instance)
             _, sub_goal_ids = self._add_fact(predicate, instance, {fact_id, b_fact_id}, entity_ids, operation_id)
             sub_goal_ids_total.update(sub_goal_ids)
@@ -844,7 +879,7 @@ class GeometricConfiguration:
                 continue
             instance = a_sym - self.sym_to_value[b_sym]
             b_fact_id = self.fact_id[('Eq', instance)]
-            operation_id = self._add_operation('same_entity_extend')
+            operation_id = self._add_operation(('auto', 'same_entity_extend', None))
             entity_ids = self._get_entity_ids('Eq', instance)
             _, sub_goal_ids = self._add_fact('Eq', instance, {fact_id, b_fact_id}, entity_ids, operation_id)
             sub_goal_ids_total.update(sub_goal_ids)
@@ -859,7 +894,7 @@ class GeometricConfiguration:
                 elif B in entities:
                     added_eqs.add(sym - symbols(entities.replace(B, A) + '.' + attr))
         for instance in added_eqs:
-            operation_id = self._add_operation('same_entity_extend')
+            operation_id = self._add_operation(('auto', 'same_entity_extend', None))
             entity_ids = self._get_entity_ids('Eq', instance)
             _, sub_goal_ids = self._add_fact('Eq', instance, {fact_id}, entity_ids, operation_id)
             sub_goal_ids_total.update(sub_goal_ids)
@@ -875,9 +910,9 @@ class GeometricConfiguration:
         self.facts.append((predicate, instance, set(premise_ids), set(entity_ids), operation_id))
         self.fact_id[(predicate, instance)] = fact_id
         self.predicate_to_fact_ids[predicate].add(fact_id)
-        self.groups[operation_id].append(fact_id)
+        self.groups[operation_id].add(fact_id)
 
-        if self.operations[operation_id] == 'solve_eq':
+        if self.operations[operation_id] == ('auto', 'solve_eq', None):
             return fact_id, set()
 
         new_simplified_eqs = [instance]
@@ -905,11 +940,18 @@ class GeometricConfiguration:
                 new_premise_ids_list.extend(premise_ids_list)
                 new_syms.update(syms)
 
-        sub_goal_ids = set()
-        for sub_goal_id in self.algebraic_sub_goal:
-            if len(deleted_group_ids & self.algebraic_sub_goal[sub_goal_id][0]) > 0:
-                sub_goal_ids.add(sub_goal_id)
+        # print("self.equations:", self.equations)
+        # print("instance:", instance)
+        # print("deleted_group_ids:", deleted_group_ids)
+        for group_id in deleted_group_ids:  # delete old groups
+            del self.equations[group_id]
 
+        sub_goal_ids = set()  # influenced sub_goals
+        for sub_goal_id in self.simplified_algebraic_sub_goal:
+            if len(new_syms & self.simplified_algebraic_sub_goal[sub_goal_id][0].free_symbols) > 0:
+                sub_goal_ids.add(sub_goal_id)
+        # print("sub_goal_ids:", sub_goal_ids)
+        # print()
         # solve equations
         new_syms = list(new_syms)
         solved_values = {}
@@ -944,7 +986,7 @@ class GeometricConfiguration:
             self.group_count += 1
             return fact_id, sub_goal_ids
 
-        operation_id = self._add_operation('solve_eq')  # add the solved values
+        operation_id = self._add_operation(('auto', 'solve_eq', None))  # add the solved values
         premise_ids = set()
         for new_premise_ids in new_premise_ids_list:
             premise_ids.update(new_premise_ids)
@@ -993,9 +1035,9 @@ class GeometricConfiguration:
         for sym in list(expr.free_symbols):
             if sym not in self.sym_to_sym:  # new symbols
                 entities, attr = str(sym).split('.')
-                replace = dict(zip(self.parsed_gdl['Attribution'][attr]['paras'], entities))
+                replace = dict(zip(self.parsed_gdl['Attributions'][attr]['paras'], entities))
                 self.sym_to_syms[sym] = set()
-                for sym_multiple_form in self.parsed_gdl['Attribution'][attr]['multiple_forms']:
+                for sym_multiple_form in self.parsed_gdl['Attributions'][attr]['multiple_forms']:
                     sym_multiple_form = symbols(''.join([replace[e] for e in sym_multiple_form]) + '.' + attr)
                     self.sym_to_syms[sym].add(sym_multiple_form)
                     self.sym_to_sym[sym_multiple_form] = sym
@@ -1014,7 +1056,8 @@ class GeometricConfiguration:
             entity_ids.add(self.fact_id[dependent_entity])
         return entity_ids
 
-    def set_goal(self, goal):
+    def set_goal(self, goal, debug=False):
+        timing = time.time()
         if len(self.goals) > 0:
             raise Exception("The function 'set_goal' is only used to set the initial goal.")
 
@@ -1038,70 +1081,72 @@ class GeometricConfiguration:
                     raise Exception(f"Entity '{dependent_entity}' does not exist.")
 
             replace = dict(zip(self.parsed_gdl['Relations'][predicate]['paras'], instance))
-
             algebraic_forms = _parse_gpl_to_tree(self.parsed_gdl['Relations'][predicate]['algebraic_forms'])
             algebraic_forms = _negation_inward(algebraic_forms)
             algebraic_forms = _format_algebraic_forms(algebraic_forms, self.parsed_gdl, add_dependent=True)
 
+            draw_gpl(algebraic_forms)
             if not self._recursively_check_algebraic_forms(algebraic_forms, replace):
-                raise Exception(f"Instance {instance} length is incorrect.")
+                raise Exception(f"Algebraic forms checking not passed for goal {goal}.")
 
-        operation_id = self._add_operation("set_initial_goal")
-        goal_id, sub_goal_ids = self._add_goal(-1, operation_id, (predicate, instance))
+        operation_id = self._add_operation(('auto', "set_initial_goal", None))
+        goal_id, sub_goal_ids = self._add_goal((predicate, instance), operation_id, None)
+
         if goal_id is not None:
             self._check_sub_goals(sub_goal_ids)
-        return goal_id
+            if debug:
+                print(f"\033[32mset_goal: '{goal}', timing={round(time.time() - timing, 4)}s.\033[0m")
+            return True
 
-    def decompose(self, theorem):
+        if debug:
+            print(f"\033[31mset_goal: '{goal}', timing={round(time.time() - timing, 4)}s.\033[0m")
+        return False
+
+    def decompose(self, theorem, debug=False):
         """decompose according to theorem."""
+        timing = time.time()
         theorem_name, theorem_para = _parse_theorem(theorem, self.parsed_gdl)
 
-        generated_goals = []  # (premises, conclusion)
-        if theorem_para is not None:  # parameterized form
-            if theorem_name in self.theorem_instances:
-                if theorem_para not in self.theorem_instances[theorem_name]:
-                    return False
-                generated_goals.append(self.theorem_instances[theorem_name][theorem_para])
-            else:
-                generated_goal = self._generate_premises_and_conclusion(theorem_name, theorem_para)
-                if generated_goal is None:
-                    return False
-                generated_goals.append(generated_goal)
-
-        else:  # parameter-free form
-            self._generate_theorem_instance(theorem_name)
-            generated_goals.extend(self.theorem_instances[theorem_name].values())
+        # [(premises, conclusion, operation)]
+        theorem_instances = self._get_theorem_instances('decompose', theorem_name, theorem_para)
 
         update = False
         all_sub_goal_ids = set()
-        for premises, conclusion in generated_goals:
+        for premises, conclusion, operation in theorem_instances:
             if conclusion[0] == 'Eq':  # algebraic goals
-                for sub_goal_id in self.algebraic_sub_goal:
+                for sub_goal_id in self.simplified_algebraic_sub_goal:
                     if self.status_of_sub_goal[sub_goal_id] != 0:
                         continue
-                    if len(self.algebraic_sub_goal[sub_goal_id][1] & conclusion[1].free_symbols) == 0:
+                    goal_free_symbols = self.simplified_algebraic_sub_goal[sub_goal_id][0].free_symbols
+                    if len(goal_free_symbols & conclusion[1].free_symbols) == 0:
                         continue
-                    operation_id = self._add_operation(theorem)
-                    goal_id, sub_goal_ids = self._add_goal(sub_goal_id, operation_id, premises)
+                    operation_id = self._add_operation(operation)
+                    goal_id, sub_goal_ids = self._add_goal(premises, operation_id, sub_goal_id)
                     if goal_id is not None:
                         all_sub_goal_ids.update(sub_goal_ids)
                         update = True
             else:  # geometric goals
-                for sub_goal_id in self.sub_goal_ids[conclusion]:  # expand goal
-                    if self.status_of_sub_goal[sub_goal_id] != 0:
-                        continue
-                    operation_id = self._add_operation(theorem)
-                    goal_id, sub_goal_ids = self._add_goal(sub_goal_id, operation_id, premises)
-                    if goal_id is not None:
-                        all_sub_goal_ids.update(sub_goal_ids)
-                        update = True
+                if conclusion in self.sub_goal_ids:
+                    for sub_goal_id in self.sub_goal_ids[conclusion]:  # expand goal
+                        if self.status_of_sub_goal[sub_goal_id] != 0:
+                            continue
+                        operation_id = self._add_operation(operation)
+                        goal_id, sub_goal_ids = self._add_goal(premises, operation_id, sub_goal_id)
+                        if goal_id is not None:
+                            all_sub_goal_ids.update(sub_goal_ids)
+                            update = True
 
         # update influenced sub goal nodes
         self._check_sub_goals(all_sub_goal_ids)
+        if debug:
+            if update:
+                print(f"\033[32mdecompose: '{theorem}', timing={round(time.time() - timing, 4)}s.\033[0m")
+            else:
+                print(f"\033[31mdecompose: '{theorem}', timing={round(time.time() - timing, 4)}s.\033[0m")
         return update
 
-    def _add_goal(self, root_sub_goal_id, operation_id, sub_goal_tree):
-        if root_sub_goal_id != -1:
+    def _add_goal(self, sub_goal_tree, operation_id, root_sub_goal_id):
+        if root_sub_goal_id is not None:
             # the root goal has already been solved and does not need to be further decomposed
             if self.status_of_goal[self.sub_goals[root_sub_goal_id][2]] != 0:
                 return None, set()
@@ -1110,20 +1155,23 @@ class GeometricConfiguration:
                 if self.operations[operation_id] == self.operations[self.goals[goal_id][1]]:
                     return None, set()
             # check if root goals contain the same operation
-            goal_id = self.sub_goals[root_sub_goal_id][2]
-            while goal_id != -1:
+            check_root_sub_goal_id = root_sub_goal_id
+            while check_root_sub_goal_id is not None:
+                goal_id = self.sub_goals[check_root_sub_goal_id][2]
                 if self.operations[operation_id] == self.operations[self.goals[goal_id][1]]:
                     return None, set()
-                goal_id = self.sub_goals[self.goals[goal_id][0]][2]
+                check_root_sub_goal_id = self.goals[goal_id][2]
 
-        old_sub_goal_id = len(self.sub_goals)
+        first_sub_goal_id = len(self.sub_goals)
         goal_id = len(self.goals)
-        leaf_sub_goal_id = self._recursively_add_sub_goals(sub_goal_tree, goal_id, -1)
-        self.goals.append((root_sub_goal_id, operation_id, leaf_sub_goal_id))
+        self._recursively_add_sub_goals(sub_goal_tree, goal_id, None)
+        last_sub_goal_id = len(self.sub_goals) - 1
+        self.goals.append(((first_sub_goal_id, last_sub_goal_id), operation_id, root_sub_goal_id))
         self.status_of_goal[goal_id] = 0
+        if root_sub_goal_id is not None:
+            self.leaf_goal_ids[root_sub_goal_id].add(goal_id)
 
-        sub_goal_ids = list(range(old_sub_goal_id, len(self.sub_goals)))
-        return goal_id, sub_goal_ids
+        return goal_id, list(range(first_sub_goal_id, last_sub_goal_id + 1))
 
     def _recursively_add_sub_goals(self, sub_goal_tree, goal_id, root_sub_goal_id):
         sub_goal_id = len(self.sub_goals)
@@ -1139,6 +1187,8 @@ class GeometricConfiguration:
             predicate, instance = sub_goal_tree
             self.sub_goals.append((predicate, instance, goal_id, root_sub_goal_id))
             leaf_sub_goal_ids = None
+            if predicate == 'Eq':
+                self.simplified_algebraic_sub_goal[sub_goal_id] = (instance, set())
 
         self.status_of_sub_goal[sub_goal_id] = 0
         self.leaf_sub_goal_ids[sub_goal_id] = leaf_sub_goal_ids
@@ -1152,6 +1202,9 @@ class GeometricConfiguration:
         return sub_goal_id
 
     def _check_sub_goals(self, sub_goal_ids):
+        if len(sub_goal_ids) == 0:
+            return
+
         goal_ids = set()
         for sub_goal_id in sub_goal_ids:
             # skip nodes that do not require checking
@@ -1163,64 +1216,69 @@ class GeometricConfiguration:
 
             predicate, instance, _, _ = self.sub_goals[sub_goal_id]
             if predicate == 'Eq':
+                instance = self.simplified_algebraic_sub_goal[sub_goal_id][0]
                 status, premise_ids = self._pass_algebraic_premise(instance)
+
                 if status == 1:  # has solution, update status
-                    self.status_of_sub_goal[sub_goal_id] = 1
+                    self._set_status_of_sub_goal(sub_goal_id, 1)
+                    premise_ids.update(self.simplified_algebraic_sub_goal[sub_goal_id][1])
                     self.premise_ids_of_sub_goal[sub_goal_id] = premise_ids
                     goal_ids.add(self.sub_goals[sub_goal_id][2])
                 elif status == -1:  # has solution, update status
-                    self.status_of_sub_goal[sub_goal_id] = -1
+                    self._set_status_of_sub_goal(sub_goal_id, -1)
                     goal_ids.add(self.sub_goals[sub_goal_id][2])
-                else:  # no solution, update dependent equations group
-                    syms = set()
-                    for sym in instance.free_symbols:
+                else:  # no solution, simplify expr
+                    premise_ids = self.simplified_algebraic_sub_goal[sub_goal_id][1]
+                    for sym in list(instance.free_symbols):
                         if sym in self.sym_to_value:
-                            continue
-                        syms.add(sym)
-                    group_ids = set()
-                    for group_id in self.equations:
-                        if len(self.equations[group_id][2] & syms) > 0:
-                            group_ids.add(group_id)
-                            syms.update(self.equations[group_id][2])
-                    self.algebraic_sub_goal[sub_goal_id] = (group_ids, syms)
+                            instance = instance.subs(self.sym_to_value)
+                            premise_ids.add(self.fact_id[('Eq', sym - self.sym_to_value[sym])])
+                    self.simplified_algebraic_sub_goal[sub_goal_id] = (instance, premise_ids)
             else:
-                if (predicate, instance) in self.fact_id[(predicate, instance)]:
-                    self.status_of_sub_goal[sub_goal_id] = 1
+                if (predicate, instance) in self.fact_id:
+                    self._set_status_of_sub_goal(sub_goal_id, 1)
                     self.premise_ids_of_sub_goal[sub_goal_id] = {self.fact_id[(predicate, instance)]}
                     goal_ids.add(self.sub_goals[sub_goal_id][2])
                     continue
 
                 if predicate in {'Point', 'Line', 'Circle'}:
-                    self.status_of_sub_goal[sub_goal_id] = -1
+                    self._set_status_of_sub_goal(sub_goal_id, -1)
                     goal_ids.add(self.sub_goals[sub_goal_id][2])
 
         self._check_goals(goal_ids)
 
-    def _check_goals(self, goal_ids):
-        added_facts = []  # (predicate, instance, premise_ids, entity_ids, operation_id)
+    def _set_status_of_sub_goal(self, sub_goal_id, status):
+        if self.status_of_sub_goal[sub_goal_id] != 0:
+            return
 
+        self.status_of_sub_goal[sub_goal_id] = status
+        for leaf_goal_id in self.leaf_goal_ids[sub_goal_id]:
+            if self.status_of_goal[leaf_goal_id] != 0:
+                self._set_status_of_goal(leaf_goal_id, -1)
+
+    def _check_goals(self, goal_ids):
+        if len(goal_ids) == 0:
+            return
+
+        added_facts = []  # (predicate, instance, premise_ids, entity_ids, operation_id)
         for goal_id in goal_ids:
-            # skip nodes that do not require checking
-            if self.status_of_goal[goal_id] != 0:
+            if self.status_of_goal[goal_id] != 0:  # skip nodes that do not require checking
                 continue
 
-            sub_goal_id, goal_operation_id, root_sub_goal_id = self.goals[goal_id]
-            status, premise_ids = self._recursively_check_one_goal(sub_goal_id)
+            sub_goal_ids, goal_operation_id, root_sub_goal_id = self.goals[goal_id]
+            status, premise_ids = self._recursively_check_one_goal(sub_goal_ids[0])
             if status == 1:
-                self._recursively_set_status_of_goal(goal_id, 1)
-                if root_sub_goal_id != -1:  # apply theorem
-                    theorem_name, theorem_instance = _parse_geometric_fact(self.operations[goal_operation_id])
-                    replace = dict(zip(self.parsed_gdl['Theorems'][theorem_name]['paras'], theorem_instance))
-                    predicate, instance = self.parsed_gdl['Theorems'][theorem_name]['conclusion']
-                    if predicate == 'Eq':
-                        instance = _replace_expr(instance, replace)
-                    else:
-                        instance = _replace_instance(instance, replace)
-                    entity_ids = self._get_entity_ids(predicate, instance)
-                    operation_id = self._add_operation(self.operations[goal_operation_id])
-                    added_facts.append((predicate, instance, premise_ids, entity_ids, operation_id))
+                self._set_status_of_goal(goal_id, 1)
+                if root_sub_goal_id is not None:  # apply theorem
+                    _, theorem_name, theorem_instance = self.operations[goal_operation_id]
+                    conclusion = self._generate_conclusion(theorem_name, theorem_instance)
+                    if conclusion is not None:
+                        entity_ids = self._get_entity_ids(conclusion[0], conclusion[1])
+                        operation_id = self._add_operation(('apply', theorem_name, theorem_instance))
+                        added_facts.append((conclusion[0], conclusion[1], premise_ids, entity_ids, operation_id))
+                self.premise_ids_of_goal[goal_id] = premise_ids
             elif status == -1:
-                self._recursively_set_status_of_goal(goal_id, -1)
+                self._set_status_of_goal(goal_id, -1)
 
         all_sub_goal_ids = set()
         for predicate, instance, premise_ids, entity_ids, operation_id in added_facts:
@@ -1229,6 +1287,15 @@ class GeometricConfiguration:
                 all_sub_goal_ids.update(sub_goal_ids)
 
         self._check_sub_goals(all_sub_goal_ids)
+
+    def _set_status_of_goal(self, goal_id, status):
+        if self.status_of_goal[goal_id] != 0:
+            return
+
+        self.status_of_goal[goal_id] = status
+        first_sub_goal_id, last_sub_goal_id = self.goals[goal_id][0]
+        for sub_goal_id in range(first_sub_goal_id, last_sub_goal_id + 1):
+            self._set_status_of_sub_goal(sub_goal_id, -1)
 
     def _recursively_check_one_goal(self, sub_goal_id):
         if self.status_of_sub_goal[sub_goal_id] == -1:
@@ -1282,26 +1349,348 @@ class GeometricConfiguration:
 
             return 0, None
 
-    def _recursively_set_status_of_goal(self, goal_id, status):
-        """
-        set leaf goals status to -1
-        set sibling goals status to -1
-        """
-        if self.status_of_goal[goal_id] != 0:
-            return
-        self.status_of_goal[goal_id] = status
+    def show_gc(self):
+        operation_ids = set()
+        goal_related_operation_ids = set()
+        if len(self.status_of_goal) > 0 and self.status_of_goal[0] == 1:
+            goal_related_premise_ids = list(self.premise_ids_of_goal[0])
+        else:
+            goal_related_premise_ids = []
+        for fact_id in goal_related_premise_ids:
+            goal_related_operation_ids.add(self.facts[fact_id][4])
+            for new_fact_id in self.facts[fact_id][2]:
+                if new_fact_id not in goal_related_premise_ids:
+                    goal_related_premise_ids.append(new_fact_id)
+        goal_related_premise_ids = set(goal_related_premise_ids)
 
-        goal_ids = set()
+        construction_pf = '{0:<3}{1:<40}'
+        construction_pfu = '\033[32m' + construction_pf + '\033[0m'
+        print('\033[33mConstructions:\033[0m')
+        for operation_id in self.constructions:
+            construction = self.operations[operation_id][1] + ':' + self.operations[operation_id][2]
+            if operation_id in goal_related_operation_ids:
+                print(construction_pfu.format(operation_id, construction))
+            else:
+                print(construction_pf.format(operation_id, construction))
 
-        sub_goal_ids = [self.goals[goal_id][0]]  # leaf goals
-        while len(sub_goal_ids) > 0:
-            sub_goal_id = sub_goal_ids.pop()
-            goal_ids.update(self.leaf_goal_ids[sub_goal_id])
-            if self.leaf_sub_goal_ids[sub_goal_id] is not None:
-                sub_goal_ids.extend(self.leaf_sub_goal_ids[sub_goal_id])
+            used_branch, parsed_construction = self.constructions[operation_id]
+            for branch in range(len(parsed_construction)):
+                t_entities, d_entities, added_facts, equations, inequalities, values = parsed_construction[branch]
+                t_entities = [_anti_parse_fact(fact) for fact in t_entities]
+                d_entities = [_anti_parse_fact(fact) for fact in d_entities]
+                added_facts = [_anti_parse_fact(fact) for fact in added_facts]
+                equations = [_anti_parse_fact(('Eq', fact)) for fact in equations]
+                inequalities = [_anti_parse_fact(fact) for fact in inequalities]
+                if branch + 1 == used_branch:
+                    s = '   branch: {} (solved), '.format(branch + 1)
+                else:
+                    s = '   branch: {}, '.format(branch + 1)
+                s += 'target_entities: {}, dependent_entities: {}, added_facts: {}\n'.format(
+                    str(t_entities), str(d_entities), str(added_facts))
+                s += '   equations: [{}], inequalities: [{}]\n'.format(', '.join([str(item) for item in equations]),
+                                                                       ', '.join([str(item) for item in inequalities]))
+                if values is not None:
+                    t_syms, solved_values = values
+                    values = [f"({', '.join([str(sym) for sym in t_syms])})"]
+                    for solved_value in solved_values:
+                        values.append(f"({', '.join([str(round(float(value), 4)) for value in solved_value])})")
+                    values = f"[{', '.join(values)}]"
+                else:
+                    values = 'None'
+                s += '   solved_values: {}\n'.format(values)
+                print(s)
 
-        if self.goals[goal_id][2] != -1:  # sibling goals
-            goal_ids.update(self.leaf_goal_ids[self.goals[goal_id][2]])
+        entity_pf = '{0:<15}{1:<15}{2:<30}{3:<15}{4:<15}{5:<15}{6:<100}'
+        entity_pfu = '\033[32m' + entity_pf + '\033[0m'
+        for entity in ['Point', 'Line', 'Circle']:
+            if len(self.predicate_to_fact_ids[entity]) == 0:
+                continue
+            print(f'\033[36mEntity - {entity}:\033[0m')
+            print('\033[36m' + entity_pf.format(
+                'fact_id', 'instance', 'values', 'premise_ids', 'entity_ids', 'operation_id', 'operation') + '\033[0m')
+            for fact_id in sorted(list(self.predicate_to_fact_ids[entity])):
+                predicate, instance, premise_ids, entity_ids, operation_id = self.facts[fact_id]
+                operation_ids.add(operation_id)
+                operation = _anti_parse_operation(self.operations[operation_id])
+                if entity == 'Point':
+                    values = str((round(float(self.entity_sym_to_value[symbols(f'{instance[0]}.x')]), 4),
+                                  round(float(self.entity_sym_to_value[symbols(f'{instance[0]}.y')]), 4)))
+                elif entity == 'Line':
+                    values = str((round(float(self.entity_sym_to_value[symbols(f'{instance[0]}.k')]), 4),
+                                  round(float(self.entity_sym_to_value[symbols(f'{instance[0]}.b')]), 4)))
+                else:
+                    values = str((round(float(self.entity_sym_to_value[symbols(f'{instance[0]}.u')]), 4),
+                                  round(float(self.entity_sym_to_value[symbols(f'{instance[0]}.v')]), 4),
+                                  round(float(self.entity_sym_to_value[symbols(f'{instance[0]}.r')]), 4)))
+                instance = f'({instance[0]})'
+                premise_ids = '{' + ','.join([str(item) for item in sorted(list(premise_ids))]) + '}'
+                entity_ids = '{' + ','.join([str(item) for item in sorted(list(entity_ids))]) + '}'
 
-        for goal_id in goal_ids:
-            self._recursively_set_status_of_goal(goal_id, -1)
+                if fact_id in goal_related_premise_ids:
+                    print(entity_pfu.format(fact_id, instance, values, premise_ids, entity_ids,
+                                            operation_id, operation))
+                else:
+                    print(entity_pf.format(fact_id, instance, values, premise_ids, entity_ids,
+                                           operation_id, operation))
+            print()
+
+        relation_pf = '{0:<10}{1:<30}{2:<30}{3:<20}{4:<15}{5:<100}'
+        relation_pfu = '\033[32m' + relation_pf + '\033[0m'
+        for predicate in self.predicate_to_fact_ids:
+            if predicate in ['Point', 'Line', 'Circle', 'Eq']:
+                continue
+            if len(self.predicate_to_fact_ids[predicate]) == 0:
+                continue
+
+            print(f"\033[36mRelation - {predicate}:\033[0m")
+            print('\033[36m' + relation_pf.format('fact_id', 'instance', 'premise_ids', 'entity_ids',
+                                                  'operation_id', 'operation') + '\033[0m')
+            for fact_id in sorted(list(self.predicate_to_fact_ids[predicate])):
+                predicate, instance, premise_ids, entity_ids, operation_id = self.facts[fact_id]
+                operation_ids.add(operation_id)
+                operation = _anti_parse_operation(self.operations[operation_id])
+                instance = '(' + ','.join(instance) + ')'
+                premise_ids = '{' + ','.join([str(item) for item in sorted(list(premise_ids))]) + '}'
+                entity_ids = '{' + ','.join([str(item) for item in sorted(list(entity_ids))]) + '}'
+                if fact_id in goal_related_premise_ids:
+                    print(relation_pfu.format(fact_id, instance, premise_ids, entity_ids, operation_id, operation))
+                else:
+                    print(relation_pf.format(fact_id, instance, premise_ids, entity_ids, operation_id, operation))
+            print()
+
+        equation_pf = '{0:<10}{1:<30}{2:<30}{3:<20}{4:<15}{5:<100}'
+        equation_pfu = '\033[32m' + equation_pf + '\033[0m'
+        if len(self.predicate_to_fact_ids['Eq']) > 0:
+            print('\033[36mRelation - Equations:\033[0m')
+            print('\033[36m' + equation_pf.format(
+                'fact_id', 'instance', 'premise_ids', 'entity_ids', 'operation_id', 'operation') + '\033[0m')
+            for fact_id in sorted(list(self.predicate_to_fact_ids['Eq'])):
+                predicate, instance, premise_ids, entity_ids, operation_id = self.facts[fact_id]
+                operation_ids.add(operation_id)
+                operation = _anti_parse_operation(self.operations[operation_id])
+                instance = str(instance).replace(' ', '')
+                premise_ids = '{' + ','.join([str(item) for item in sorted(list(premise_ids))]) + '}'
+                entity_ids = '{' + ','.join([str(item) for item in sorted(list(entity_ids))]) + '}'
+                if fact_id in goal_related_premise_ids:
+                    print(equation_pfu.format(fact_id, instance, premise_ids, entity_ids, operation_id, operation))
+                else:
+                    print(equation_pf.format(fact_id, instance, premise_ids, entity_ids, operation_id, operation))
+        print()
+
+        goal_pf = '{0:<15}{1:<20}{2:<20}{3:<15}{4:<20}{5:<15}{6:<100}'
+        goal_pfs = '\033[32m' + goal_pf + '\033[0m'
+        goal_pfu = '\033[31m' + goal_pf + '\033[0m'
+        print("\033[34mGoals:\033[0m")
+        print('\033[34m' + goal_pf.format('goal_id', 'sub_goal_ids', 'root_sub_goal_id', 'status', 'premise_ids',
+                                          'operation_id', 'operation') + '\033[0m')
+        for goal_id in range(len(self.goals)):
+            sub_goal_ids, operation_id, root_sub_goal_id = self.goals[goal_id]
+            operation_ids.add(operation_id)
+            operation = _anti_parse_operation(self.operations[operation_id])
+            root_sub_goal_id = str(root_sub_goal_id)
+            sub_goal_ids = f'[{sub_goal_ids[0]},{sub_goal_ids[1]}]'
+            status = self.status_of_goal[goal_id]
+            if status == 1:
+                premise_ids = ','.join([str(item) for item in sorted(list(self.premise_ids_of_goal[goal_id]))])
+                premise_ids = '{' + premise_ids + '}'
+            else:
+                premise_ids = '{}'
+
+            if status == 1:
+                print(goal_pfs.format(goal_id, sub_goal_ids, root_sub_goal_id, status, premise_ids,
+                                      operation_id, operation))
+            elif status == -1:
+                print(goal_pfu.format(goal_id, sub_goal_ids, root_sub_goal_id, status, premise_ids,
+                                      operation_id, operation))
+            else:
+                print(goal_pf.format(goal_id, sub_goal_ids, root_sub_goal_id, status, premise_ids,
+                                     operation_id, operation))
+        print()
+
+        sub_goal_pf = '{0:<15}{1:<25}{2:<25}{3:<10}{4:<20}{5:<20}{6:<20}{7:<15}{8:<50}'
+        sub_goal_pfs = '\033[32m' + sub_goal_pf + '\033[0m'
+        sub_goal_pfu = '\033[31m' + sub_goal_pf + '\033[0m'
+        print("\033[34mSub Goals:\033[0m")
+        print('\033[34m' + sub_goal_pf.format(
+            'sub_goal_id', 'predicate', 'instance', 'goal_id', 'root_sub_goal_id',
+            'leaf_sub_goal_ids', 'leaf_goal_ids', 'status', 'premise_ids') + '\033[0m')
+        for sub_goal_id in range(len(self.sub_goals)):
+            predicate, instance, goal_id, root_sub_goal_id = self.sub_goals[sub_goal_id]
+            if predicate == 'Eq':
+                instance = str(instance).replace(' ', '')
+            else:
+                instance = '(' + ','.join(instance) + ')'
+            root_sub_goal_id = str(root_sub_goal_id)
+            leaf_sub_goal_ids = self.leaf_sub_goal_ids[sub_goal_id]
+            if leaf_sub_goal_ids is None:
+                leaf_sub_goal_ids = 'None'
+            else:
+                leaf_sub_goal_ids = f'({leaf_sub_goal_ids[0]},{leaf_sub_goal_ids[1]})'
+            leaf_goal_ids = '{' + ','.join([str(item) for item in sorted(list(self.leaf_goal_ids[sub_goal_id]))]) + '}'
+            status = self.status_of_sub_goal[sub_goal_id]
+            if status == 1:
+                premise_ids = ','.join([str(item) for item in sorted(list(self.premise_ids_of_sub_goal[sub_goal_id]))])
+                premise_ids = '{' + premise_ids + '}'
+            else:
+                premise_ids = '{}'
+
+            if status == 1:
+                print(sub_goal_pfs.format(sub_goal_id, predicate, instance, goal_id, root_sub_goal_id,
+                                          leaf_sub_goal_ids, leaf_goal_ids, status, premise_ids))
+            elif status == -1:
+                print(sub_goal_pfu.format(sub_goal_id, predicate, instance, goal_id, root_sub_goal_id,
+                                          leaf_sub_goal_ids, leaf_goal_ids, status, premise_ids))
+            else:
+                print(sub_goal_pf.format(sub_goal_id, predicate, instance, goal_id, root_sub_goal_id,
+                                         leaf_sub_goal_ids, leaf_goal_ids, status, premise_ids))
+        print()
+
+        if len(self.predicate_to_fact_ids['Eq']) > 0:
+            sym_pf = '{0:<40}{1:<15}{2:<25}{3:<10}{4:<20}'
+            sym_pfu = '\033[32m' + sym_pf + '\033[0m'
+            print('\033[35mAlgebraic System - Symbols:\033[0m')
+            print('\033[35m' + sym_pf.format(
+                'attribution', 'sym', 'multiple_forms', 'fact_id', 'value') + '\033[0m')
+            for sym in self.sym_to_syms:
+                if '.' in str(sym):
+                    entities, attr = str(sym).split('.')
+                    predicate = self.parsed_gdl['Attributions'][attr]['name']
+                    instance = ",".join(list(entities))
+                    attr = f'{predicate}({instance})'
+                    multiple_forms = '(' + ', '.join([str(item) for item in self.sym_to_syms[sym]]) + ')'
+                else:
+                    attr = f'Free({str(sym)})',
+                    multiple_forms = '(' + str(sym) + ')'
+
+                if sym in self.sym_to_value:
+                    fact_id = self.fact_id[('Eq', sym - self.sym_to_value[sym])]
+                    value = str(self.sym_to_value[sym])
+                else:
+                    fact_id = 'None'
+                    value = "None"
+
+                if fact_id != 'None' and fact_id in goal_related_premise_ids:
+                    print(sym_pfu.format(attr, str(sym), multiple_forms, fact_id, value))
+                else:
+                    print(sym_pf.format(attr, str(sym), multiple_forms, fact_id, value))
+            print()
+
+            eq_groups_pf = '{0:<10}{1:<25}{2:<15}{3:<15}'
+            print('\033[35mAlgebraic System - Equation groups:\033[0m')
+            print('\033[35m' + eq_groups_pf.format(
+                'group_id', 'simplified_eq', 'premise_ids', 'free_symbols') + '\033[0m')
+            for group_id in self.equations:
+                for i in range(len(self.equations[group_id][0])):
+                    simplified_eq = str(self.equations[group_id][0][i]).replace(' ', '')
+                    premise_ids = ','.join([str(item) for item in sorted(list(self.equations[group_id][1][i]))])
+                    premise_ids = '{' + premise_ids + '}'
+                    free_symbols = ', '.join([str(item) for item in self.equations[group_id][0][i].free_symbols])
+                    free_symbols = '(' + free_symbols + ')'
+                    print(eq_groups_pf.format(group_id, simplified_eq, premise_ids, free_symbols))
+            print()
+
+        theorem_instance_pf = '{0:<50}{1:<100}'
+        print('\033[35mTheorem instances:\033[0m')
+        print('\033[35m' + theorem_instance_pf.format('theorem_name', 'theorem_instances') + '\033[0m')
+        for t_name in self.theorem_instances:
+            t_instances = [f"({','.join(item)})" for item in self.theorem_instances[t_name]]
+            t_instances = f"[{', '.join(t_instances)}]"
+            print(theorem_instance_pf.format(t_name, t_instances))
+
+        operation_pf = '{0:<15}{1:<50}'
+        operation_pfu = '\033[32m' + operation_pf + '\033[0m'
+        print('\033[35mOperations:\033[0m')
+        print('\033[35m' + operation_pf.format('operation_id', 'operation') + '\033[0m')
+        for operation_id in range(len(self.operations)):
+            if operation_id not in operation_ids:
+                continue
+            operation = _anti_parse_operation(self.operations[operation_id])
+            if operation_id in goal_related_operation_ids:
+                print(operation_pfu.format(operation_id, operation))
+            else:
+                print(operation_pf.format(operation_id, operation))
+        print()
+
+    def draw_gc(self, save_path='./', filename='gc', file_format='pdf'):
+        _, ax = plt.subplots()
+        ax.axis('equal')  # maintain the circle's aspect ratio
+        ax.axis('off')  # hide the axes
+        middle_x = (self.sample_range['x_max'] + self.sample_range['x_min']) / 2
+        range_x = (self.sample_range['x_max'] - self.sample_range['x_min']) / 2 * self.sample_rate
+        middle_y = (self.sample_range['y_max'] + self.sample_range['y_min']) / 2
+        range_y = (self.sample_range['y_max'] - self.sample_range['y_min']) / 2 * self.sample_rate
+        x_min = float(middle_x - range_x)
+        x_max = float(middle_x + range_x)
+        y_min = float(middle_y - range_y)
+        y_max = float(middle_y + range_y)
+        x_adjust = (range_x * 0.02)
+        y_adjust = (range_y * 0.02)
+        text_size = int(max(range_x, range_y) * 10)
+        ax.set_xlim(x_min, x_max)
+        ax.set_ylim(y_min, y_max)
+
+        for fact_id in self.predicate_to_fact_ids['Line']:
+            line = self.facts[fact_id][1][0]
+            k = float(self.entity_sym_to_value[symbols(f'{line}.k')])
+            b = float(self.entity_sym_to_value[symbols(f'{line}.b')])
+            ax.axline((0, b), slope=k, color='blue')
+
+        for fact_id in self.predicate_to_fact_ids['Circle']:
+            circle = self.facts[fact_id][1][0]
+            u = float(self.entity_sym_to_value[symbols(f'{circle}.u')])
+            v = float(self.entity_sym_to_value[symbols(f'{circle}.v')])
+            r = float(self.entity_sym_to_value[symbols(f'{circle}.r')])
+            ax.add_artist(plt.Circle((u, v), r, color="green", fill=False))
+
+        for fact_id in self.predicate_to_fact_ids['Point']:
+            point = self.facts[fact_id][1][0]
+            x = float(self.entity_sym_to_value[symbols(f'{point}.x')])
+            y = float(self.entity_sym_to_value[symbols(f'{point}.y')])
+            ax.plot(x, y, "o", color='red')
+            ax.text(x, y + y_adjust, point, ha='center', va='bottom', color='black', size=text_size)
+
+        for fact_id in self.predicate_to_fact_ids['Line']:
+            line = self.facts[fact_id][1][0]
+            k = float(self.entity_sym_to_value[symbols(f'{line}.k')])
+            b = float(self.entity_sym_to_value[symbols(f'{line}.b')])
+            if k < -1:
+                y = y_max - range_y * 0.1
+                x = (y - b) / k + x_adjust
+            elif k < 0:
+                x = x_min + range_x * 0.1
+                y = k * x + b + y_adjust
+            elif k < 1:
+                x = x_max - range_x * 0.1
+                y = k * x + b + y_adjust
+            else:  # k > 1
+                y = y_max - range_y * 0.1
+                x = (y - b) / k - x_adjust
+            ax.text(x, y, line, ha='center', va='bottom', color='black', size=text_size)
+
+        for fact_id in self.predicate_to_fact_ids['Circle']:
+            circle = self.facts[fact_id][1][0]
+            u = float(self.entity_sym_to_value[symbols(f'{circle}.u')])
+            v = float(self.entity_sym_to_value[symbols(f'{circle}.v')])
+            r = float(self.entity_sym_to_value[symbols(f'{circle}.r')])
+            k = range_y / range_x
+            k1 = k
+            k2 = -k
+            b1 = y_max - k1 * x_max
+            b2 = y_max - k2 * x_min
+            if v > k1 * u + b1 and v > k2 * u + b2:
+                v = v - r - y_adjust * 5
+            elif k1 * u + b1 < v < k2 * u + b2:
+                u = u + r + x_adjust
+            elif k1 * u + b1 > v > k2 * u + b2:
+                u = u - r - x_adjust * 2
+            else:
+                v = v + r + y_adjust
+            ax.text(u, v, circle, ha='center', va='bottom', color='black', size=text_size)
+
+        plt.savefig(save_path + filename + '.' + file_format)
+
+    def get_sg(self):
+        pass
+
+    def draw_sg(self):
+        pass

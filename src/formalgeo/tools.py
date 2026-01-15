@@ -867,6 +867,9 @@ def _parse_goal(goal):
     goal_serialized = _serialize_gpl(goal)
 
     for i in range(len(goal_serialized)):
+        if goal_serialized[i] in {'&', '|', '~', '(', ')'}:
+            continue
+
         if goal_serialized[i].startswith('Eq('):
             algebraic_relation, expr = _parse_algebraic_fact(goal_serialized[i])
             goal_serialized[i] = (algebraic_relation, expr)
@@ -876,6 +879,13 @@ def _parse_goal(goal):
     goal_tree = _negation_inward(_parse_gpl_to_tree(goal_serialized))
 
     return goal_tree
+
+
+def _format_ids(ids):
+    if len(ids) > 5:
+        return '{' + ','.join([str(_id) for _id in sorted(list(ids))[:5]]) + ',...}'
+    else:
+        return '{' + ','.join([str(_id) for _id in sorted(list(ids))]) + '}'
 
 
 def _anti_parse_operation(operation):

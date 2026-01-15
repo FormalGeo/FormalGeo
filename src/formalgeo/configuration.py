@@ -5,7 +5,7 @@ from formalgeo.tools import _parse_construction, _parse_theorem, _parse_goal
 from formalgeo.tools import _serialize_fact, _serialize_operation, _serialize_goal
 from formalgeo.tools import _is_negation, _is_conjunction, _is_disjunction
 from formalgeo.tools import _replace_instance, _replace_expr
-from formalgeo.tools import _anti_parse_operation, _anti_parse_fact
+from formalgeo.tools import _anti_parse_operation, _anti_parse_fact, _format_ids
 from sympy import symbols, nonlinsolve, tan, pi, FiniteSet, EmptySet
 from func_timeout import func_timeout, FunctionTimedOut
 from graphviz import Graph
@@ -13,7 +13,8 @@ import matplotlib.pyplot as plt
 import matplotlib
 import random
 import copy
-import time
+
+# from formalgeo.tools import draw_gpl
 
 matplotlib.use('TkAgg')  # resolve backend compatibility issues
 plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']  # use Microsoft YaHei font
@@ -200,7 +201,6 @@ class GeometricConfiguration:
         Returns:
             result (bool): If successfully construct the entity, return True; otherwise, return False.
         """
-        timing = time.time()
         if added:
             self.random = self.random_backup
         else:
@@ -410,26 +410,41 @@ class GeometricConfiguration:
 
     def _get_theorem_instances(self, theorem_name):
         if theorem_name not in self.theorem_instances:
-            theorem_gpl = self.parsed_gdl['Theorems'][theorem_name]
+            theorem_gdl = self.parsed_gdl['Theorems'][theorem_name]
 
-            generated_paras, generated_instances = self._generate_instances(  # generate theorem instances
-                (theorem_gpl['conclusion'], '&', theorem_gpl['premises'])
-            )
+            if 'determination' in theorem_name:  # generate theorem instances
+                generated_paras, generated_instances = self._generate_instances(
+                    (theorem_gdl['conclusion'], '&', theorem_gdl['premises'])
+                )
+            else:  # 'property'
+                generated_paras, generated_instances = self._generate_instances(
+                    (theorem_gdl['premises'], '&', theorem_gdl['conclusion'])
+                )
+            # if theorem_name == 'equal_angle_property_algebraic':
+            #     print(generated_paras)
+            #     print(generated_instances)
+            #     print("('c', 'y', 'y', 'a') in generated_instances:", ('c', 'y', 'y', 'a') in generated_instances)
+            #     print("('b', 'x', 'x', 'c') in generated_instances:", ('b', 'x', 'x', 'c') in generated_instances)
+            #     print("('a', 'z', 'z', 'b') in generated_instances:", ('a', 'z', 'z', 'b') in generated_instances)
+            #     print()
 
-            if generated_paras != theorem_gpl['paras']:  # ensure consistent paras order
-                adjust_ids = tuple([generated_paras.index(p) for p in theorem_gpl['paras']])
+            if generated_paras != theorem_gdl['paras']:  # ensure consistent paras order
+                adjust_ids = tuple([generated_paras.index(p) for p in theorem_gdl['paras']])
                 adjusted_generated_instances = set()
                 for generated_instance in generated_instances:
                     adjusted_generated_instances.add(tuple([generated_instance[i] for i in adjust_ids]))
                 generated_instances = adjusted_generated_instances
 
+            self.theorem_instances[theorem_name] = {}
             for generated_instance in sorted(list(generated_instances), key=str):  # generate premises and conclusion
-                replace = dict(zip(theorem_gpl['paras'], generated_instance))
-                premises = self._generate_premises(theorem_gpl['premises'], replace)
-                conclusion = self._generate_conclusion(theorem_gpl['conclusion'], replace)
+                replace = dict(zip(theorem_gdl['paras'], generated_instance))
+                premises = self._generate_premises(theorem_gdl['premises'], replace)
+                conclusion = self._generate_conclusion(theorem_gdl['conclusion'], replace)
                 self.theorem_instances[theorem_name][generated_instance] = (premises, conclusion)
+                # if theorem_name == 'equal_angle_property_algebraic':
+                #     print(generated_instance, premises, conclusion)
 
-        return self.theorem_instances[theorem_name].keys()
+        return list(self.theorem_instances[theorem_name].keys())
 
     def _generate_instances(self, gpl_tree, paras_and_instances=None):
         if _is_negation(gpl_tree):  # negative form
@@ -442,6 +457,19 @@ class GeometricConfiguration:
         elif _is_conjunction(gpl_tree):  # conjunction
             left_paras_and_instances = self._generate_instances(gpl_tree[0], paras_and_instances)
             right_paras_and_instances = self._generate_instances(gpl_tree[2], left_paras_and_instances)
+            # if str(gpl_tree[0]) == "('Eq', lm.ma - xy.ma)":
+            #     print(left_paras_and_instances[0])
+            #     print(left_paras_and_instances[1])
+            #     print("('c', 'y', 'y', 'a') in left_paras_and_instances[1]:", ('c', 'y', 'y', 'a') in left_paras_and_instances[1])
+            #     print("('b', 'x', 'x', 'c') in left_paras_and_instances[1]:", ('b', 'x', 'x', 'c') in left_paras_and_instances[1])
+            #     print("('a', 'z', 'z', 'b') in left_paras_and_instances[1]:", ('a', 'z', 'z', 'b') in left_paras_and_instances[1])
+            #     print()
+            #     print(right_paras_and_instances[0])
+            #     print(right_paras_and_instances[1])
+            #     print("('c', 'y', 'y', 'a') in right_paras_and_instances[1]:", ('c', 'y', 'y', 'a') in right_paras_and_instances[1])
+            #     print("('b', 'x', 'x', 'c') in right_paras_and_instances[1]:", ('b', 'x', 'x', 'c') in right_paras_and_instances[1])
+            #     print("('a', 'z', 'z', 'b') in right_paras_and_instances[1]:", ('a', 'z', 'z', 'b') in right_paras_and_instances[1])
+
             return right_paras_and_instances
         elif _is_disjunction(gpl_tree):  # disjunction
             left_paras, left_instances = self._generate_instances(gpl_tree[0], paras_and_instances)
@@ -464,6 +492,11 @@ class GeometricConfiguration:
                 paras = list(paras_and_instances[0])  # list
                 instances = paras_and_instances[1]  # set
 
+            # if str(gpl_tree) == "('Eq', lm.ma - xy.ma)":
+            #     print(gpl_tree)
+            #     print(paras)
+            #     print(instances)
+
             if gpl_predicate in {'Eq', 'G', 'Geq', 'L', 'Leq', 'Ueq'}:  # generate instances according algebraic forms
                 dependent_entities = _get_geometric_constraints(gpl_predicate, gpl_paras, self.parsed_gdl)
 
@@ -485,6 +518,14 @@ class GeometricConfiguration:
                     replaced_expr = _replace_expr(gpl_paras, replace)
                     if not _satisfy_algebraic[gpl_predicate](replaced_expr, self.entity_sym_to_value):
                         instances.remove(instance)
+
+                # if str(gpl_tree) == "('Eq', lm.ma - xy.ma)":
+                #     print(gpl_tree)
+                #     print(paras)
+                #     print(instances)
+                #     print("('c', 'y', 'y', 'a') in instances:", ('c', 'y', 'y', 'a') in instances)
+                #     print("('b', 'x', 'x', 'c') in instances:", ('b', 'x', 'x', 'c') in instances)
+                #     print("('a', 'z', 'z', 'b') in instances:", ('a', 'z', 'z', 'b') in instances)
 
             else:  # generate instances according relation
                 internal_same_ids = []  # [(j_a, j_b)]
@@ -540,23 +581,37 @@ class GeometricConfiguration:
 
                         new_instance = list(instance)
                         new_instance.extend([gpl_instance[j] for j in added_ids])
-                        new_instances.append(new_instance)
+                        new_instances.append(tuple(new_instance))
 
                 instances = new_instances
 
             return tuple(paras), instances
 
     def _generate_premises(self, premises_gpl, replace):
-        if _is_negation(premises_gpl):  # negative form : ('~', ...)
-            return '~', self._generate_premises(premises_gpl[1], replace)
+        if _is_negation(premises_gpl):  # remove negative form : ('~', ...)
+            return None
 
         elif _is_conjunction(premises_gpl):  # conjunction : (..., '&', ...)
-            return (self._generate_premises(premises_gpl[0], replace), '&',
-                    self._generate_premises(premises_gpl[2], replace))
+            left_side = self._generate_premises(premises_gpl[0], replace)
+            right_side = self._generate_premises(premises_gpl[2], replace)
+            if left_side is not None:
+                if right_side is not None:
+                    return left_side, '&', right_side
+                else:
+                    return left_side
+            else:
+                if right_side is not None:
+                    return right_side
+                else:
+                    return None
 
         elif _is_disjunction(premises_gpl):  # disjunction: (..., '|', ...)
-            return (self._generate_premises(premises_gpl[0], replace), '|',
-                    self._generate_premises(premises_gpl[2], replace))
+            left_side = self._generate_premises(premises_gpl[0], replace)
+            right_side = self._generate_premises(premises_gpl[2], replace)
+            if left_side is not None and right_side is not None:
+                return left_side, '|', right_side
+            else:
+                return None
 
         else:  # atomic node: (predicate, instance)
             predicate, instance = premises_gpl
@@ -642,17 +697,25 @@ class GeometricConfiguration:
                 if not passed:
                     return False
 
+                if not self._check_algebraic_forms((theorem_gdl['conclusion'], '&', theorem_gdl['premises']), replace):
+                    return False
+
                 conclusion = self._generate_conclusion(theorem_gdl['conclusion'], replace)
                 applied.append((conclusion, premise_ids, theorem_instance))
 
         else:  # parameter-free mode
-            theorem_instances = self._get_theorem_instances(theorem_name)
-            for theorem_instance in theorem_instances:
+            for theorem_instance in self._get_theorem_instances(theorem_name):
                 premises, conclusion = self.theorem_instances[theorem_name][theorem_instance]
 
                 passed, premise_ids = self._check_premises(premises)  # check premises
+                # if theorem_name == "congruent_triangle_determination_asa" and theorem_instance == ('B', 'b', 'C', 'l', 'A', 'a', 'D', 'd', 'A', 'l', 'C', 'c'):
+                #     print("congruent_triangle_determination_asa", theorem_instance)
+                #     print(premises)
+                #     print(conclusion)
+                #     print(passed)
+                #     print()
                 if not passed:
-                    return False
+                    continue
 
                 # remove applied theorem_instance
                 self.theorem_instances[theorem_name].pop(theorem_instance)
@@ -673,10 +736,7 @@ class GeometricConfiguration:
         return update
 
     def _check_premises(self, premises):
-        if _is_negation(premises):  # negative form : ('~', ...)
-            return not self._check_algebraic_forms(premises[1]), None
-
-        elif _is_conjunction(premises):  # conjunction : (..., '&', ...)
+        if _is_conjunction(premises):  # conjunction : (..., '&', ...)
             left_passed, left_premise_ids = self._check_premises(premises[0])
             if not left_passed:
                 return False, None
@@ -702,9 +762,10 @@ class GeometricConfiguration:
 
         else:  # atomic node: (predicate, instance)
             predicate, instance = premises
-
+            # print(premises)
             if predicate == 'Eq':  # algebraic premise
                 status, premise_ids = self._check_algebraic_premise(instance)
+                # print(predicate, instance, status)
                 if status == 1:
                     return True, premise_ids
 
@@ -782,7 +843,7 @@ class GeometricConfiguration:
 
     def _check_algebraic_forms(self, algebraic_forms, replace=None):
         """
-        1.退化条件：~的检查
+        1.前向求解，参数化运行，退化条件：~的检查
         2.后向 set goal和参数化分解goal时的检查，只有合理的goal才会分解
         """
         if _is_negation(algebraic_forms):  # negative form : ('~', ...)
@@ -1079,6 +1140,7 @@ class GeometricConfiguration:
             raise Exception("The function 'set_goal' is only used to set the initial goal.")
 
         goal_tree = _parse_goal(goal)
+        # draw_gpl(goal_tree, filename='goal_tree')
 
         if not self._check_algebraic_forms(goal_tree):
             raise Exception(f"Algebraic forms check not passed when set init goal '{goal}'.")
@@ -1111,14 +1173,13 @@ class GeometricConfiguration:
                 root_sub_goal_ids = self._get_decomposed_sub_goal_ids(conclusion)
                 if len(root_sub_goal_ids) == 0:
                     return False
-                premises = self._generate_premises(theorem_gdl['premises'], replace)
-                if not self._check_algebraic_forms(premises):
+                if not self._check_algebraic_forms(theorem_gdl['premises'], replace):
                     return False
+                premises = self._generate_premises(theorem_gdl['premises'], replace)
                 decomposed.append((premises, root_sub_goal_ids, theorem_instance))
 
         else:  # parameter-free mode
-            theorem_instances = self._get_theorem_instances(theorem_name)
-            for theorem_instance in theorem_instances:
+            for theorem_instance in self._get_theorem_instances(theorem_name):
                 premises, conclusion = self.theorem_instances[theorem_name][theorem_instance]
                 sub_goal_ids = self._get_decomposed_sub_goal_ids(conclusion)
                 if len(sub_goal_ids) == 0:
@@ -1186,6 +1247,7 @@ class GeometricConfiguration:
         sub_goal_id_tree, sub_goal_ids = self._add_sub_goals(sub_goal_tree, goal_id)
         self.goals.append((sub_goal_id_tree, operation_id, root_sub_goal_id))
         self.status_of_goal[goal_id] = 0
+        self.premise_ids_of_goal[goal_id] = set()
         if root_sub_goal_id is not None:
             self.leaf_goal_ids[root_sub_goal_id].add(goal_id)
 
@@ -1211,6 +1273,7 @@ class GeometricConfiguration:
                 self.simplified_eq_sub_goal[sub_goal_id] = (instance, set(), set(), set())
             self.sub_goals.append((predicate, instance, goal_id))
             self.status_of_sub_goal[sub_goal_id] = 0
+            self.premise_ids_of_sub_goal[sub_goal_id] = set()
             self.leaf_goal_ids[sub_goal_id] = set()
             if (predicate, instance) not in self.sub_goal_ids:
                 self.sub_goal_ids[(predicate, instance)] = {sub_goal_id}
@@ -1294,7 +1357,9 @@ class GeometricConfiguration:
                 self._set_status_of_goal(goal_id, 1)
                 if root_sub_goal_id is not None:  # apply theorem
                     _, theorem_name, theorem_instance = self.operations[operation_id]
-                    conclusion = self._generate_conclusion(theorem_name, theorem_instance)
+                    theorem_gpl = self.parsed_gdl['Theorems'][theorem_name]
+                    replace = dict(zip(theorem_gpl['paras'], theorem_instance))
+                    conclusion = self._generate_conclusion(theorem_gpl['conclusion'], replace)
                     operation_id = self._add_operation(('apply', theorem_name, theorem_instance))
                     added, sub_goal_ids = self._add_fact(conclusion[0], conclusion[1], premise_ids, operation_id)
                     affected_sub_goal_ids.update(sub_goal_ids)
@@ -1414,7 +1479,7 @@ class GeometricConfiguration:
                 s += '   solved_values: {}\n'.format(values)
                 print(s)
 
-        entity_pf = '{0:<15}{1:<15}{2:<30}{3:<15}{4:<15}{5:<15}{6:<100}'
+        entity_pf = '{0:<12}{1:<15}{2:<31}{3:<25}{4:<25}{5:<15}{6:<100}'
         entity_pfu = '\033[32m' + entity_pf + '\033[0m'
         for entity in ['Point', 'Line', 'Circle']:
             if len(self.predicate_to_fact_ids[entity]) == 0:
@@ -1437,8 +1502,8 @@ class GeometricConfiguration:
                                   round(float(self.entity_sym_to_value[symbols(f'{instance[0]}.v')]), 4),
                                   round(float(self.entity_sym_to_value[symbols(f'{instance[0]}.r')]), 4)))
                 instance = f'({instance[0]})'
-                premise_ids = '{' + ','.join([str(item) for item in sorted(list(premise_ids))]) + '}'
-                entity_ids = '{' + ','.join([str(item) for item in sorted(list(entity_ids))]) + '}'
+                premise_ids = _format_ids(premise_ids)
+                entity_ids = _format_ids(entity_ids)
 
                 if fact_id in goal_related_premise_ids:
                     print(entity_pfu.format(fact_id, instance, values, premise_ids, entity_ids,
@@ -1448,7 +1513,7 @@ class GeometricConfiguration:
                                            operation_id, operation))
             print()
 
-        relation_pf = '{0:<10}{1:<30}{2:<30}{3:<20}{4:<15}{5:<100}'
+        relation_pf = '{0:<12}{1:<40}{2:<28}{3:<28}{4:<15}{5:<100}'
         relation_pfu = '\033[32m' + relation_pf + '\033[0m'
         for predicate in self.predicate_to_fact_ids:
             if predicate in ['Point', 'Line', 'Circle', 'Eq']:
@@ -1464,35 +1529,33 @@ class GeometricConfiguration:
                 operation_ids.add(operation_id)
                 operation = _anti_parse_operation(self.operations[operation_id])
                 instance = '(' + ','.join(instance) + ')'
-                premise_ids = '{' + ','.join([str(item) for item in sorted(list(premise_ids))]) + '}'
-                entity_ids = '{' + ','.join([str(item) for item in sorted(list(entity_ids))]) + '}'
+                premise_ids = _format_ids(premise_ids)
+                entity_ids = _format_ids(entity_ids)
                 if fact_id in goal_related_premise_ids:
                     print(relation_pfu.format(fact_id, instance, premise_ids, entity_ids, operation_id, operation))
                 else:
                     print(relation_pf.format(fact_id, instance, premise_ids, entity_ids, operation_id, operation))
             print()
 
-        equation_pf = '{0:<10}{1:<30}{2:<30}{3:<20}{4:<15}{5:<100}'
-        equation_pfu = '\033[32m' + equation_pf + '\033[0m'
         if len(self.predicate_to_fact_ids['Eq']) > 0:
             print('\033[36mRelation - Equations:\033[0m')
-            print('\033[36m' + equation_pf.format(
+            print('\033[36m' + relation_pf.format(
                 'fact_id', 'instance', 'premise_ids', 'entity_ids', 'operation_id', 'operation') + '\033[0m')
             for fact_id in sorted(list(self.predicate_to_fact_ids['Eq'])):
                 predicate, instance, premise_ids, entity_ids, operation_id = self.facts[fact_id]
                 operation_ids.add(operation_id)
                 operation = _anti_parse_operation(self.operations[operation_id])
                 instance = str(instance).replace(' ', '')
-                premise_ids = '{' + ','.join([str(item) for item in sorted(list(premise_ids))]) + '}'
-                entity_ids = '{' + ','.join([str(item) for item in sorted(list(entity_ids))]) + '}'
+                premise_ids = _format_ids(premise_ids)
+                entity_ids = _format_ids(entity_ids)
                 if fact_id in goal_related_premise_ids:
-                    print(equation_pfu.format(fact_id, instance, premise_ids, entity_ids, operation_id, operation))
+                    print(relation_pfu.format(fact_id, instance, premise_ids, entity_ids, operation_id, operation))
                 else:
-                    print(equation_pf.format(fact_id, instance, premise_ids, entity_ids, operation_id, operation))
+                    print(relation_pf.format(fact_id, instance, premise_ids, entity_ids, operation_id, operation))
         print()
 
         if len(self.goals) > 0:
-            goal_pf = '{0:<15}{1:<50}{2:<20}{3:<15}{4:<20}{5:<15}{6:<100}'
+            goal_pf = '{0:<12}{1:<40}{2:<18}{3:<12}{4:<26}{5:<15}{6:<100}'
             goal_pfs = '\033[32m' + goal_pf + '\033[0m'
             goal_pfu = '\033[31m' + goal_pf + '\033[0m'
             print("\033[34mGoals:\033[0m")
@@ -1505,11 +1568,7 @@ class GeometricConfiguration:
                 operation = _anti_parse_operation(self.operations[operation_id])
                 root_sub_goal_id = str(root_sub_goal_id)
                 status = self.status_of_goal[goal_id]
-                if status == 1:
-                    premise_ids = ','.join([str(item) for item in sorted(list(self.premise_ids_of_goal[goal_id]))])
-                    premise_ids = '{' + premise_ids + '}'
-                else:
-                    premise_ids = '{}'
+                premise_ids = _format_ids(self.premise_ids_of_goal[goal_id])
 
                 if status == 1:
                     print(goal_pfs.format(goal_id, sub_goal_id_tree, root_sub_goal_id, status, premise_ids,
@@ -1522,7 +1581,7 @@ class GeometricConfiguration:
                                          operation_id, operation))
             print()
 
-            sub_goal_pf = '{0:<15}{1:<25}{2:<25}{3:<10}{6:<20}{7:<15}{8:<50}'
+            sub_goal_pf = '{0:<12}{1:<25}{2:<40}{3:<10}{4:<30}{5:<15}{6:<50}'
             sub_goal_pfs = '\033[32m' + sub_goal_pf + '\033[0m'
             sub_goal_pfu = '\033[31m' + sub_goal_pf + '\033[0m'
             print("\033[34mSub Goals:\033[0m")
@@ -1538,15 +1597,9 @@ class GeometricConfiguration:
                     instance = str(instance).replace(' ', '')
                 else:
                     instance = '(' + ','.join(instance) + ')'
-                leaf_goal_ids = '{' + ','.join(
-                    [str(item) for item in sorted(list(self.leaf_goal_ids[sub_goal_id]))]) + '}'
+                leaf_goal_ids = _format_ids(self.leaf_goal_ids[sub_goal_id])
                 status = self.status_of_sub_goal[sub_goal_id]
-                if status == 1:
-                    premise_ids = ','.join(
-                        [str(item) for item in sorted(list(self.premise_ids_of_sub_goal[sub_goal_id]))])
-                    premise_ids = '{' + premise_ids + '}'
-                else:
-                    premise_ids = '{}'
+                premise_ids = _format_ids(self.premise_ids_of_sub_goal[sub_goal_id])
 
                 if status == 1:
                     print(sub_goal_pfs.format(sub_goal_id, predicate, instance, goal_id,
@@ -1589,41 +1642,38 @@ class GeometricConfiguration:
                     print(sym_pf.format(attr, str(sym), multiple_forms, fact_id, value))
             print()
 
-            eq_groups_pf = '{0:<10}{1:<25}{2:<15}{3:<15}'
+            eq_groups_pf = '{0:<10}{1:<40}{2:<20}{3:<30}'
             print('\033[35mAlgebraic System - Equation groups:\033[0m')
             print('\033[35m' + eq_groups_pf.format(
                 'group_id', 'simplified_eq', 'premise_ids', 'free_symbols') + '\033[0m')
             for group_id in self.equations:
                 for i in range(len(self.equations[group_id][0])):
                     simplified_eq = str(self.equations[group_id][0][i]).replace(' ', '')
-                    premise_ids = ','.join([str(item) for item in sorted(list(self.equations[group_id][1][i]))])
-                    premise_ids = '{' + premise_ids + '}'
+                    premise_ids = _format_ids(self.equations[group_id][1][i])
                     free_symbols = ', '.join([str(item) for item in self.equations[group_id][0][i].free_symbols])
                     free_symbols = '(' + free_symbols + ')'
                     print(eq_groups_pf.format(group_id, simplified_eq, premise_ids, free_symbols))
                 print()
 
         if len(self.simplified_eq_sub_goal) > 0:
-            algebraic_goal_pf = '{0:<10}{1:<30}{2:<15}{3:<30}{4:<15}'
-            print('\033[34mAlgebraic System - Algebraic Goals:\033[0m')
-            print('\033[34m' + algebraic_goal_pf.format(
+            algebraic_goal_pf = '{0:<10}{1:<40}{2:<20}{3:<30}{4:<15}'
+            print('\033[35mAlgebraic System - Algebraic Goals:\033[0m')
+            print('\033[35m' + algebraic_goal_pf.format(
                 'goal_id', 'simplified_eq', 'premise_ids', 'dependent_syms', 'group_ids') + '\033[0m')
             for goal_id in self.simplified_eq_sub_goal:
                 simplified_eq, premise_ids, dependent_syms, group_ids = self.simplified_eq_sub_goal[goal_id]
                 simplified_eq = str(simplified_eq).replace(' ', '')
-                premise_ids = ','.join([str(item) for item in sorted(list(premise_ids))])
-                premise_ids = '{' + premise_ids + '}'
+                premise_ids = _format_ids(premise_ids)
                 dependent_syms = ','.join([str(item) for item in sorted(list(dependent_syms), key=str)])
                 dependent_syms = '{' + dependent_syms + '}'
-                group_ids = ','.join([str(item) for item in sorted(list(group_ids))])
-                group_ids = '{' + group_ids + '}'
+                group_ids = _format_ids(group_ids)
                 print(algebraic_goal_pf.format(goal_id, simplified_eq, premise_ids, dependent_syms, group_ids))
             print()
 
         if len(self.relation_instances) > 0:
-            relation_instance_pf = '{0:<30}{1:<100}'
-            print('\033[35mRelation instances:\033[0m')
-            print('\033[35m' + relation_instance_pf.format('relation_name', 'relation_instances') + '\033[0m')
+            relation_instance_pf = '{0:<45}{1:<100}'
+            print('\033[33mRelation instances:\033[0m')
+            print('\033[33m' + relation_instance_pf.format('relation_name', 'relation_instances') + '\033[0m')
             for relation_name in self.relation_instances:
                 relation_instances = [f"({','.join(item)})" for item in self.relation_instances[relation_name]]
                 relation_instances = f"[{', '.join(relation_instances)}]"
@@ -1631,9 +1681,9 @@ class GeometricConfiguration:
             print()
 
         if len(self.theorem_instances) > 0:
-            theorem_instance_pf = '{0:<50}{1:<100}'
-            print('\033[35mTheorem instances:\033[0m')
-            print('\033[35m' + theorem_instance_pf.format('theorem_name', 'theorem_instances') + '\033[0m')
+            theorem_instance_pf = '{0:<45}{1:<100}'
+            print('\033[33mTheorem instances:\033[0m')
+            print('\033[33m' + theorem_instance_pf.format('theorem_name', 'theorem_instances') + '\033[0m')
             for theorem_name in self.theorem_instances:
                 theorem_instances = [f"({','.join(item)})" for item in self.theorem_instances[theorem_name]]
                 theorem_instances = f"[{', '.join(theorem_instances)}]"
@@ -1642,8 +1692,8 @@ class GeometricConfiguration:
 
         operation_pf = '{0:<15}{1:<50}'
         operation_pfu = '\033[32m' + operation_pf + '\033[0m'
-        print('\033[35mOperations:\033[0m')
-        print('\033[35m' + operation_pf.format('operation_id', 'operation') + '\033[0m')
+        print('\033[33mOperations:\033[0m')
+        print('\033[33m' + operation_pf.format('operation_id', 'operation') + '\033[0m')
         for operation_id in range(len(self.operations)):
             if operation_id not in operation_ids:
                 continue
@@ -1708,9 +1758,6 @@ class GeometricConfiguration:
         return serialized_graph
 
     def draw_gc(self, save_path='./', filename='gc', file_format='pdf'):
-        _, ax = plt.subplots()
-        ax.axis('equal')  # maintain the circle's aspect ratio
-        ax.axis('off')  # hide the axes
         middle_x = (self.sample_range['x_max'] + self.sample_range['x_min']) / 2
         range_x = (self.sample_range['x_max'] - self.sample_range['x_min']) / 2 * self.sample_rate
         middle_y = (self.sample_range['y_max'] + self.sample_range['y_min']) / 2
@@ -1722,8 +1769,12 @@ class GeometricConfiguration:
         x_adjust = (range_x * 0.02)
         y_adjust = (range_y * 0.02)
         text_size = int(max(range_x, range_y) * 10)
-        ax.set_xlim(x_min, x_max)
-        ax.set_ylim(y_min, y_max)
+
+        _, ax = plt.subplots()
+        ax.axis('equal')  # maintain the circle's aspect ratio
+        ax.axis('off')  # hide the axes
+        ax.set_xlim(min(x_min, y_min), max(x_max, y_max))
+        ax.set_ylim(min(x_min, y_min), max(x_max, y_max))
 
         for fact_id in self.predicate_to_fact_ids['Line']:
             line = self.facts[fact_id][1][0]
@@ -1846,7 +1897,7 @@ class GeometricConfiguration:
                 elif _is_conjunction(sub_goal_id_tree) or _is_disjunction(sub_goal_id_tree):
                     name = f'operator_{goal_id}_{operator_id_count}'
                     operator_id_count += 1
-                    goal.node(name=name, label=sub_goal_id_tree[1], shape='circle', style='filled', color='black')
+                    goal.node(name=name, label=sub_goal_id_tree[1], shape='circle', color='black')
                     sub_goals.append((sub_goal_id_tree[0], name))
                     sub_goals.append((sub_goal_id_tree[2], name))
 

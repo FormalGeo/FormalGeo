@@ -48,15 +48,15 @@
       "sym": "r",
       "multiple_forms": "ROfCircle(O)"
     },
-    "DistanceBetweenPointAndPoint(A,B)": {
+    "DistancePowBetweenPointAndPoint(A,B)": {
       "geometric_constraints": "Point(A)&Point(B)",
       "algebraic_forms": "SquaredNorm(A.x,B.x,A.y,B.y)",
       "sym": "dpp",
-      "multiple_forms": "DistanceBetweenPointAndPoint(A,B)|DistanceBetweenPointAndPoint(B,A)"
+      "multiple_forms": "DistancePowBetweenPointAndPoint(A,B)|DistancePowBetweenPointAndPoint(B,A)"
     },
     "DistancePowBetweenPointAndLine(A,l)": {
       "geometric_constraints": "Point(A)&Line(l)",
-      "algebraic_forms": "Div(Pow(Add(Sub(Mul(l.k,A.x),A.y),l.b),2),Add(Pow(l.k,2),1))",
+      "algebraic_forms": "SquaredDistancePointToLine(A.x,A.y,l.k,l.b)",
       "sym": "dpl",
       "multiple_forms": "DistancePowBetweenPointAndLine(A,l)"
     },
@@ -120,9 +120,13 @@
       "geometric_constraints": "Line(l)&Line(m)",
       "algebraic_forms": "Eq(Sub(l.k,m.k))&Ueq(Sub(l.b,m.b))"
     },
-    "EqualDistance(A,B,C,D)": {
+    "EqualDistancePointToPoint(A,B,C,D)": {
       "geometric_constraints": "Point(A)&Point(B)&Point(C)&Point(D)",
       "algebraic_forms": "Eq(Sub(SquaredNorm(A.x,B.x,A.y,B.y),SquaredNorm(C.x,D.x,C.y,D.y)))&Ueq(SquaredNorm(A.x,B.x,A.y,B.y))"
+    },
+    "EqualDistancePointToLine(A,a,B,b)": {
+      "geometric_constraints": "Point(A)&Line(a)&Point(B)&Line(b)",
+      "algebraic_forms": "Eq(Sub(SquaredDistancePointToLine(A.x,A.y,a.k,a.b),SquaredDistancePointToLine(B.x,B.y,b.k,b.b)))"
     },
     "EqualAngle(l,m,x,y)": {
       "geometric_constraints": "Line(l)&Line(m)&Line(x)&Line(y)",
@@ -135,7 +139,7 @@
     },
     "MidpointOfArc(M,O,A,B)": {
       "geometric_constraints": "Point(M)&Circle(O)&Point(A)&Point(B)",
-      "algebraic_forms": "PointOnCircle(M,O)&PointOnCircle(A,O)&PointOnCircle(B,O)&EqualDistance(A,M,M,B)&PointLeftSegment(M,B,A)"
+      "algebraic_forms": "PointOnCircle(M,O)&PointOnCircle(A,O)&PointOnCircle(B,O)&EqualDistancePointToPoint(A,M,M,B)&PointLeftSegment(M,B,A)"
     },
     "Triangle(A,c,B,a,C,b)": {
       "geometric_constraints": "Point(A)&Line(c)&Point(B)&Line(a)&Point(C)&Line(b)",
@@ -143,36 +147,92 @@
     },
     "CongruentTriangle(A,c,B,a,C,b,D,f,E,d,F,e)": {
       "geometric_constraints": "Point(A)&Line(c)&Point(B)&Line(a)&Point(C)&Line(b)&Point(D)&Line(f)&Point(E)&Line(d)&Point(F)&Line(e)",
-      "algebraic_forms": "Triangle(A,c,B,a,C,b)&Triangle(D,f,E,d,F,e)&EqualDistance(A,B,D,E)&EqualDistance(B,C,E,F)&EqualDistance(C,A,F,D)&Ueq(SquaredNorm(A.x,D.x,A.y,D.y,B.x,E.x,B.y,E.y,C.x,F.x,C.y,F.y))"
+      "algebraic_forms": "Triangle(A,c,B,a,C,b)&Triangle(D,f,E,d,F,e)&EqualDistancePointToPoint(A,B,D,E)&EqualDistancePointToPoint(B,C,E,F)&EqualDistancePointToPoint(C,A,F,D)&Ueq(SquaredNorm(A.x,D.x,A.y,D.y,B.x,E.x,B.y,E.y,C.x,F.x,C.y,F.y))"
+    },
+    "IntersectBetweenCircle(O,P)": {
+      "geometric_constraints": "Circle(O)&Circle(P)",
+      "algebraic_forms": "G(Sub(Pow(Add(O.r,P.r),2),SquaredNorm(O.u,P.u,O.v,P.v)))&L(Sub(Pow(Sub(O.r,P.r),2),SquaredNorm(O.u,P.u,O.v,P.v)))"
+    },
+    "CenterOfCircle(A,O)": {
+      "geometric_constraints": "Point(A)&Circle(O)",
+      "algebraic_forms": "Eq(Sub(A.x,O.u))&Eq(Sub(A.y,O.v))"
+    },
+    "CircumcenterOfTriangle(O,A,c,B,a,C,b)": {
+      "geometric_constraints": "Point(O)&Point(A)&Line(c)&Point(B)&Line(a)&Point(C)&Line(b)",
+      "algebraic_forms": "Triangle(A,c,B,a,C,b)&Eq(Sub(O.x,CircumCenterX(A.x,A.y,B.x,B.y,C.x,C.y)))&Eq(Sub(O.y,CircumCenterY(A.x,A.y,B.x,B.y,C.x,C.y)))"
+    },
+    "OrthocenterOfTriangle(O,A,c,B,a,C,b)": {
+      "geometric_constraints": "Point(O)&Point(A)&Line(c)&Point(B)&Line(a)&Point(C)&Line(b)",
+      "algebraic_forms": "Triangle(A,c,B,a,C,b)&Eq(Sub(O.x,OrthocenterX(A.x,A.y,B.x,B.y,C.x,C.y)))&Eq(Sub(O.y,OrthocenterY(A.x,A.y,B.x,B.y,C.x,C.y)))"
+    },
+    "CircumcircleOfTriangle(O,A,c,B,a,C,b)": {
+      "geometric_constraints": "Circle(O)&Point(A)&Line(c)&Point(B)&Line(a)&Point(C)&Line(b)",
+      "algebraic_forms": "Triangle(A,c,B,a,C,b)&PointOnCircle(A,O)&PointOnCircle(B,O)&PointOnCircle(C,O)"
+    },
+    "TangentBetweenLineAndCircle(l,O)": {
+      "geometric_constraints": "Line(l)&Circle(O)",
+      "algebraic_forms": "Eq(Sub(Pow(O.r,2),SquaredDistancePointToLine(O.u,O.v,l.k,l.b)))"
     }
   },
   "Theorems": {
-    "triangle_determination(A,c,B,a,C,b)": {
-      "premises": "PointOnLine(A,c)&PointOnLine(B,c)&PointOnLine(B,a)&PointOnLine(C,a)&PointOnLine(C,b)&PointOnLine(A,b)",
-      "conclusion": "Triangle(A,c,B,a,C,b)"
-    },
-    "parallel_property_algebraic(l,m)": {
-      "premises": "ParallelBetweenLine(l,m)",
-      "conclusion": "Eq(lm.ma)"
-    },
-    "angle_bisector_property_distance_equal(O,A,l,a,b)": {
-      "premises": "AngleBisector(O,l,a,b)&PointOnLine(A,l)&~SamePoint(O,A)",
-      "conclusion": "Eq(Sub(Aa.dpl,Ab.dpl))"
-    },
-    "parallel_multiple_forms(l,m)": {
+    "parallel_property_multiple_forms(l,m)": {
       "premises": "ParallelBetweenLine(l,m)",
       "conclusion": "ParallelBetweenLine(m,l)"
     },
-    "parallel_property(l,m,n)": {
+    "parallel_property_transitivity(l,m,n)": {
       "premises": "ParallelBetweenLine(l,m)&ParallelBetweenLine(m,n)",
       "conclusion": "ParallelBetweenLine(l,n)"
     },
     "parallel_property_angle_equal(l,m,a)": {
       "premises": "ParallelBetweenLine(l,m)&Line(a)",
-      "conclusion": "Eq(Sub(la.ma,ma.ma))"
+      "conclusion": "EqualAngle(l,a,m,a)"
+    },
+    "equal_distance_point_to_point_determination_algebraic(A,B,C,D)": {
+      "premises": "Point(A)&Point(B)&Point(C)&Point(D)&Eq(Sub(AB.dpp,CD.dpp))",
+      "conclusion": "EqualDistancePointToPoint(A,B,C,D)"
+    },
+    "equal_distance_point_to_point_property_algebraic(A,B,C,D)": {
+      "premises": "EqualDistancePointToPoint(A,B,C,D)",
+      "conclusion": "Eq(Sub(AB.dpp,CD.dpp))"
+    },
+    "equal_distance_point_to_line_determination_algebraic(A,a,B,b)": {
+      "premises": "Point(A)&Line(a)&Point(B)&Line(b)&Eq(Sub(Aa.dpl,Bb.dpl))",
+      "conclusion": "EqualDistancePointToLine(A,a,B,b)"
+    },
+    "equal_distance_point_to_line_property_algebraic(A,a,B,b)": {
+      "premises": "EqualDistancePointToLine(A,a,B,b)",
+      "conclusion": "Eq(Sub(Aa.dpl,Bb.dpl))"
+    },
+    "equal_angle_determination_algebraic(l,m,x,y)": {
+      "premises": "Line(l)&Line(m)&Line(x)&Line(y)&Eq(Sub(lm.ma,xy.ma))",
+      "conclusion": "EqualAngle(l,m,x,y)"
+    },
+    "equal_angle_property_algebraic(l,m,x,y)": {
+      "premises": "EqualAngle(l,m,x,y)",
+      "conclusion": "Eq(Sub(lm.ma,xy.ma))"
+    },
+    "angle_bisector_determination_angle_equal(O,l,a,b)": {
+      "premises": "PointOnLine(O,l)&PointOnLine(O,a)&PointOnLine(O,b)&EqualAngle(a,l,l,b)",
+      "conclusion": "AngleBisector(O,l,a,b)"
+    },
+    "angle_bisector_determination_distance_equal(O,A,l,a,b)": {
+      "premises": "PointOnLine(O,l)&PointOnLine(O,a)&PointOnLine(O,b)&EqualDistancePointToLine(A,a,A,b)&~SamePoint(O,A)",
+      "conclusion": "AngleBisector(O,l,a,b)"
+    },
+    "angle_bisector_property_equal_angle(O,l,a,b)": {
+      "premises": "AngleBisector(O,l,a,b)",
+      "conclusion": "EqualAngle(a,l,l,b)"
+    },
+    "angle_bisector_property_distance_equal(O,A,l,a,b)": {
+      "premises": "AngleBisector(O,l,a,b)&PointOnLine(A,l)&~SamePoint(O,A)",
+      "conclusion": "EqualDistancePointToLine(A,a,A,b)"
+    },
+    "triangle_determination(A,c,B,a,C,b)": {
+      "premises": "PointOnLine(A,c)&PointOnLine(B,c)&PointOnLine(B,a)&PointOnLine(C,a)&PointOnLine(C,b)&PointOnLine(A,b)",
+      "conclusion": "Triangle(A,c,B,a,C,b)"
     },
     "congruent_triangle_determination_asa(A,c,B,a,C,b,D,f,E,d,F,e)": {
-      "premises": "Triangle(A,c,B,a,C,b)&Triangle(D,f,E,d,F,e)&Eq(Sub(ca.ma,fd.ma))&Eq(Sub(ab.ma,de.ma))&Eq(Sub(BC.dpp,EF.dpp))",
+      "premises": "Triangle(A,c,B,a,C,b)&Triangle(D,f,E,d,F,e)&EqualAngle(c,a,f,d)&EqualAngle(a,b,d,e)&EqualDistancePointToPoint(B,C,E,F)",
       "conclusion": "CongruentTriangle(A,c,B,a,C,b,D,f,E,d,F,e)"
     },
     "congruent_triangle_property_multiple_forms(A,c,B,a,C,b,D,f,E,d,F,e)": {
@@ -181,19 +241,7 @@
     },
     "congruent_triangle_property_line_equal(A,c,B,a,C,b,D,f,E,d,F,e)": {
       "premises": "CongruentTriangle(A,c,B,a,C,b,D,f,E,d,F,e)",
-      "conclusion": "Eq(Sub(AB.dpp,DE.dpp))"
-    },
-    "angle_bisector_property_equal_angle(O,l,a,b)": {
-      "premises": "AngleBisector(O,l,a,b)",
-      "conclusion": "Eq(Sub(al.ma,lb.ma))"
-    },
-    "angle_bisector_determination_angle_equal(O,l,a,b)": {
-      "premises": "PointOnLine(O,l)&PointOnLine(O,a)&PointOnLine(O,b)&Eq(Sub(al.ma,lb.ma))",
-      "conclusion": "AngleBisector(O,l,a,b)"
-    },
-    "angle_bisector_determination_distance_equal(O,A,l,a,b)": {
-      "premises": "PointOnLine(O,l)&PointOnLine(O,a)&PointOnLine(O,b)&Eq(Sub(Aa.dpl,Ab.dpl))&~SamePoint(O,A)",
-      "conclusion": "AngleBisector(O,l,a,b)"
+      "conclusion": "EqualDistancePointToPoint(A,B,D,E)"
     },
     "line_property_adjacent_complementary_angle(l,k)": {
       "premises": "Line(l)&Line(k)",

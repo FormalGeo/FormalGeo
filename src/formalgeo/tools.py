@@ -27,23 +27,17 @@ _gil = ('𝜶', '𝜷', '𝜸', '𝜹', '𝜺', '𝜻', '𝜼', '𝜽', '𝜾', 
 entity_letters = tuple(  # available entity letters
     list(_lu) + list(_lsu) + list(_gu) + list(_giu) + list(_ll) + list(_lsl) + list(_gl) + list(_gil)
 )
-expr_letters = tuple(  # letter in expr
-    ['+', '-', '**', '*', '/', 'sqrt', 'atan', 'Mod', 'nums', 'pi', '(', ')'] +
-    ['.dpp', '.dpl', '.dpc', '.ma', '.rc']
-)
+expr_letters = (  # letter in expr
+    '+', '-', '**', '*', '/', 'sqrt', 'atan', 'Mod', 'nums', 'pi', '(', ')'
+)  # with defined attributions
 delimiter_letters = (  # letter distinguish between different part of fact and operation
     '&', '|', '~', ':',
-    '<init_fact>',  # initial facts
-    '<p>',  # premise
-    '<o>',  # operation,
-    '<c>',  # conclusion
-    '<init_goal>',  # initial goals
-    '<g>',  # goal
-    '<s>',  # sub goal
+    '<init_fact>', '<premises>', '<operation>', '<conclusion>',  # forward
+    '<init_goal>', '<goal>', '<sub_goals>',  # backward
 )
 theorem_letters = (  # preset theorem name
-    'multiple_forms', 'auto_extend', 'solve_eq', 'same_entity_extend'
-)
+    'same_entity_extend', 'solve_eq'
+)  # with defined theorems
 
 """↑-------------Vocabulary------------↑"""
 """↓---------------Output--------------↓"""
@@ -229,11 +223,28 @@ def _orthocenter_y(paras):
     return y1 + y2 + y3 - 2 * _circumcenter_y(paras)
 
 
+def _incenter_x(paras):
+    x1, y1, x2, y2, x3, y3 = paras
+    a = ((x3 - x2) ** 2 + (y3 - y2) ** 2) ** 0.5
+    b = ((x1 - x3) ** 2 + (y1 - y3) ** 2) ** 0.5
+    c = ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5
+    return (a * x1 + b * x2 + c * x3) / (a + b + c)
+
+
+def _incenter_y(paras):
+    x1, y1, x2, y2, x3, y3 = paras
+    a = ((x3 - x2) ** 2 + (y3 - y2) ** 2) ** 0.5
+    b = ((x1 - x3) ** 2 + (y1 - y3) ** 2) ** 0.5
+    c = ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5
+    return (a * y1 + b * y2 + c * y3) / (a + b + c)
+
+
 algebraic_operation_map = {
     'Add': _add, 'Sub': _sub, 'Mul': _mul, 'Div': _div, 'Pow': _pow, 'Log': _log,
     'SquaredNorm': _squared_norm, 'SquaredDistancePointToLine': _squared_distance_point_to_line, 'Ma': _ma, 'Pp': _pp,
     'CircumCenterX': _circumcenter_x, 'CircumCenterY': _circumcenter_y,
-    'OrthocenterX': _orthocenter_x, 'OrthocenterY': _orthocenter_y
+    'OrthocenterX': _orthocenter_x, 'OrthocenterY': _orthocenter_y,
+    'IncenterX': _incenter_x, 'IncenterY': _incenter_y
 }
 
 """↑-------------Algebraic-------------↑"""
@@ -455,7 +466,7 @@ def _parse_algebraic_fact(fact):
     Parse an algebra constraint to logic form.
 
     Args:
-        algebra_constraint (str): Algebra relation and expression. The components include algebra relation types,
+        fact (str): Algebra relation and expression. The components include algebra relation types,
         algebraic operations, the symbolic representations of measures and constants. Such as:
         'Eq(Sub(A.y,Add(Mul(l.k,A.x),l.b)))', 'G(Sub(Mul(Sub(C.x,B.x),Sub(A.y,B.y)),Mul(Sub(C.y,B.y),Sub(A.x,B.x))))'.
 
@@ -522,7 +533,7 @@ def _replace_instance(instance, replace):
     """Replace instances according to the replacement mapping.
 
     Args:
-        paras (list): List of entity. Such as ['A', 'B', 'C'].
+        instance (list): List of entity. Such as ['A', 'B', 'C'].
         replace (dict): Keys are the old entity and values are the new entity. Such As {'A': 'B', 'B': 'C', 'C': 'D'}.
     Returns:
         replaced_instances: Replaced instances. Such as ['B', 'C', 'D'].

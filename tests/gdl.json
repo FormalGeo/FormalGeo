@@ -1,10 +1,4 @@
 {
-  "Notes": [
-    "1.algebraic_forms 中 只能出现 实体相关的属性",
-    "2.Theorem定义 中 只能出现 关系相关的属性",
-    "3.构图中 只能出现 关系相关的属性",
-    "4.定理分为两类，判定定理determination和性质定理property"
-  ],
   "Attributions": {
     "XOfPoint(A)": {
       "geometric_constraints": "Point(A)",
@@ -120,6 +114,10 @@
       "geometric_constraints": "Line(l)&Line(m)",
       "algebraic_forms": "Eq(Sub(l.k,m.k))&Ueq(Sub(l.b,m.b))"
     },
+    "PerpendicularBetweenLine(l,m)": {
+      "geometric_constraints": "Line(l)&Line(m)",
+      "algebraic_forms": "Eq(Add(Mul(l.k,m.k),1))"
+    },
     "EqualDistancePointToPoint(A,B,C,D)": {
       "geometric_constraints": "Point(A)&Point(B)&Point(C)&Point(D)",
       "algebraic_forms": "Eq(Sub(SquaredNorm(A.x,B.x,A.y,B.y),SquaredNorm(C.x,D.x,C.y,D.y)))&Ueq(SquaredNorm(A.x,B.x,A.y,B.y))"
@@ -145,9 +143,17 @@
       "geometric_constraints": "Point(A)&Line(c)&Point(B)&Line(a)&Point(C)&Line(b)",
       "algebraic_forms": "PointOnLine(A,c)&PointOnLine(B,c)&PointOnLine(B,a)&PointOnLine(C,a)&PointOnLine(C,b)&PointOnLine(A,b)&PointLeftSegment(C,A,B)"
     },
+    "IsoscelesTriangle(A,c,B,a,C,b)": {
+      "geometric_constraints": "Point(A)&Line(c)&Point(B)&Line(a)&Point(C)&Line(b)",
+      "algebraic_forms": "Triangle(A,c,B,a,C,b)&EqualDistancePointToPoint(A,B,A,C)"
+    },
     "CongruentTriangle(A,c,B,a,C,b,D,f,E,d,F,e)": {
       "geometric_constraints": "Point(A)&Line(c)&Point(B)&Line(a)&Point(C)&Line(b)&Point(D)&Line(f)&Point(E)&Line(d)&Point(F)&Line(e)",
       "algebraic_forms": "Triangle(A,c,B,a,C,b)&Triangle(D,f,E,d,F,e)&EqualDistancePointToPoint(A,B,D,E)&EqualDistancePointToPoint(B,C,E,F)&EqualDistancePointToPoint(C,A,F,D)&Ueq(SquaredNorm(A.x,D.x,A.y,D.y,B.x,E.x,B.y,E.y,C.x,F.x,C.y,F.y))"
+    },
+    "MirrorCongruentTriangle(A,c,B,a,C,b,D,f,E,d,F,e)": {
+      "geometric_constraints": "Point(A)&Line(c)&Point(B)&Line(a)&Point(C)&Line(b)&Point(D)&Line(f)&Point(E)&Line(d)&Point(F)&Line(e)",
+      "algebraic_forms": "Triangle(A,c,B,a,C,b)&Triangle(D,e,F,d,E,f)&EqualDistancePointToPoint(A,B,D,E)&EqualDistancePointToPoint(B,C,E,F)&EqualDistancePointToPoint(C,A,F,D)&Ueq(SquaredNorm(A.x,D.x,A.y,D.y,B.x,E.x,B.y,E.y,C.x,F.x,C.y,F.y))"
     },
     "IntersectBetweenCircle(O,P)": {
       "geometric_constraints": "Circle(O)&Circle(P)",
@@ -165,6 +171,10 @@
       "geometric_constraints": "Point(O)&Point(A)&Line(c)&Point(B)&Line(a)&Point(C)&Line(b)",
       "algebraic_forms": "Triangle(A,c,B,a,C,b)&Eq(Sub(O.x,OrthocenterX(A.x,A.y,B.x,B.y,C.x,C.y)))&Eq(Sub(O.y,OrthocenterY(A.x,A.y,B.x,B.y,C.x,C.y)))"
     },
+    "IncenterOfTriangle(O,A,c,B,a,C,b)": {
+      "geometric_constraints": "Point(O)&Point(A)&Line(c)&Point(B)&Line(a)&Point(C)&Line(b)",
+      "algebraic_forms": "Triangle(A,c,B,a,C,b)&Eq(Sub(O.x,IncenterX(A.x,A.y,B.x,B.y,C.x,C.y)))&Eq(Sub(O.y,IncenterY(A.x,A.y,B.x,B.y,C.x,C.y)))"
+    },
     "CircumcircleOfTriangle(O,A,c,B,a,C,b)": {
       "geometric_constraints": "Circle(O)&Point(A)&Line(c)&Point(B)&Line(a)&Point(C)&Line(b)",
       "algebraic_forms": "Triangle(A,c,B,a,C,b)&PointOnCircle(A,O)&PointOnCircle(B,O)&PointOnCircle(C,O)"
@@ -172,6 +182,14 @@
     "TangentBetweenLineAndCircle(l,O)": {
       "geometric_constraints": "Line(l)&Circle(O)",
       "algebraic_forms": "Eq(Sub(Pow(O.r,2),SquaredDistancePointToLine(O.u,O.v,l.k,l.b)))"
+    },
+    "PerpendicularBisector(l,m,A,B)": {
+      "geometric_constraints": "Line(l)&Line(m)&Point(A)&Point(B)",
+      "algebraic_forms": "PerpendicularBetweenLine(l,m)&PointOnLine(A,m)&PointOnLine(B,m)&~SamePoint(A,B)&EqualDistancePointToLine(A,l,B,l)"
+    },
+    "ConcyclicBetweenPoints(A,B,C,D)": {
+      "geometric_constraints": "Point(A)&Point(B)&Point(C)&Point(D)",
+      "algebraic_forms": "PointLeftSegment(B,C,A)&PointLeftSegment(D,A,C)&Eq(Sub(CircumCenterX(A.x,A.y,B.x,B.y,C.x,C.y),CircumCenterX(B.x,B.y,C.x,C.y,D.x,D.y)))&Eq(Sub(CircumCenterY(A.x,A.y,B.x,B.y,C.x,C.y),CircumCenterY(B.x,B.y,C.x,C.y,D.x,D.y)))"
     }
   },
   "Theorems": {
@@ -179,13 +197,17 @@
       "premises": "ParallelBetweenLine(l,m)",
       "conclusion": "ParallelBetweenLine(m,l)"
     },
-    "parallel_property_transitivity(l,m,n)": {
+    "parallel_property_transitivity_parallel(l,m,n)": {
       "premises": "ParallelBetweenLine(l,m)&ParallelBetweenLine(m,n)",
       "conclusion": "ParallelBetweenLine(l,n)"
     },
     "parallel_property_angle_equal(l,m,a)": {
       "premises": "ParallelBetweenLine(l,m)&Line(a)",
       "conclusion": "EqualAngle(l,a,m,a)"
+    },
+    "parallel_determination_angle_equal(l,m,a)": {
+      "premises": "EqualAngle(l,a,m,a)&~SameLine(l,a)",
+      "conclusion": "ParallelBetweenLine(l,m)"
     },
     "equal_distance_point_to_point_determination_algebraic(A,B,C,D)": {
       "premises": "Point(A)&Point(B)&Point(C)&Point(D)&Eq(Sub(AB.dpp,CD.dpp))",
@@ -210,6 +232,14 @@
     "equal_angle_property_algebraic(l,m,x,y)": {
       "premises": "EqualAngle(l,m,x,y)",
       "conclusion": "Eq(Sub(lm.ma,xy.ma))"
+    },
+    "line_property_adjacent_complementary_angle(l,k)": {
+      "premises": "Line(l)&Line(k)",
+      "conclusion": "Eq(Sub(Add(lk.ma,kl.ma),180))"
+    },
+    "line_property_angle_addition(O,l,m,n)": {
+      "premises": "PointOnLine(O,l)&PointOnLine(O,m)&PointOnLine(O,n)&~SameLine(l,m)",
+      "conclusion": "Eq(Sub(Add(lm.ma,mn.ma),ln.ma))"
     },
     "angle_bisector_determination_angle_equal(O,l,a,b)": {
       "premises": "PointOnLine(O,l)&PointOnLine(O,a)&PointOnLine(O,b)&EqualAngle(a,l,l,b)",
@@ -243,9 +273,133 @@
       "premises": "CongruentTriangle(A,c,B,a,C,b,D,f,E,d,F,e)",
       "conclusion": "EqualDistancePointToPoint(A,B,D,E)"
     },
-    "line_property_adjacent_complementary_angle(l,k)": {
-      "premises": "Line(l)&Line(k)",
-      "conclusion": "Eq(Sub(Add(lk.ma,kl.ma),180))"
+    "circumcenter_of_triangle_property_center_of_circle(O,Ω,A,c,B,a,C,b)": {
+      "premises": "CircumcenterOfTriangle(O,A,c,B,a,C,b)&CircumcircleOfTriangle(Ω,A,c,B,a,C,b)",
+      "conclusion": "CenterOfCircle(O,Ω)"
+    },
+    "circumcircle_of_triangle_property_multiple_forms(Ω,A,c,B,a,C,b)": {
+      "premises": "CircumcircleOfTriangle(Ω,A,c,B,a,C,b)",
+      "conclusion": "CircumcircleOfTriangle(Ω,B,a,C,b,A,c)"
+    },
+    "circumcircle_of_triangle_property_point_on_circle(Ω,A,c,B,a,C,b)": {
+      "premises": "CircumcircleOfTriangle(Ω,A,c,B,a,C,b)",
+      "conclusion": "PointOnCircle(A,Ω)"
+    },
+    "circle_property_radius_equal(Ω,O,A)": {
+      "premises": "CenterOfCircle(O,Ω)&PointOnCircle(A,Ω)",
+      "conclusion": "Eq(Sub(OA.dpp,Pow(Ω.rc,2)))"
+    },
+    "isosceles_triangle_determination_distance_equal(A,c,B,a,C,b)": {
+      "premises": "Triangle(A,c,B,a,C,b)&EqualDistancePointToPoint(A,B,A,C)",
+      "conclusion": "IsoscelesTriangle(A,c,B,a,C,b)"
+    },
+    "isosceles_triangle_determination_angle_equal(A,c,B,a,C,b)": {
+      "premises": "Triangle(A,c,B,a,C,b)&EqualAngle(c,a,a,b)",
+      "conclusion": "IsoscelesTriangle(A,c,B,a,C,b)"
+    },
+    "isosceles_triangle_property_distance_equal(A,c,B,a,C,b)": {
+      "premises": "IsoscelesTriangle(A,c,B,a,C,b)",
+      "conclusion": "EqualDistancePointToPoint(A,B,A,C)"
+    },
+    "isosceles_triangle_property_angle_equal(A,c,B,a,C,b)": {
+      "premises": "IsoscelesTriangle(A,c,B,a,C,b)",
+      "conclusion": "EqualAngle(c,a,a,b)"
+    },
+    "triangle_property_angle_sum(A,c,B,a,C,b)": {
+      "premises": "Triangle(A,c,B,a,C,b)",
+      "conclusion": "Eq(Sub(Add(ca.ma,ab.ma,bc.ma),180))"
+    },
+    "perpendicular_bisector_determination_center_line_and_common_chord(Ω,Γ,M,N,l,A,B,m)": {
+      "premises": "CenterOfCircle(M,Ω)&CenterOfCircle(N,Γ)&PointOnLine(M,l)&PointOnLine(N,l)&PointOnLine(A,m)&PointOnLine(B,m)&PointOnCircle(A,Ω)&PointOnCircle(B,Ω)&PointOnCircle(A,Γ)&PointOnCircle(B,Γ)",
+      "conclusion": "PerpendicularBisector(l,m,A,B)"
+    },
+    "perpendicular_bisector_property_perpendicular_between_line(l,m,A,B)": {
+      "premises": "PerpendicularBisector(l,m,A,B)",
+      "conclusion": "PerpendicularBetweenLine(l,m)"
+    },
+    "perpendicular_bisector_property_multiple_forms(l,m,A,B)": {
+      "premises": "PerpendicularBisector(l,m,A,B)",
+      "conclusion": "PerpendicularBisector(l,m,B,A)"
+    },
+    "perpendicular_bisector_property_distance_equal(l,m,A,B,M)": {
+      "premises": "PerpendicularBisector(l,m,A,B)&PointOnLine(M,l)",
+      "conclusion": "EqualDistancePointToPoint(M,A,M,B)"
+    },
+    "perpendicular_between_line_property_multiple_forms(l,m)": {
+      "premises": "PerpendicularBetweenLine(l,m)",
+      "conclusion": "PerpendicularBetweenLine(m,l)"
+    },
+    "perpendicular_between_line_property_angle(l,m)": {
+      "premises": "PerpendicularBetweenLine(l,m)",
+      "conclusion": "Eq(Sub(lm.ma,90))"
+    },
+    "perpendicular_between_line_determination_angle(l,m)": {
+      "premises": "Line(l)&Line(m)&Eq(Sub(lm.ma,90))",
+      "conclusion": "PerpendicularBetweenLine(l,m)"
+    },
+    "mirror_congruent_triangle_determination_asa(A,c,B,a,C,b,D,f,E,d,F,e)": {
+      "premises": "Triangle(A,c,B,a,C,b)&Triangle(D,e,F,d,E,f)&EqualAngle(c,a,d,f)&EqualAngle(a,b,e,d)&EqualDistancePointToPoint(B,C,E,F)",
+      "conclusion": "MirrorCongruentTriangle(A,c,B,a,C,b,D,f,E,d,F,e)"
+    },
+    "mirror_congruent_triangle_determination_sss(A,c,B,a,C,b,D,f,E,d,F,e)": {
+      "premises": "Triangle(A,c,B,a,C,b)&Triangle(D,e,F,d,E,f)&EqualDistancePointToPoint(A,B,D,E)&EqualDistancePointToPoint(B,C,E,F)&EqualDistancePointToPoint(C,A,F,D)",
+      "conclusion": "MirrorCongruentTriangle(A,c,B,a,C,b,D,f,E,d,F,e)"
+    },
+    "mirror_congruent_triangle_property_multiple_forms(A,c,B,a,C,b,D,f,E,d,F,e)": {
+      "premises": "MirrorCongruentTriangle(A,c,B,a,C,b,D,f,E,d,F,e)",
+      "conclusion": "MirrorCongruentTriangle(B,a,C,b,A,c,E,d,F,e,D,f)"
+    },
+    "mirror_congruent_triangle_property_line_equal(A,c,B,a,C,b,D,f,E,d,F,e)": {
+      "premises": "MirrorCongruentTriangle(A,c,B,a,C,b,D,f,E,d,F,e)",
+      "conclusion": "EqualDistancePointToPoint(A,B,D,E)"
+    },
+    "mirror_congruent_triangle_property_angle_equal(A,c,B,a,C,b,D,f,E,d,F,e)": {
+      "premises": "MirrorCongruentTriangle(A,c,B,a,C,b,D,f,E,d,F,e)",
+      "conclusion": "EqualAngle(c,a,d,f)"
+    },
+    "concyclic_between_points_determination_same_circle(Ω,A,B,C,D)": {
+      "premises": "PointOnCircle(A,Ω)&PointOnCircle(B,Ω)&PointOnCircle(C,Ω)&PointOnCircle(D,Ω)",
+      "conclusion": "ConcyclicBetweenPoints(A,B,C,D)"
+    },
+    "concyclic_between_points_determination_inscribed_angle_sum(A,a,B,b,C,c,D,d)": {
+      "premises": "PointOnLine(A,a)&PointOnLine(B,a)&PointOnLine(B,b)&PointOnLine(C,b)&PointOnLine(C,c)&PointOnLine(D,c)&PointOnLine(D,d)&PointOnLine(A,d)&Eq(Sub(Add(ab.ma,cd.ma),180))",
+      "conclusion": "ConcyclicBetweenPoints(A,B,C,D)"
+    },
+    "concyclic_between_points_property_inscribed_angle_sum(A,a,B,b,C,c,D,d)": {
+      "premises": "ConcyclicBetweenPoints(A,B,C,D)&PointOnLine(A,a)&PointOnLine(B,a)&PointOnLine(B,b)&PointOnLine(C,b)&PointOnLine(C,c)&PointOnLine(D,c)&PointOnLine(D,d)&PointOnLine(A,d)",
+      "conclusion": "Eq(Sub(Add(ab.ma,cd.ma),180))"
+    },
+    "concyclic_between_points_property_inscribed_angle_equal(A,a,B,b,C,c,D,d)": {
+      "premises": "ConcyclicBetweenPoints(A,B,C,D)&PointOnLine(A,a)&PointOnLine(C,a)&PointOnLine(B,b)&PointOnLine(C,b)&PointOnLine(A,c)&PointOnLine(D,c)&PointOnLine(B,d)&PointOnLine(D,d)",
+      "conclusion": "Eq(Sub(ba.ma,dc.ma))"
+    },
+    "arc_property_central_angle_and_inscribed_angle(Ω,O,A,B,C,a,b,c,d)": {
+      "premises": "CenterOfCircle(O,Ω)&PointOnCircle(A,Ω)&PointOnCircle(B,Ω)&PointOnCircle(C,Ω)&PointOnLine(A,a)&PointOnLine(O,a)&PointOnLine(B,b)&PointOnLine(O,b)&PointOnLine(A,c)&PointOnLine(C,c)&PointOnLine(B,d)&PointOnLine(C,d)",
+      "conclusion": "Eq(Sub(ba.ma,Mul(dc.ma,2)))"
+    },
+    "point_on_circle_determination_concyclic(Ω,A,B,C,D)": {
+      "premises": "ConcyclicBetweenPoints(A,B,C,D)&PointOnCircle(A,Ω)&PointOnCircle(B,Ω)&PointOnCircle(C,Ω)",
+      "conclusion": "PointOnCircle(D,Ω)"
+    },
+    "orthocenter_of_triangle_property_multiple_forms(O,A,c,B,a,C,b)": {
+      "premises": "OrthocenterOfTriangle(O,A,c,B,a,C,b)",
+      "conclusion": "OrthocenterOfTriangle(O,B,a,C,b,A,c)"
+    },
+    "orthocenter_of_triangle_property_perpendicular(O,l,A,c,B,a,C,b)": {
+      "premises": "OrthocenterOfTriangle(O,A,c,B,a,C,b)&PointOnLine(A,l)&PointOnLine(O,l)",
+      "conclusion": "PerpendicularBetweenLine(l,a)"
+    },
+    "incenter_of_triangle_determination_angle_bisector(O,l,m,A,c,B,a,C,b)": {
+      "premises": "Triangle(A,c,B,a,C,b)&AngleBisector(B,l,c,a)&AngleBisector(C,m,a,b)&PointOnLine(O,l)&PointOnLine(O,m)",
+      "conclusion": "IncenterOfTriangle(O,A,c,B,a,C,b)"
+    },
+    "incenter_of_triangle_property_angle_bisector(O,l,A,c,B,a,C,b)": {
+      "premises": "IncenterOfTriangle(O,A,c,B,a,C,b)&PointOnLine(O,l)&PointOnLine(A,l)",
+      "conclusion": "AngleBisector(A,l,b,c)"
+    },
+    "tangent_between_line_and_circle_determination_perpendicular(Ω,O,l,P,p)": {
+      "premises": "CenterOfCircle(O,Ω)&PointOnLine(O,l)&PointOnLine(P,l)&PointOnLine(P,p)&PointOnCircle(P,Ω)&PerpendicularBetweenLine(l,p)",
+      "conclusion": "TangentBetweenLineAndCircle(p,Ω)"
     }
   }
 }

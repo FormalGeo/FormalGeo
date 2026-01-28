@@ -17,7 +17,7 @@ import math
 
 class GeometricConfiguration:
     def __init__(self, parsed_gdl, random_seed=0, sample_max_number=1, sample_max_epoch=1000, sample_rate=1.2,
-                 timeout=3):
+                 timeout=5):
         """The <GeometricConfiguration> class stores the construction and reasoning process of a configuration.
 
         Args:

@@ -674,11 +674,11 @@ plot the reasoning graphs for both forward and backward processes using the foll
 
     >>> gc.draw_sg(save_path='../outputs/', file_format='png')
 
-你将会得到类似的前向过程推理图：
+You will get a similar forward process reasoning graph:
 
 ![sg_forward](files/sg_forward.png)
 
-以及后向过程推理图：
+And backward process reasoning graph:
 
 ![sg_backward](files/sg_backward.png)
 

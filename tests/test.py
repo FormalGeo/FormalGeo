@@ -1,93 +1,13 @@
-from formalgeo.configuration import GeometricConfiguration
-from formalgeo.tools import load_json, parse_gdl, debug_execute, draw_gpl
+from formalgeo import GeometricConfiguration
+from formalgeo import load_json, parse_gdl, debug_execute
 
 
-def test_gpl():
+def test_construction():
+    """constructions: 42"""
     parsed_gdl = parse_gdl(load_json('gdl.json'))
-
-    draw_gpl(
-        parsed_gdl['Relations']['PerpendicularBisector']['algebraic_forms'],
-        filename='algebraic_forms'
-    )
-
-    draw_gpl(
-        parsed_gdl['Theorems']['tangent_between_line_and_circle_determination_perpendicular']['premises'],
-        filename='premises'
-    )
-
-
-def test1():
-    parsed_gdl = parse_gdl(load_json('gdl.json'))
-
-    gc = GeometricConfiguration(parsed_gdl=parsed_gdl)
-    debug_execute(gc.construct, ['Point(A)&Point(B):FreePoint(A)&FreePoint(B)'])
-    debug_execute(gc.construct, ['Point(C):PointLeftSegment(C,A,B)'])
-    debug_execute(gc.construct, ['Line(a):PointOnLine(B,a)&PointOnLine(C,a)'])
-    debug_execute(gc.construct, ['Line(b):PointOnLine(A,b)&PointOnLine(C,b)'])
-    debug_execute(gc.construct, ['Line(c):PointOnLine(A,c)&PointOnLine(B,c)'])
-    debug_execute(gc.construct, ['Line(x):PointOnLine(A,x)&EqualAngle(b,x,x,c)'])
-    debug_execute(gc.construct, ['Line(y):PointOnLine(B,y)&EqualAngle(c,y,y,a)'])
-    debug_execute(gc.construct, ['Point(O):PointOnLine(O,x)&PointOnLine(O,y)'])
-    debug_execute(gc.construct, ['Line(z):PointOnLine(C,z)&PointOnLine(O,z)'])
-    debug_execute(gc.construct, ['Circle(Ω):PointOnCircle(A,Ω)&PointOnCircle(B,Ω)&PointOnCircle(C,Ω)'])
-
-    gc.draw_gc()
-
-    debug_execute(gc.set_goal, ['AngleBisector(C,z,a,b)'])
-
-    debug_execute(gc.decompose, ['angle_bisector_determination_distance_equal'])
-    debug_execute(gc.decompose, ['equal_distance_point_to_line_determination_algebraic'])
-    debug_execute(gc.decompose, ['equal_distance_point_to_line_property_algebraic'])
-
-    debug_execute(gc.apply, ['angle_bisector_determination_angle_equal'])
-    debug_execute(gc.apply, ['angle_bisector_property_distance_equal'])
-
-    gc.show_gc()
-    gc.draw_sg()
-
-
-def test2():
-    parsed_gdl = parse_gdl(load_json('gdl.json'))
-
     gc = GeometricConfiguration(parsed_gdl=parsed_gdl)
 
-    debug_execute(gc.construct, ['Point(A)&Point(B):FreePoint(A)&FreePoint(B)'])
-    debug_execute(gc.construct, ['Point(C):PointLeftSegment(C,A,B)'])
-    debug_execute(gc.construct, ['Circle(Ω):PointOnCircle(A,Ω)&PointOnCircle(B,Ω)&PointOnCircle(C,Ω)'])
-    debug_execute(gc.construct, ['Line(a):PointOnLine(A,a)&PointOnLine(B,a)'])
-    debug_execute(gc.construct, ['Line(b):PointOnLine(B,b)&PointOnLine(C,b)'])
-    debug_execute(gc.construct, ['Line(c):PointOnLine(C,c)&ParallelBetweenLine(c,a)'])
-    debug_execute(gc.construct, ['Line(d):PointOnLine(A,d)&ParallelBetweenLine(b,d)'])
-    debug_execute(gc.construct, ['Point(D):PointOnLine(D,d)&PointOnLine(D,c)'])
-    debug_execute(gc.construct, ['Line(l):PointOnLine(A,l)&PointOnLine(C,l)'])
-    gc.draw_gc()
-
-    debug_execute(gc.set_goal, ['EqualDistancePointToPoint(A,B,C,D)&EqualDistancePointToPoint(D,A,B,C)'])
-
-    debug_execute(gc.apply, ['parallel_property_multiple_forms'])
-    debug_execute(gc.apply, ['parallel_property_angle_equal'])
-    debug_execute(gc.apply, ['equal_angle_property_algebraic'])
-    debug_execute(gc.apply, ['line_property_adjacent_complementary_angle'])
-    debug_execute(gc.apply, ['equal_angle_determination_algebraic'])
-    debug_execute(gc.apply, ['triangle_determination'])
-
-    debug_execute(gc.decompose, ['congruent_triangle_property_line_equal'])
-    debug_execute(gc.decompose, ['congruent_triangle_property_multiple_forms'])
-    debug_execute(gc.decompose, ['congruent_triangle_property_multiple_forms'])
-    debug_execute(gc.decompose, ['congruent_triangle_determination_asa'])
-    debug_execute(gc.decompose, ['equal_distance_point_to_point_determination_algebraic'])
-
-    gc.show_gc()
-    gc.draw_sg()
-
-
-def test_imo_2025_p2_gc():
-    """ constructions: 42, theorems: 204"""
-    parsed_gdl = parse_gdl(load_json('gdl.json'))
-
-    gc = GeometricConfiguration(parsed_gdl=parsed_gdl, random_seed=19)
-
-    debug_execute(gc.construct, ['Circle(Γ)&Circle(Ω):IntersectBetweenCircle(Ω,Γ)&G(Sub(Γ.rc,Ω.rc))'])
+    debug_execute(gc.construct, ['Circle(Γ)&Circle(Ω):IntersectBetweenCircle(Ω,Γ)&G(Sub(Γ.rc,Ω.rc))', 19])
     debug_execute(gc.construct, ['Point(M):CenterOfCircle(M,Ω)'])
     debug_execute(gc.construct, ['Point(N):CenterOfCircle(N,Γ)'])
     debug_execute(gc.construct, ['Point(A):PointOnCircle(A,Ω)&PointOnCircle(A,Γ)&PointLeftSegment(A,N,M)'])
@@ -133,13 +53,16 @@ def test_imo_2025_p2_gc():
 
     debug_execute(gc.set_goal, ['ParallelBetweenLine(p,t)&TangentBetweenLineAndCircle(t,Φ)'])
 
-    gc.draw_gc(scale=2)
+    gc.draw_gc(scale=2, save_path='../outputs/', file_format='png')
 
     return gc
 
 
-def test_imo_2025_p2_forward():
-    gc = test_imo_2025_p2_gc()
+def test_forward_solving():
+    """theorems: 204"""
+    gc = test_construction()
+
+    # common sense
     debug_execute(gc.apply, ['circumcenter_of_triangle_property_center_of_circle(P,Δ,C,d,A,c,D,a)'])
     debug_execute(gc.apply, ['circumcircle_of_triangle_property_multiple_forms(Δ,C,d,A,c,D,a)'])
     debug_execute(gc.apply, ['circumcircle_of_triangle_property_multiple_forms(Δ,A,c,D,a,C,d)'])
@@ -395,9 +318,15 @@ def test_imo_2025_p2_forward():
     debug_execute(gc.apply, ['perpendicular_between_line_property_multiple_forms(t,b)'])
     debug_execute(gc.apply, ['tangent_between_line_and_circle_determination_perpendicular(Φ,G,b,T,t)'])
 
+    gc.show_gc()
 
-def test_imo_2025_p2_backward():
-    gc = test_imo_2025_p2_gc()
+    gc.draw_sg(save_path='../outputs/', file_format='png')
+
+
+def test_backward_solving():
+    """theorems: 204"""
+    gc = test_construction()
+
     debug_execute(gc.decompose, ['tangent_between_line_and_circle_determination_perpendicular(Φ,G,b,T,t)'])
     debug_execute(gc.decompose, ['perpendicular_between_line_property_multiple_forms(t,b)'])
     debug_execute(gc.decompose, ['perpendicular_between_line_determination_angle(t,b)'])
@@ -604,25 +533,12 @@ def test_imo_2025_p2_backward():
     debug_execute(gc.decompose, ['triangle_determination(G,q,F,p,E,o)'])
 
     gc.show_gc()
-    gc.draw_sg()
 
+    gc.draw_sg(save_path='../outputs/', file_format='png')
 
-def test_imo_2025_p2_auto():
-    parsed_gdl = parse_gdl(load_json('gdl.json'))
-    gc = test_imo_2025_p2_gc()
-
-    while True:
-        for theorem in parsed_gdl['Theorems']:
-            debug_execute(gc.apply, [theorem])
-        if gc.status_of_goal[0] == 1:
-            break
-
-    gc.show_gc()
-    gc.draw_sg()
+    print(gc.get_gc())
 
 
 if __name__ == '__main__':
-    # test_imo_2025_p2_gc()
-    # test_imo_2025_p2_forward()
-    test_imo_2025_p2_backward()
-    # test_imo_2025_p2_auto()
+    # test_forward_solving()
+    test_backward_solving()

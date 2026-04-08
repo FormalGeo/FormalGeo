@@ -131,7 +131,6 @@
       "algebraic_forms": "Eq(Sub(Ma(l.k,m.k),Ma(x.k,y.k)))&Ueq(SquaredNorm(l.k,m.k,l.b,m.b))&Ueq(SquaredNorm(x.k,y.k,x.b,y.b))&Ueq(SquaredNorm(l.k,x.k,l.b,x.b,m.k,y.k,m.b,y.b))"
     },
     "AngleBisector(O,l,a,b)": {
-      "format_constraints": "NotSameLetter(a,b)",
       "geometric_constraints": "Point(O)&Line(l)&Line(a)&Line(b)",
       "algebraic_forms": "PointOnLine(O,l)&PointOnLine(O,a)&PointOnLine(O,b)&Ueq(SquaredNorm(a.k,b.k,a.b,b.b))&EqualAngle(a,l,l,b)&Leq(Sub(Add(Ma(a.k,l.k),Ma(l.k,b.k)),180))"
     },

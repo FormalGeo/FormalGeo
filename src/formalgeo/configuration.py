@@ -1,127 +1,201 @@
-from formalgeo.tools import entity_letters
-from formalgeo.tools import _parse_expr_to_algebraic_forms, _get_geometric_constraints
-from formalgeo.tools import satisfy_algebraic_map, precision
-from formalgeo.tools import _parse_construction, _parse_theorem, _parse_goal
-from formalgeo.tools import _serialize_fact, _serialize_operation, _serialize_goal
-from formalgeo.tools import _is_negation, _is_conjunction, _is_disjunction
-from formalgeo.tools import _replace_instance, _replace_expr
-from formalgeo.tools import _anti_parse_operation, _anti_parse_fact, _format_ids
+from .tools import entity_letters
+from .tools import _parse_expr_to_algebraic_forms, _get_geometric_constraints
+from .tools import satisfy_algebraic_map, precision
+from .tools import _parse_construction, _parse_theorem, _parse_goal
+from .tools import _serialize_fact, _serialize_operation, _serialize_goal
+from .tools import _is_negation, _is_conjunction, _is_disjunction
+from .tools import _replace_instance, _replace_expr
+from .tools import _anti_parse_operation, _anti_parse_fact, _format_ids
 from sympy import symbols, nonlinsolve, tan, pi, FiniteSet, EmptySet
 from func_timeout import func_timeout, FunctionTimedOut
 from graphviz import Graph
 import matplotlib.pyplot as plt
 import random
-import copy
 import math
 
 
 class GeometricConfiguration:
-    def __init__(self, parsed_gdl, random_seed=0, sample_max_number=1, sample_max_epoch=1000, sample_rate=1.2,
-                 timeout=5):
-        """The <GeometricConfiguration> class stores the construction and reasoning process of a configuration.
+    def __init__(self, parsed_gdl, sample_max_epoch=500, sample_expansion_rate=1.2, timeout=5):
+        """The 'GeometricConfiguration' class stores the construction and reasoning process of a configuration.
 
         Args:
-            parsed_gdl (dict): Parsed Geometry Definition Language (GDL).
+            parsed_gdl (dict): Parsed Geometry Definition Language (GDL). The function 'formalgeo.tools.parse_gdl'
+            demonstrates the detailed parsing process of GDL. You can also use the function 'formalgeo.tools.show_json'
+            to view it specific format.
 
-        Attributions:
-            self.parsed_gdl (dict): Parsed Geometry Definition Language (GDL). You can save it to json to view the specific
-            format. The function em.formalgeo.parser.parse_gdl demonstrates the detailed parsing process of GDL.
+            sample_max_epoch (int): The maximum number of sampling iterations for a single 'constraint_value' during
+            construction. This parameter is used only in the function 'self._random_value()'.
 
-            self.facts (list): fact_id -> (predicate, instance, premise_ids, entity_ids, operation_id). Store all known
-            facts of the current problem. The index of element is its fact_id. Specifically:
-                1.predicate (str): The type of fact, such as 'Line', 'Parallel', 'Equation', etc.
-                2.instance (tuple): The instance of fact, categorized into geometric relations and algebraic relations,
-                such as ('A', 'B', 'C'), 'MeasureOfAngle(lk)-1', etc.
-                3.premise_ids (tuple): The premise of the current fact.
-                4.entity_ids (tuple): The dependent entities of the current fact.
-                5.operation_id (int): The operation that yielded the current fact.
-            examples: [('Point', 'A', (,), (,), 0),  # free entity
-                       ('Line', 'l', (,), (3, 6), 3),  # constructed entity
-                       ('PointOnLine', ('A', 'l'), (3,), (3, 6), 3),  # initial geometric relations
-                       ('Perpendicular', ('l', 'm'), (7, 8, 9), (2, 3), 6),  # inferred geometric relations
-                       ('Equation', 'lk.ma-1', (10, 11), (1, 4), 8)]  # algebraic relations
+            sample_expansion_rate (float): Expansion rate of the sampling range; used together with 'self.sample_range'.
+            This parameter is used only in the function 'self._random_value()'.
 
-            self.id (dict): (predicate, instance) -> fact_id. Mapping from fact to fact_id.
-            examples: {('Point', ('A',)): 0, ('PointOnLine', ('A', 'l')): 5, ('Equation', 'MeasureOfAngle(lk)-1'): 12}
-
-            self.operation_groups (list): operation_id -> [fact_id]. A tuple of fact_id that share the same operation_id. The
-            index of element is its operation_id.
-            examples: [[0, 1, 2], [3, 4], [5, 6, 7, 8]]
-
-            self.ids_of_predicate (dict): predicate -> [fact_id]. The fact_id of facts with the same predicate.
-            examples: {'Point': [0, 1, 3, 4], 'PointOnLine': [5, 7]}
-
-            self.instances_of_predicate (dict): predicate -> [instance]. The instance of facts with the same predicate.
-            examples: {'Point': ['A', 'B', 'C', 'D'], 'PointOnLine': [('A', l), ('B', l)]}
-
-            self.operations (list): operation_id -> operation. Mapping from operation_id to operation. The index of
-            element is its operation_id.
-            examples: ['Point(A): PointOnLine(A, l)', 'perpendicular_judgment_angle(l,k)']
-
-            self.constructions (list): operation_id -> (constraints, target_entities, dependent_entities, solved_values).
-            Store the constraints obtained from parsing each construction statement. The index of element is its
-            operation_id. specifically:
-                1.constraints (list): The disjunctive normal form of constraints, where each element is a conjunction
-                with the form of {'eq': [], 'l': [], 'leq': [], 'g': [], 'geq': [], 'ueq': []}.
-                2.target_entities (dict): Tuple of symbols related to the current entity, which need to be solved.
-                3.dependent_entities (dict): Tuple of symbols related to the dependency entities of the current entity,
-                which are replaced with values before solving.
-                4.solved_values (list): List of solved values, which stores multiple values obtained from solving, where
-                the values correspond one-to-one with target_syms.
-            examples: [([{'eq': [A.y-l.k*A.x-l.b], 'l': [], 'leq': [], 'g': [], 'geq': [], 'ueq': []}],
-                       (l.k, l.b), (A.x, A.y), [(0, 0), (1, 1), ..., (999, 999)]),  # infinite solutions
-                       ([{'eq': [A.y-l.k*A.x-l.b, B.y-l.k*B.x-l.b], 'l': [], 'leq': [], 'g': [], 'geq': [], 'ueq': []}],
-                       (A.x, A.y, B.x, B.y), (l.k, l.b), [(1, 0)])]  # finite solutions
-
-            self.sym_of_attr (dict): attr -> sym. The mapping from attribute names to attribute symbols.
-            examples: {'A.x': A.x, 'l.k': l.k,  # parameter of entity
-                       'LengthOfSegment(AB)': LengthOfSegment(AB),  # attribution of entity
-                       'LengthOfSegment(BA)': LengthOfSegment(AB)}  # attribution of entity
-
-            self.attr_of_sym (dict): sym -> [attr]. The mapping from attribute symbols to attribute names. An attribute
-            symbol may have multiple attribute names.
-            examples: {A.x: ['A.x'], l.k: ['l.k'],  # parameter of entity
-                       LengthOfSegment(AB): ['LengthOfSegment(AB)', 'LengthOfSegment(BA)']}  # attribution of entity
-
-            self.value_of_sym (dict): sym -> value. The value of a symbol.
-            examples: {A.x: 0.25846578, l.k: 0.89568755, LengthOfSegment(AB): 5, MeasureOfAngle(lk): 90}
-
-            self.equations (list): [[simplified_equation, original_equation_fact_id, dependent_equation_fact_id]]. Store
-            the simplified equation, along with the fact_id of its original equation and the dependent equations used
-            in the simplification process. Taking the equation a + b - c = 0 as an example, if the fact_id of a + b - c = 0
-            and c - 2 = 0 are 1 and 2, respectively, then the element (a + b - 2, 1, [2]) would be added to self.equations.
-            specifically:
-                1.simplified_equation (equation): The simplified equation.
-                2.original_equation_fact_id (int): The fact_id of its original equation.
-                3.dependent_equation_fact_id (list): The dependent equations used in the simplification process. Note that
-                all dependent equations are solved values. Whenever a symbol sym is successfully solved to obtain a value,
-                an algebraic relation sym - value = 0 is constructed and added to the self.facts. Simultaneously, For each
-                element in self.equations, all sym in the  simplified_equation are replaced with its value, and the fact_id
-                of the algebraic relation sym - value = 0 is added to dependent_equation_fact_id. If the simplified_equation
-                contains no unsolved symbols, remove current element from self.equations.
-            example: [[a + b - 2, 1, [2]], [d + e, 2, []]]
+            timeout (float): Timeout for solving algebraic equations. This parameter applies to all functions involving
+            equation solving, including 'self._solve_constraints()', 'self._check_algebraic_premise()', and
+            'self._add_algebraic()'.
 
         Methods:
-            self.construct(entity): Construct a geometric entity (point, line, circle). If successfully construct the
-            entity, return True; otherwise, return False.
+            self.construct(construction, random_seed=0, added=True): Construct a geometric entity (point, line, circle).
+            If successfully construct the entity, return True; otherwise, return False.
 
-            self.apply(theorem): Apply a theorem. If applying the theorem adds new conditions, return True; otherwise,
+            self.apply(theorem): Apply a theorem to add new fact. If applying the theorem adds new facts, return True;
+            otherwise, return False.
+
+            self.set_goal(goal): Set the initial goal. If successfully set the initial goal, return True; otherwise,
             return False.
+
+            self.decompose(theorem): Apply a theorem to decompose goal. If applying the theorem decomposes new goals,
+            return True; otherwise, return False.
+
+            self.show_gc(): Display the problem-solving process.
+
+            self.get_gc(): Return the serialized problem state.
+
+            self.draw_gc(save_path='./', filename='gc', file_format='pdf', scale=1): Draw geometric figures.
+
+            self.draw_sg(save_path='./', filename='sg', file_format='pdf'): Draw structured graph of problem-solving
+            process, including forward hypergraph and backward composite graph.
         """
         self.parsed_gdl = parsed_gdl
-        self.letters = set(entity_letters)  # available entity letters
-        self.random_backup = random.Random(random_seed)  # the random number generator backup
-        self.random = None  # the random number generator of the current instance
-        self.sample_max_number = sample_max_number  # Maximum sampling quantity for symbolic value random sampling
         self.sample_max_epoch = sample_max_epoch  # Maximum epoch of sampling attempts
-        self.sample_rate = sample_rate  # Range expansion ratio during random sampling
+        self.sample_expansion_rate = sample_expansion_rate  # Range expansion ratio during random sampling
         self.sample_range = {'x_max': 1, 'x_min': -1, 'y_max': 1, 'y_min': -1}  # Coordinate range of all points
         self.timeout = timeout  # Maximum tolerance time for solving algebraic equations
+        self.letters = set(entity_letters)  # available entity letters
 
-        # construction
+        """Construction.
+                
+        self.constructions (dict): operation_id -> (used_branch, parsed_construction). Store the construction
+        process, i.e., the parsed Geometric Construction Language (GCL). This is for recording purposes only.
+        Element is added during the construction but never accessed, meaning it does not affect the construction or
+        reasoning processes. It is only accessed in the 'self.show_gc()' and 'self.draw_gc()' functions.
+        Specifically:
+            1.operation_id (int): The ID corresponding to the current GCL in 'self.operations'.
+            2.used_branch (int): After parsing, a GCL may have several branches. We can select a branch for random
+            sampling. 'used_branch' stores the selected branch.
+            3.parsed_construction (list): Store all parsed construction branches as a list. It is obtained by the
+            function 'formalgeo.tools._parse_construction()'. Specifically: [target_entities, dependent_entities,
+            added_facts, equations, inequalities, solved_value].
+        Examples:
+        self.constructions = {
+            0: (  # operation_id
+                   1,  # used_branch
+                   [  # parsed_construction
+                       [  # one branch of parsed_construction
+                           [('Point', ('M',))],                                 # target_entities
+                           [('Circle', ('Ω',))],                                # dependent_entities
+                           [('CenterOfCircle', ('M', 'Ω'))],                    # added_facts
+                           [M.x - Ω.u, M.y - Ω.v],                              # equations
+                           [],                                                  # inequalities
+                           ([M.x, M.y],[-0.255516808977684, 1.19236064903496])  # solved_value
+                       ]
+                   ]
+            )
+        }
+        """
         self.constructions = {}  # operation_id -> (used_branch, parsed_construction)
 
-        # forward solving
+        """Instance Generation.
+
+        self.relation_instances (dict): relation_predicate -> {relation_instance}. Stores all possible geometric
+        relations for the current configuration. These relations are derived through algebraic computation and may
+        either already exist in 'self.facts' or require further reasoning to be obtained. For basic entities (Point,
+        Line, Circle), instances are generated during the construction phase and added to 'self.relation_instances'.
+        During the reasoning phase, other geometric relation instances are generated as needed.
+        Examples:
+        self.relation_instances = {
+            'Point': {('A',), ('B',), ('C',)},
+            'Line': {('l',), ('m',)},
+            'PointOnLine': {('A','l'), ('B','l'), ('C','m')}
+        }
+
+        self.theorem_instances (dict): theorem_name -> {theorem_instance: (premises, conclusion)}. All valid theorem
+        parameters. theorem instance is obtained by executing GPL on relation instance. Successfully applied theorem
+        instance will be removed from 'self.theorem_instances'.
+        Examples:
+        self.theorem_instances = {
+            'angle_bisector_property_distance_equal': {  # theorem_name
+                ('A', 'O', 'x', 'b', 'c'): (  # theorem_instance
+                    (('AngleBisector', ('A', 'x', 'b', 'c')), '&', ('PointOnLine', ('O', 'x'))),  # premises
+                    ('EqualDistancePointToLine', ('O', 'b', 'O', 'c'))  # conclusion
+                ),
+                ('B', 'O', 'y', 'c', 'a'): (  # theorem_instance
+                    (('AngleBisector', ('B', 'y', 'c', 'a')), '&', ('PointOnLine', ('O', 'y'))),  # premises
+                    ('EqualDistancePointToLine', ('O', 'c', 'O', 'a'))  # conclusion
+                ),
+                ('C', 'O', 'z', 'a', 'b'): (  # theorem_instance
+                    (('AngleBisector', ('C', 'z', 'a', 'b')), '&', ('PointOnLine', ('O', 'z'))),  # premises
+                    ('EqualDistancePointToLine', ('O', 'a', 'O', 'b'))  # conclusion
+                )
+            }
+        }
+        """
+        self.relation_instances = {}  # relation_predicate -> {relation_instance}
+        for relation in ('Point', 'Line', 'Circle'):
+            self.relation_instances[relation] = set()
+        self.theorem_instances = {}  # theorem_name -> {theorem_instance: (premises, conclusion)}
+
+        """Forward Solving.
+        
+        self.facts (list): fact_id -> (predicate, instance, {premise_id}, {entity_id}, operation_id). Store all
+        known facts of the current problem. The index of element is its fact_id. Specifically:
+            1.predicate (str): The type of fact, such as 'Point', 'Parallel', 'Equation', etc.
+            2.instance (tuple): The instance of fact, categorized into geometric relations and algebraic relations,
+            such as ('A',), ('l', 'm'), lk.ma - 1, etc.
+            3.premise_id (int): The premise of the current fact.
+            4.entity_id (int): The dependent entities of the current fact.
+            5.operation_id (int): The operation that yielded the current fact.
+        Examples:
+        self.facts = [
+            ('Point', 'A', (,), (,), 0),  # free entity, no premise_id and no entity_id
+            ('Line', 'l', (3, 6), (3, 6), 3),  # entity added in construction, premise_id=entity_id
+            ('PointOnLine', ('A', 'l'), (3, 6), (3, 6), 3),  # relations added in construction, premise_id=entity_id
+            ('Perpendicular', ('l', 'm'), (7, 8, 9), (2, 3), 6),  # inferred geometric relations
+            ('Eq', lk.ma - 1, (10, 11), (1, 4), 8)  # inferred algebraic relations
+        ]
+
+        self.fact_id (dict): (predicate, instance) -> fact_id. Mapping from fact to fact_id. Each fact has a unique
+        ID, corresponding to the index in the 'self.facts' list.
+        Examples:
+        self.fact_id = {
+            ('Point', ('A',)): 0,
+            ('PointOnLine', ('A', 'l')): 5,
+            ('Eq', lk.ma - 1): 12
+        }
+
+        self.predicate_to_fact_ids (dict): predicate -> {fact_id}. The fact_id of facts with the same predicate.
+        This is for recording purposes only. Element is added during the construction and reasoning phases but never
+        accessed, meaning it does not affect the construction or reasoning processes. It is only accessed in the
+        'self.show_gc()' and 'self.draw_gc()' functions.
+        Examples:
+        self.predicate_to_fact_ids = {
+            'Point': {0, 1, 3, 4},
+            'PointOnLine': {5, 7}
+        }
+
+        self.fact_groups (dict): operation_id -> {fact_id}. Record the fact_ids of all facts added by a specific
+        operation. In practice, decompose operation will also add new item to 'self.fact_groups' through function
+        'self._add_operation()', but this is only effective for forward process.
+        Examples:
+        self.fact_groups = {
+            0: {0, 1, 2, 3},
+            1: {4, 5},
+            2: {8, 6, 7},
+            10: set(),  # decompose operation
+            11: set()  # decompose operation
+        }
+
+        self.operations (list): operation_id -> (operation_type, operation_predicate, operation_instance). Record
+        all operations, including construction, forward, backward, and automatic ones.
+        Examples:
+        self.operations = [
+            ('construction', 'Point(A)&Point(B)', 'FreePoint(A)&FreePoint(B)'),
+            ('auto', 'same_entity_extend', None),
+            ('auto', 'set_initial_goal', None),
+            ('auto', 'solve_eq', None),
+            ('apply', 'equal_distance_point_to_line_property_algebraic', ('O', 'b', 'O', 'a')),
+            ('decompose', 'angle_bisector_determination_distance_equal', ('C', 'O', 'z', 'a', 'b'))
+        ]
+        """
         self.facts = []  # fact_id -> (predicate, instance, {premise_id}, {entity_id}, operation_id)
         self.fact_id = {}  # (predicate, instance) -> fact_id
         self.predicate_to_fact_ids = {}  # predicate -> {fact_id}
@@ -132,12 +206,101 @@ class GeometricConfiguration:
         for relation in satisfy_algebraic_map.keys():
             self.predicate_to_fact_ids[relation] = set()
         self.fact_groups = {}  # operation_id -> {fact_id}
+        self.operations = []  # operation_id -> (operation_type, operation_predicate, operation_instance)
 
-        # backward solving
+        """Backward Solving.
+        
+        self.goals (list): goal_id -> (sub_goal_id_tree, operation_id, root_sub_goal_id). The backward process
+        utilizes two data structures: goal and sub_goal. Multiple sub_goals are combined via AND, OR, or NOT
+        operations to form a tree structure. Each such tree constitutes a goal. 'sub_goal_id_tree' represents the
+        tree structure, 'operation_id' is the operation that generated the current goal, and 'root_sub_goal_id' is
+        the root node of the current goal. The current goal is derived from the root sub_goal via the operation.
+        Example:
+        self.goals = [
+            (0, 10, None),
+            ((1, '&', (2, '&', (3, '&', 4))), 11, 0),
+            ((5, '&', (6, '&', (7, '&', (8, '&', 9)))), 12, 4),
+            (10, 13, 9)
+        ]
+
+        self.status_of_goal (dict): goal_id -> status. The status of the goal. 0 indicates waiting to check; 1
+        indicates solved; -1 indicates skip or unsolved.
+        Example:
+        self.status_of_goal = {
+            0: 1, 1: 1, 2: 1, 3: -1, 4: 0
+        }
+
+        self.premise_ids_of_goal (dict): goal_id -> {premise_id}. If a goal's status is solved, then
+        'self.premise_ids_of_goal' will record the premises required to derive the current goal. Specifically, this
+        is the union of the self.premise_ids_of_sub_goal of all its sub_goals.
+        Example:
+        self.premise_ids_of_goal = {
+            0: {38},
+            1: {8, 25, 11, 37},
+            2: {35, 36, 21, 6, 9},
+            3: {37},
+            4: set()
+        }
+
+        self.sub_goals (list): sub_goal_id -> (predicate, instance, goal_id). sub_goal and fact are essentially the
+        same, both consisting of a 'predicate' and 'instance'. 'goal_id' records which goal the current sub_goal
+        originates from.
+        Example:
+        self.sub_goals = [
+            ('AngleBisector', ('C', 'z', 'a', 'b'), 0),
+            ('PointOnLine', ('C', 'z'), 1),
+            ('PointOnLine', ('C', 'a'), 1),
+            ('EqualDistancePointToLine', ('O', 'a', 'O', 'b'), 1)
+        ]
+
+        self.status_of_sub_goal (dict): sub_goal_id -> status. The status of the sub_goal. 0 indicates waiting to
+        check; 1 indicates solved; -1 indicates skip or unsolved.
+        Example:
+        self.status_of_sub_goal = {
+            0: 1, 1: 1, 2: 1, 3: -1, 4: 0
+        }
+
+        self.premise_ids_of_sub_goal (dict): sub_goal_id -> {premise_id}. If a sub_goal's status is solved, then
+        'self.premise_ids_of_sub_goal' will record the premises required to derive the sub_goal. Specifically, the
+        'premise_id' is the fact_id of the fact corresponding to the current sub_goal.
+        Example:
+        self.premise_ids_of_sub_goal = {
+            0: {38}, 1: {25}, 2: {8}, 3: {11}, 4: {37}, 5: {21}, 6: {6}, 7: {21}, 8: {9}, 9: {35, 36}
+        }
+
+        self.leaf_goal_ids (dict): sub_goal_id -> {leaf_goal_id}. Record all goals obtained from the decomposition
+        of the current sub_goal.
+        Example:
+        self.leaf_goal_ids = {
+            0: {1}, 1: set(), 2: set(), 3: set(), 4: {2}, 5: set(), 6: set(), 7: set(), 8: set(),
+            9: {3, 4, 5, 6, 7, 8}, 10: set(), 11: set(), 12: set(), 13: set(), 14: set(), 15: set()
+        }
+
+        self.sub_goal_ids (dict): (predicate, instance) -> {sub_goal_id}. The set of sub_goal_ids for all identical
+        sub_goals.
+        Example:
+        self.sub_goal_ids = {
+            ('AngleBisector', ('C', 'z', 'a', 'b')): {0},
+            ('PointOnLine', ('C', 'z')): {1},
+             ('EqualDistancePointToLine', ('O', 'a', 'O', 'b')): {10, 4},
+             ('Point', ('O',)): {5, 7}
+        }
+
+        self.predicate_to_sub_goal_ids (dict): predicate -> {sub_goal_id}. Record the IDs of all sub_goals of the
+        same type. In backward, this data structure is only appended to and never accessed. The original intent was
+        the same as in the forward, serving as a display for 'self.show_gc()', but since backward becomes a
+        composite graph, recording this data is no longer necessary. This is a legacy issue and can be removed.
+        Example:
+        self.predicate_to_sub_goal_ids = {
+            'Point': {5, 7},
+            'Line': {8, 6},
+            'Circle': set(),
+            'PointOnLine': {1, 2, 3}
+        }
+        """
         self.goals = []  # goal_id -> (sub_goal_id_tree, operation_id, root_sub_goal_id)
         self.status_of_goal = {}  # goal_id -> int (0: not check, 1: solved, -1: skip or unsolved)
         self.premise_ids_of_goal = {}  # goal_id -> {premise_id}
-
         self.sub_goals = []  # sub_goal_id -> (predicate, instance, goal_id)
         self.status_of_sub_goal = {}  # sub_goal_id -> int (0: not check, 1: solved, -1: skip or unsolved)
         self.premise_ids_of_sub_goal = {}  # sub_goal_id -> {premise_id}
@@ -151,16 +314,94 @@ class GeometricConfiguration:
         for relation in satisfy_algebraic_map.keys():
             self.predicate_to_sub_goal_ids[relation] = set()
 
-        # operations
-        self.operations = []  # operation_id -> (operation_type, operation_predicate, operation_instance)
+        """Algebraic System.
+        
+        self.entity_sym_to_value (dict): sym -> value. Mapping from the symbolic representation of entity attributes
+        to their values. This includes the coordinates of points (A.x, A.y), the slope and intercept of lines (l.k,
+        l.b), and the center coordinates, and radius of circles (O.u, O.v, O.r). After the diagram is constructed,
+        'self.entity_sym_to_value' will not change.
+        Example:
+        self.predicate_to_sub_goal_ids = {
+            A.x: 0.826612443660115, A.y: 0.619090567056726,  # Point
+            a.k: 0.122226527166831, a.b: -0.555299975696735,  # Line
+            Ω.u: 0.162409881908997, Ω.v: 0.152386862349756, Ω.r: 0.811774224168249  # Circle
+        }
 
-        # instances
-        self.relation_instances = {}  # relation_name -> {relation_instance}
-        for relation in ('Point', 'Line', 'Circle'):
-            self.relation_instances[relation] = set()
-        self.theorem_instances = {}  # theorem_name -> {theorem_instance: (premises, conclusion)}
+        self.sym_to_value (dict): sym -> value. Mapping from the symbolic representation of relation attributes to
+        their values. Only record solved relation symbols.
+        Example:
+        self.sym_to_value = {
+            AB.dpp: 1,
+            lk.ma: 60
+        }
 
-        # algebraic system
+        self.sym_to_sym (dict): sym -> sym. Mapping from symbols to their unique representation. Currently, only
+        '.dpp' has multiple mappings.
+        Example:
+        self.sym_to_sym = {
+            AB.dpp: AB.dpp,
+            BA.dpp: AB.dpp,
+            Al.dpl: Al.dpl
+        }
+
+        self.sym_to_syms (dict): sym -> {sym}. Mapping from symbols to their multiple representation. Currently,
+        only '.dpp' has multiple mappings. 'self.sym_to_syms' is only recorded but never accessed. The only place it
+        is accessed is the 'self.show_gc()' function.
+        Example:
+        self.sym_to_syms = {
+            AB.dpp: {AB.dpp, BA.dpp},
+            BA.dpp: {AB.dpp, BA.dpp},
+            Al.dpl: {Al.dpl}
+        }
+
+        self.equations (dict): group_id -> ((simplified_eq), ({premise_id}), {sym}). Store the simplified equations.
+        Equations sharing common symbols after simplification will be grouped together and assigned a group_id.
+        'premise_id' corresponds one-to-one with 'simplified_eq', indicating the basis for the simplification. 'sym'
+        is the common symbols of current group. Each time a new equation is added, it may trigger the merging or
+        splitting of groups; see the 'self._add_algebraic()' function.
+        Example:
+        self.equations = {
+            2: (  # group_id
+                (Oa.dpl - Ob.dpl, Oa.dpl - Oc.dpl, Ob.dpl - Oc.dpl),  # simplified_eq
+                ({39}, {36}, {35}),                                   # premise_id
+                {Oc.dpl, Oa.dpl, Ob.dpl}                              # sym
+            )
+        }
+
+        self.group_count (int): ID of equation group. Generate unique group_id.
+        Example:
+        self.group_count = 3
+
+        self.simplified_eq_sub_goal (dict): sub_goal_id -> (simplified_eq, {premise_id}, {dependent_sym}, {group_id}).
+        Store the simplified algebraic goals. There is a bug: when a goal is added before the group is created, the
+        group_id is not recorded. This causes group updates to not affect the goal.
+        Example:
+        self.simplified_eq_sub_goal = {
+            9: (
+                Oa.dpl - Ob.dpl,   # simplified_eq
+                set(),             # premise_id
+                {Ob.dpl, Oa.dpl},  # dependent_sym
+                set()              # group_id
+            )
+        }
+
+        self.solved_target_cache (dict): target_expr -> {premise_id}. Cache the premises of solved target_expr to
+        accelerate the solving process. Only successfully solved target_expr are recorded.
+        Example:
+        self.solved_target_cache = {
+            Oa.dpl - Ob.dpl: {35, 36}
+        }
+
+        self.attempted_equations_cache (dict): (target_dependent_equation) -> passed. Cache the solving state of all
+        dependency equations containing the target_expr to accelerate the solving process. 0 indicates an attempt
+        was made, but the status is unknown (e.g., due to a timeout); 1 indicates solved; -1 indicates unsolved.
+        Each dependency equation is solved only once, even if the status is 0.
+        Example:
+        self.attempted_equations_cache = {
+            (-Oa.dpl + Ob.dpl + t,): 0,
+            (-Oa.dpl + Ob.dpl + t, Oa.dpl - Oc.dpl, Ob.dpl - Oc.dpl): 1
+        }
+        """
         self.entity_sym_to_value = {}  # entity_related_sym -> value
         self.sym_to_value = {}  # (solved) relation_related_sym -> value
         self.sym_to_sym = {}  # sym_multiple_form -> sym_unified_form
@@ -171,9 +412,7 @@ class GeometricConfiguration:
         self.solved_target_cache = {}  # target_expr -> {premise_id}
         self.attempted_equations_cache = {}  # (target_dependent_equation) -> passed
 
-    """↓-----------Construction-----------↓"""
-
-    def construct(self, construction, added=True):
+    def construct(self, construction, random_seed=0, added=True):
         """Construct a new point, line, or circle.
         1.Parse the geometric construction statement, extract the target entity, implicit entities, and dependent
         entities, perform entity existence checks, format validity checks, and linear construction checks, and add the
@@ -205,12 +444,7 @@ class GeometricConfiguration:
         Returns:
             result (bool): If successfully construct the entity, return True; otherwise, return False.
         """
-        if added:
-            self.random = self.random_backup
-        else:
-            self.random = copy.copy(self.random_backup)
-
-        # (target_entities, dependent_entities, added_facts, equations, inequalities, values)
+        # (target_entities, dependent_entities, added_facts, equations, inequalities, solved_value)
         parsed_construction = _parse_construction(construction, self.parsed_gdl)
         for branch in range(len(parsed_construction)):
             t_entities, d_entities, added_facts, equations, inequalities, _ = parsed_construction[branch]
@@ -235,8 +469,8 @@ class GeometricConfiguration:
                 premise_ids.add(self.fact_id[dependent_entity])
 
             # solve constraint
-            solved_values = self._solve_constraints(t_syms, equations, inequalities)
-            if len(solved_values) == 0:  # no solved entity, solve next branch
+            values = self._solve_constraints(t_syms, equations, inequalities, random_seed)
+            if values is None:  # no solved entity, solve next branch
                 continue
             if not added:
                 return True
@@ -249,27 +483,26 @@ class GeometricConfiguration:
                 self._add_fact(entity, instance, premise_ids, operation_id)
 
             # set target entity's attribution to solved value
-            solved_value = solved_values[0]
             for i in range(len(t_syms)):
-                self.entity_sym_to_value[t_syms[i]] = solved_value[i]
+                self.entity_sym_to_value[t_syms[i]] = values[i]
                 entity, attr = str(t_syms[i]).split('.')
                 if attr == 'x':  # update sample range
-                    if solved_value[i] > self.sample_range['x_max']:
-                        self.sample_range['x_max'] = solved_value[i]
-                    elif solved_value[i] < self.sample_range['x_min']:
-                        self.sample_range['x_min'] = solved_value[i]
+                    if values[i] > self.sample_range['x_max']:
+                        self.sample_range['x_max'] = values[i]
+                    elif values[i] < self.sample_range['x_min']:
+                        self.sample_range['x_min'] = values[i]
                 elif attr == 'y':
-                    if solved_value[i] > self.sample_range['y_max']:
-                        self.sample_range['y_max'] = solved_value[i]
-                    elif solved_value[i] < self.sample_range['y_min']:
-                        self.sample_range['y_min'] = solved_value[i]
+                    if values[i] > self.sample_range['y_max']:
+                        self.sample_range['y_max'] = values[i]
+                    elif values[i] < self.sample_range['y_min']:
+                        self.sample_range['y_min'] = values[i]
 
             # add relations to self.facts
             for predicate, instance in added_facts:
                 self._add_fact(predicate, instance, premise_ids, operation_id)
 
             # save constructions
-            parsed_construction[branch][5] = (t_syms, solved_values)
+            parsed_construction[branch][5] = (t_syms, values)
             self.constructions[operation_id] = (branch + 1, parsed_construction)
 
             # a certain branch completes construction, return True
@@ -278,24 +511,24 @@ class GeometricConfiguration:
         # no branch completes construction, return False
         return False
 
-    def _solve_constraints(self, t_syms, equations, inequalities):
+    def _solve_constraints(self, t_syms, equations, inequalities, random_seed):
         constraint_values = []  # list of constraint values, contains symbols, such as [[y, y - 1], [x, 0.5]]
-        solved_values = []  # list of values, such as [[1, 0.5], [1.5, 0.5]]
 
         replaced_equations = []  # expr
         for expr in equations:
             expr = expr.subs(self.entity_sym_to_value)
             if len(expr.free_symbols) == 0:
                 if not satisfy_algebraic_map['Eq'](expr):
-                    return solved_values
+                    return None
                 continue
             replaced_equations.append(expr)
+
         replaced_inequalities = []  # (algebraic_relation, expr)
         for algebraic_relation, expr in inequalities:
             expr = expr.subs(self.entity_sym_to_value)
             if len(expr.free_symbols) == 0:
                 if not satisfy_algebraic_map[algebraic_relation](expr):
-                    return solved_values
+                    return None
                 continue
             replaced_inequalities.append((algebraic_relation, expr))
 
@@ -309,14 +542,14 @@ class GeometricConfiguration:
                     args=(replaced_equations, t_syms)
                 )
             except FunctionTimedOut:
-                return solved_values
+                return None
 
             if equation_solutions is EmptySet:
                 e_smg = f'Equations no solution: {equations}'
                 raise Exception(e_smg)
 
             if type(equation_solutions) is not FiniteSet:
-                return solved_values
+                return None
 
             for equation_solution in list(equation_solutions):
                 has_free_symbol = False
@@ -334,79 +567,80 @@ class GeometricConfiguration:
                             satisfied = False
                             break
                     if satisfied:
-                        solved_values.append([value.evalf(n=precision, chop=False) for value in equation_solution])
+                        return [value.evalf(n=precision, chop=False) for value in equation_solution]
 
         if len(constraint_values) == 0:  # no random sampling required
-            return solved_values
+            return None
 
-        epoch = 0  # start random sampling
-        while len(solved_values) < self.sample_max_number and epoch < self.sample_max_epoch:
-            constraint_value = constraint_values[epoch % len(constraint_values)]  # iterative select constraint value
-            random_value = self._random_value(t_syms, constraint_value)
-            sym_to_value = dict(zip(t_syms, random_value))
+        for constraint_value in constraint_values:
+            values = self._random_value(t_syms, constraint_value, replaced_inequalities, random_seed)
+            if values is not None:
+                return values
 
+        return None
+
+    def _random_value(self, syms, constraint_value, replaced_inequalities, random_seed):
+        random_number_generator = random.Random(random_seed)
+        epoch = 0
+        while epoch < self.sample_max_epoch:  # start random sampling, try self.sample_max_epoch times
+            random_values = {}
+            free_symbols = set()
+            for i in range(len(syms)):  # save k for sampling b
+                if len(constraint_value[i].free_symbols) == 0:
+                    random_values[syms[i]] = float(constraint_value[i])
+                else:
+                    free_symbols.update(constraint_value[i].free_symbols)
+            free_symbols = sorted(list(free_symbols), key=str)  # sorting ensures reproducibility
+
+            for sym in free_symbols:  # sample k first, because the value of k is used when sampling b
+                if str(sym).split('.')[1] != 'k':
+                    continue
+                random_k = tan(random_number_generator.uniform(-89, 89) * pi / 180)
+                random_values[sym] = random_k
+
+            for sym in free_symbols:
+                if str(sym).split('.')[1] in ['x', 'u']:
+                    middle_x = (self.sample_range['x_max'] + self.sample_range['x_min']) / 2
+                    range_x = (self.sample_range['x_max'] - self.sample_range['x_min']) / 2 * self.sample_expansion_rate
+                    random_x = random_number_generator.uniform(float(middle_x - range_x), float(middle_x + range_x))
+                    random_values[sym] = random_x
+                elif str(sym).split('.')[1] in ['y', 'v']:
+                    middle_y = (self.sample_range['y_max'] + self.sample_range['y_min']) / 2
+                    range_y = (self.sample_range['y_max'] - self.sample_range['y_min']) / 2 * self.sample_expansion_rate
+                    random_y = random_number_generator.uniform(float(middle_y - range_y), float(middle_y + range_y))
+                    random_values[sym] = random_y
+                elif str(sym).split('.')[1] == 'r':
+                    max_distance = float(((self.sample_range['y_max'] - self.sample_range['y_min']) ** 2 +
+                                          (self.sample_range['x_max'] - self.sample_range[
+                                              'x_min']) ** 2) ** 0.5) / 2 * self.sample_expansion_rate
+                    random_r = random_number_generator.uniform(0, max_distance)
+                    random_values[sym] = random_r
+                elif str(sym).split('.')[1] == 'b':
+                    middle_x = (self.sample_range['x_max'] + self.sample_range['x_min']) / 2
+                    range_x = (self.sample_range['x_max'] - self.sample_range['x_min']) / 2 * self.sample_expansion_rate
+                    middle_y = (self.sample_range['y_max'] + self.sample_range['y_min']) / 2
+                    range_y = (self.sample_range['y_max'] - self.sample_range['y_min']) / 2 * self.sample_expansion_rate
+
+                    k_value = random_values[symbols(str(sym).split('.')[0] + '.k')]
+                    b_range = [float(middle_y + range_y - k_value * (middle_x - range_x)),
+                               float(middle_y - range_y - k_value * (middle_x - range_x)),
+                               float(middle_y + range_y - k_value * (middle_x + range_x)),
+                               float(middle_y - range_y - k_value * (middle_x + range_x))]
+                    random_b = random_number_generator.uniform(min(b_range), max(b_range))
+                    random_values[sym] = random_b
+
+            values = [item.subs(random_values).evalf(n=15, chop=False) for item in constraint_value]
+
+            sym_to_value = dict(zip(syms, values))
             satisfied = True
             for algebraic_relation, expr in replaced_inequalities:
                 if not satisfy_algebraic_map[algebraic_relation](expr, sym_to_value):
                     satisfied = False
                     break
             if satisfied:
-                solved_values.append(random_value)
+                return values
 
-            epoch += 1
-
-        return solved_values
-
-    def _random_value(self, syms, constraint_value):
-        random_values = {}
-        free_symbols = set()
-        for i in range(len(syms)):  # save k for sampling b
-            if len(constraint_value[i].free_symbols) == 0:
-                random_values[syms[i]] = float(constraint_value[i])
-            else:
-                free_symbols.update(constraint_value[i].free_symbols)
-        free_symbols = sorted(list(free_symbols), key=str)  # sorting ensures reproducibility
-
-        for sym in free_symbols:  # sample k first, because the value of k is used when sampling b
-            if str(sym).split('.')[1] != 'k':
-                continue
-            random_k = tan(self.random.uniform(-89, 89) * pi / 180)
-            random_values[sym] = random_k
-
-        for sym in free_symbols:
-            if str(sym).split('.')[1] in ['x', 'u']:
-                middle_x = (self.sample_range['x_max'] + self.sample_range['x_min']) / 2
-                range_x = (self.sample_range['x_max'] - self.sample_range['x_min']) / 2 * self.sample_rate
-                random_x = self.random.uniform(float(middle_x - range_x), float(middle_x + range_x))
-                random_values[sym] = random_x
-            elif str(sym).split('.')[1] in ['y', 'v']:
-                middle_y = (self.sample_range['y_max'] + self.sample_range['y_min']) / 2
-                range_y = (self.sample_range['y_max'] - self.sample_range['y_min']) / 2 * self.sample_rate
-                random_y = self.random.uniform(float(middle_y - range_y), float(middle_y + range_y))
-                random_values[sym] = random_y
-            elif str(sym).split('.')[1] == 'r':
-                max_distance = float(((self.sample_range['y_max'] - self.sample_range['y_min']) ** 2 +
-                                      (self.sample_range['x_max'] - self.sample_range[
-                                          'x_min']) ** 2) ** 0.5) / 2 * self.sample_rate
-                random_r = self.random.uniform(0, max_distance)
-                random_values[sym] = random_r
-            elif str(sym).split('.')[1] == 'b':
-                middle_x = (self.sample_range['x_max'] + self.sample_range['x_min']) / 2
-                range_x = (self.sample_range['x_max'] - self.sample_range['x_min']) / 2 * self.sample_rate
-                middle_y = (self.sample_range['y_max'] + self.sample_range['y_min']) / 2
-                range_y = (self.sample_range['y_max'] - self.sample_range['y_min']) / 2 * self.sample_rate
-
-                k_value = random_values[symbols(str(sym).split('.')[0] + '.k')]
-                b_range = [float(middle_y + range_y - k_value * (middle_x - range_x)),
-                           float(middle_y - range_y - k_value * (middle_x - range_x)),
-                           float(middle_y + range_y - k_value * (middle_x + range_x)),
-                           float(middle_y - range_y - k_value * (middle_x + range_x))]
-                random_b = self.random.uniform(min(b_range), max(b_range))
-                random_values[sym] = random_b
-
-        solved_value = [item.subs(random_values).evalf(n=15, chop=False) for item in constraint_value]
-
-        return solved_value
+        return None
 
     """↑-----------Construction-----------↑"""
 
@@ -799,7 +1033,7 @@ class GeometricConfiguration:
                 return 0, None
 
         self.solved_target_cache[expr] = premise_ids
-
+        self.attempted_equations_cache[equations_tuple] = 1
         return 1, premise_ids
 
     def _check_algebraic_forms(self, algebraic_forms, replace=None):
@@ -1412,7 +1646,7 @@ class GeometricConfiguration:
 
             used_branch, parsed_construction = self.constructions[operation_id]
             for branch in range(len(parsed_construction)):
-                t_entities, d_entities, added_facts, equations, inequalities, values = parsed_construction[branch]
+                t_entities, d_entities, added_facts, equations, inequalities, solved_value = parsed_construction[branch]
                 branch_str = '   branch: {}'.format(
                     branch + 1)
                 t_entities = '   target_entities: {}'.format(
@@ -1425,15 +1659,14 @@ class GeometricConfiguration:
                     ', '.join([_anti_parse_fact(('Eq', fact)) for fact in equations]))
                 inequalities = '   inequalities: {}'.format(
                     ', '.join([_anti_parse_fact(fact) for fact in inequalities]))
-                if values is not None:
-                    t_syms, solved_values = values
-                    values = [f"({', '.join([str(sym) for sym in t_syms])})"]
-                    for solved_value in solved_values:
-                        values.append(f"({', '.join([str(round(float(value), 4)) for value in solved_value])})")
-                    values = f"[{', '.join(values)}]"
+                if solved_value is not None:
+                    t_syms, values = solved_value
+                    solved_value = [f"({', '.join([str(sym) for sym in t_syms])})",
+                                    f"({', '.join([str(round(float(value), 4)) for value in values])})"]
+                    solved_value = f"[{', '.join(solved_value)}]"
                 else:
-                    values = 'None'
-                solved_values = '   solved_values: {}'.format(values)
+                    solved_value = 'None'
+                solved_value = '   solved_value: {}'.format(solved_value)
 
                 if branch + 1 == used_branch:
                     print(branch_str)
@@ -1442,7 +1675,7 @@ class GeometricConfiguration:
                     print(added_facts)
                     print(equations)
                     print(inequalities)
-                    print(solved_values)
+                    print(solved_value)
                 else:
                     parsed_construction_pfu.format(branch_str)
                     parsed_construction_pfu.format(t_entities)
@@ -1450,7 +1683,7 @@ class GeometricConfiguration:
                     parsed_construction_pfu.format(added_facts)
                     parsed_construction_pfu.format(equations)
                     parsed_construction_pfu.format(inequalities)
-                    parsed_construction_pfu.format(solved_values)
+                    parsed_construction_pfu.format(solved_value)
                 print()
 
         entity_pf = '{0:<12}{1:<15}{2:<31}{3:<25}{4:<25}{5:<15}{6:<100}'
@@ -1654,11 +1887,11 @@ class GeometricConfiguration:
         if len(self.relation_instances) > 0:
             relation_instance_pf = '{0:<45}{1:<100}'
             print('\033[33mRelation instances:\033[0m')
-            print('\033[33m' + relation_instance_pf.format('relation_name', 'relation_instances') + '\033[0m')
-            for relation_name in self.relation_instances:
-                relation_instances = [f"({','.join(item)})" for item in self.relation_instances[relation_name]]
+            print('\033[33m' + relation_instance_pf.format('relation_predicate', 'relation_instances') + '\033[0m')
+            for relation_predicate in self.relation_instances:
+                relation_instances = [f"({','.join(item)})" for item in self.relation_instances[relation_predicate]]
                 relation_instances = f"[{', '.join(relation_instances)}]"
-                print(relation_instance_pf.format(relation_name, relation_instances))
+                print(relation_instance_pf.format(relation_predicate, relation_instances))
             print()
 
         if len(self.theorem_instances) > 0:

@@ -40,6 +40,7 @@ theorem_letters = (  # preset theorem name
 )  # with defined theorems
 
 """↑-------------Vocabulary------------↑"""
+
 """↓---------------Output--------------↓"""
 
 
@@ -100,6 +101,7 @@ def debug_execute(func, args):
 
 
 """↑---------------Output--------------↑"""
+
 """↓-------------Algebraic-------------↓"""
 
 precision = 15
@@ -193,8 +195,8 @@ def _squared_distance_point_to_line(paras):
     return (x * k - y + b) ** 2 / (k ** 2 + 1)
 
 
-def _ma(paras):
-    return ((atan(paras[0]) - atan(paras[1])) * 180 / pi) % 180
+def _ma(paras):  # old version '((atan(paras[0]) - atan(paras[1])) * 180 / pi) % 180' is bug?
+    return ((atan(paras[0]) - atan(paras[1])) * 180 / pi + 180) % 180
 
 
 def _pp(paras):
@@ -248,6 +250,7 @@ algebraic_operation_map = {
 }
 
 """↑-------------Algebraic-------------↑"""
+
 """↓--------------Parser---------------↓"""
 
 
@@ -826,7 +829,8 @@ def _parse_construction(construction, parsed_gdl):
     """
     Point(C)&Line(m):PointOnLine(C,m)&~(PointOnLine(C,l)|~PointOnLine(C,n))&EqualAngle(m,l,l,n)
     """
-    parsed_construction = []  # [[target_entities, dependent_entities, added_facts, equations, inequalities, values]]
+    # [[target_entities, dependent_entities, added_facts, equations, inequalities, solved_value]]
+    parsed_construction = []
 
     target_entities, constraints = construction.split(':')
 
@@ -905,7 +909,8 @@ def _parse_construction(construction, parsed_gdl):
             parsed_construction.append([target_entities, dependent_entities,
                                         added_facts, equations, inequalities, None])
 
-    return parsed_construction  # [[target_entities, dependent_entities, added_facts, equations, inequalities, values]]
+    # [[target_entities, dependent_entities, added_facts, equations, inequalities, solved_value]]
+    return parsed_construction
 
 
 def _find_mod(expr, replace=None):
@@ -982,8 +987,8 @@ def _anti_parse_fact(fact):
 
 
 def _serialize_fact(predicate, instance):
-    if predicate == 'Eq':
-        serialized_expr = ['Eq']
+    if predicate in {'Eq', 'G', 'Geq', 'L', 'Leq', 'Ueq'}:
+        serialized_expr = [predicate]
         expr = str(instance).replace(' ', '')  # remove ' '
 
         for matched in re.findall(r'\d+\.*\d*', expr):  # replace number with 'nums'

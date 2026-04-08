@@ -1,15 +1,16 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 [project]
 name = "FormalGeo"
-version = "2.2.0"
+version = "2.2.2"
 authors = [
-    { name = "Xiaokai Zhang", email = "xiaokaizhang1999@163.com" },
+    { name = "Xiaokai Zhang", email = "xiaokaizhang@shu.edu.cn" },
 ]
 description = "Formal representation and solving for Euclidean plane geometry problems."
 readme = "README.md"
-requires-python = ">=3.10"
+license = {text = "MIT License"}
+requires-python = ">=3.12.13"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -18,8 +19,8 @@ classifiers = [
 dependencies = [
     "sympy>=1.14.0",
     "func-timeout>=4.3.5",
-    "python-graphviz>=0.21",
-    "matplotlib>=3.9.2"
+    "graphviz>=0.21",
+    "matplotlib>=3.10.8"
 ]
 [project.urls]
 "Homepage" = "https://github.com/FormalGeo/FormalGeo"

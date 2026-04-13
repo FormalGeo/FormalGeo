@@ -1,11 +1,14 @@
 from formalgeo import GeometricConfiguration
 from formalgeo import load_json, parse_gdl, debug_execute
+from func_timeout import func_timeout, FunctionTimedOut
+import time
 
 
-def test_construction():
+def construction(timing=False):
     """constructions: 42"""
-    parsed_gdl = parse_gdl(load_json('gdl.json'))
-    gc = GeometricConfiguration(parsed_gdl=parsed_gdl)
+    gc = GeometricConfiguration(parsed_gdl=parse_gdl(load_json('gdl.json')))
+
+    start_time = time.time()
 
     debug_execute(gc.construct, ['Circle(Γ)&Circle(Ω):IntersectBetweenCircle(Ω,Γ)&G(Sub(Γ.rc,Ω.rc))', 19])
     debug_execute(gc.construct, ['Point(M):CenterOfCircle(M,Ω)'])
@@ -53,14 +56,19 @@ def test_construction():
 
     debug_execute(gc.set_goal, ['ParallelBetweenLine(p,t)&TangentBetweenLineAndCircle(t,Φ)'])
 
-    gc.draw_gc(scale=2, save_path='../outputs/', file_format='png')
+    end_time = time.time()
 
-    return gc
+    if not timing:
+        gc.draw_gc(scale=2, save_path='../outputs/', file_format='png')
+
+    return gc, end_time - start_time
 
 
-def test_forward_solving():
+def forward_solving_interactive(timing=False):
     """theorems: 204"""
-    gc = test_construction()
+    gc, _ = construction(timing)
+
+    start_time = time.time()
 
     # common sense
     debug_execute(gc.apply, ['circumcenter_of_triangle_property_center_of_circle(P,Δ,C,d,A,c,D,a)'])
@@ -318,14 +326,21 @@ def test_forward_solving():
     debug_execute(gc.apply, ['perpendicular_between_line_property_multiple_forms(t,b)'])
     debug_execute(gc.apply, ['tangent_between_line_and_circle_determination_perpendicular(Φ,G,b,T,t)'])
 
-    gc.show_gc()
+    end_time = time.time()
 
-    gc.draw_sg(save_path='../outputs/', file_format='png')
+    if not timing:
+        gc.show_gc()
+        print(gc.get_gc())
+        gc.draw_sg(save_path='../outputs/', file_format='png')
+
+    return gc, end_time - start_time
 
 
-def test_backward_solving():
+def backward_solving_interactive(timing=False):
     """theorems: 204"""
-    gc = test_construction()
+    gc, _ = construction(timing)
+
+    start_time = time.time()
 
     debug_execute(gc.decompose, ['tangent_between_line_and_circle_determination_perpendicular(Φ,G,b,T,t)'])
     debug_execute(gc.decompose, ['perpendicular_between_line_property_multiple_forms(t,b)'])
@@ -532,13 +547,583 @@ def test_backward_solving():
     debug_execute(gc.decompose, ['circle_property_radius_equal(Φ,G,F)'])
     debug_execute(gc.decompose, ['triangle_determination(G,q,F,p,E,o)'])
 
-    gc.show_gc()
+    end_time = time.time()
 
-    gc.draw_sg(save_path='../outputs/', file_format='png')
+    if not timing:
+        gc.show_gc()
+        print(gc.get_gc())
+        gc.draw_sg(save_path='../outputs/', file_format='png')
 
-    print(gc.get_gc())
+    return gc, end_time - start_time
+
+
+def forward_solving_automatic(timing=False):
+    """theorems: 204"""
+    gc, _ = construction(timing)
+
+    start_time = time.time()
+
+    # common sense
+    debug_execute(gc.apply, ['circumcenter_of_triangle_property_center_of_circle'])
+    debug_execute(gc.apply, ['circumcircle_of_triangle_property_multiple_forms'])
+    debug_execute(gc.apply, ['circumcircle_of_triangle_property_multiple_forms'])
+    debug_execute(gc.apply, ['circumcircle_of_triangle_property_point_on_circle'])
+    debug_execute(gc.apply, ['circumcircle_of_triangle_property_point_on_circle'])
+    debug_execute(gc.apply, ['circumcircle_of_triangle_property_point_on_circle'])
+    debug_execute(gc.apply, ['circle_property_radius_equal'])
+    debug_execute(gc.apply, ['circle_property_radius_equal'])
+    debug_execute(gc.apply, ['circle_property_radius_equal'])
+
+    # prove ∠gd = ∠dp
+    debug_execute(gc.apply, ['equal_distance_point_to_point_determination_algebraic'])
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['isosceles_triangle_determination_distance_equal'])
+    debug_execute(gc.apply, ['isosceles_triangle_property_angle_equal'])
+    debug_execute(gc.apply, ['equal_angle_property_algebraic'])
+
+    # prove ∠pc = ∠ch
+    debug_execute(gc.apply, ['equal_distance_point_to_point_determination_algebraic'])
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['isosceles_triangle_determination_distance_equal'])
+    debug_execute(gc.apply, ['isosceles_triangle_property_angle_equal'])
+    debug_execute(gc.apply, ['equal_angle_property_algebraic'])
+
+    # prove ∠ga = ∠ah
+    debug_execute(gc.apply, ['equal_distance_point_to_point_determination_algebraic'])
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['isosceles_triangle_determination_distance_equal'])
+    debug_execute(gc.apply, ['isosceles_triangle_property_angle_equal'])
+    debug_execute(gc.apply, ['equal_angle_property_algebraic'])
+    debug_execute(gc.apply, ['circle_property_radius_equal'])
+    debug_execute(gc.apply, ['circle_property_radius_equal'])
+    debug_execute(gc.apply, ['circle_property_radius_equal'])
+
+    # prove ∠ad = ∠dk
+    debug_execute(gc.apply, ['equal_distance_point_to_point_determination_algebraic'])
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['isosceles_triangle_determination_distance_equal'])
+    debug_execute(gc.apply, ['isosceles_triangle_property_angle_equal'])
+    debug_execute(gc.apply, ['equal_angle_property_algebraic'])
+
+    # prove ∠kp = ∠px
+    debug_execute(gc.apply, ['equal_distance_point_to_point_determination_algebraic'])
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['isosceles_triangle_determination_distance_equal'])
+    debug_execute(gc.apply, ['isosceles_triangle_property_angle_equal'])
+    debug_execute(gc.apply, ['equal_angle_property_algebraic'])
+    debug_execute(gc.apply, ['circle_property_radius_equal'])
+    debug_execute(gc.apply, ['circle_property_radius_equal'])
+    debug_execute(gc.apply, ['circle_property_radius_equal'])
+
+    # prove ∠lc = ∠ca
+    debug_execute(gc.apply, ['equal_distance_point_to_point_determination_algebraic'])
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['isosceles_triangle_determination_distance_equal'])
+    debug_execute(gc.apply, ['isosceles_triangle_property_angle_equal'])
+    debug_execute(gc.apply, ['equal_angle_property_algebraic'])
+
+    # prove ∠yp = ∠pl
+    debug_execute(gc.apply, ['equal_distance_point_to_point_determination_algebraic'])
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['isosceles_triangle_determination_distance_equal'])
+    debug_execute(gc.apply, ['isosceles_triangle_property_angle_equal'])
+    debug_execute(gc.apply, ['equal_angle_property_algebraic'])
+    debug_execute(gc.apply, ['line_property_angle_addition'])
+    debug_execute(gc.apply, ['line_property_angle_addition'])
+    debug_execute(gc.apply, ['line_property_angle_addition'])
+    debug_execute(gc.apply, ['line_property_angle_addition'])
+
+    # prove y // k
+    debug_execute(gc.apply, ['equal_angle_determination_algebraic'])
+    debug_execute(gc.apply, ['parallel_determination_angle_equal'])
+
+    # prove x // l
+    debug_execute(gc.apply, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.apply, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.apply, ['equal_angle_determination_algebraic'])
+    debug_execute(gc.apply, ['parallel_determination_angle_equal'])
+    debug_execute(gc.apply, ['perpendicular_bisector_determination_center_line_and_common_chord'])
+    debug_execute(gc.apply, ['perpendicular_bisector_property_perpendicular_between_line'])
+
+    # prove ∠fp = 2∠ad
+    debug_execute(gc.apply, ['perpendicular_between_line_property_multiple_forms'])
+    debug_execute(gc.apply, ['perpendicular_between_line_property_angle'])
+    debug_execute(gc.apply, ['perpendicular_between_line_property_angle'])
+    debug_execute(gc.apply, ['perpendicular_bisector_property_distance_equal'])
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['isosceles_triangle_determination_distance_equal'])
+    debug_execute(gc.apply, ['isosceles_triangle_property_angle_equal'])
+    debug_execute(gc.apply, ['equal_angle_property_algebraic'])
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['triangle_property_angle_sum'])
+    debug_execute(gc.apply, ['triangle_property_angle_sum'])
+    debug_execute(gc.apply, ['line_property_angle_addition'])
+    debug_execute(gc.apply, ['concyclic_between_points_determination_same_circle'])
+    debug_execute(gc.apply, ['concyclic_between_points_property_inscribed_angle_sum'])
+    debug_execute(gc.apply, ['line_property_adjacent_complementary_angle'])
+
+    # prove ∠pe = 2∠ca
+    debug_execute(gc.apply, ['perpendicular_bisector_property_multiple_forms'])
+    debug_execute(gc.apply, ['perpendicular_bisector_property_distance_equal'])
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['isosceles_triangle_determination_distance_equal'])
+    debug_execute(gc.apply, ['isosceles_triangle_property_angle_equal'])
+    debug_execute(gc.apply, ['equal_angle_property_algebraic'])
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['triangle_property_angle_sum'])
+    debug_execute(gc.apply, ['triangle_property_angle_sum'])
+    debug_execute(gc.apply, ['line_property_angle_addition'])
+    debug_execute(gc.apply, ['concyclic_between_points_determination_same_circle'])
+    debug_execute(gc.apply, ['concyclic_between_points_property_inscribed_angle_equal'])
+
+    # prove ∠ay = 2∠ad
+    debug_execute(gc.apply, ['triangle_property_angle_sum'])
+    debug_execute(gc.apply, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.apply, ['parallel_property_angle_equal'])
+    debug_execute(gc.apply, ['equal_angle_property_algebraic'])
+    debug_execute(gc.apply, ['line_property_adjacent_complementary_angle'])
+
+    # prove ∠la = 2∠ca
+    debug_execute(gc.apply, ['triangle_property_angle_sum'])
+    debug_execute(gc.apply, ['line_property_adjacent_complementary_angle'])
+
+    # prove ∠xy = 2∠ad + 2∠ca
+    debug_execute(gc.apply, ['line_property_angle_addition'])
+    debug_execute(gc.apply, ['parallel_property_multiple_forms'])
+    debug_execute(gc.apply, ['parallel_property_angle_equal'])
+    debug_execute(gc.apply, ['equal_angle_property_algebraic'])
+
+    # prove ∠ef + ∠xy = 180° (T on Φ)
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['triangle_property_angle_sum'])
+    debug_execute(gc.apply, ['circumcircle_of_triangle_property_multiple_forms'])
+    debug_execute(gc.apply, ['circumcircle_of_triangle_property_multiple_forms'])
+    debug_execute(gc.apply, ['circumcircle_of_triangle_property_point_on_circle'])
+    debug_execute(gc.apply, ['circumcircle_of_triangle_property_point_on_circle'])
+    debug_execute(gc.apply, ['circumcircle_of_triangle_property_point_on_circle'])
+    debug_execute(gc.apply, ['concyclic_between_points_determination_inscribed_angle_sum'])
+    debug_execute(gc.apply, ['point_on_circle_determination_concyclic'])
+
+    # prove m ⊥ c
+    debug_execute(gc.apply, ['equal_distance_point_to_point_determination_algebraic'])
+    debug_execute(gc.apply, ['equal_distance_point_to_point_determination_algebraic'])
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['mirror_congruent_triangle_determination_sss'])
+    debug_execute(gc.apply, ['mirror_congruent_triangle_property_angle_equal'])
+    debug_execute(gc.apply, ['equal_angle_property_algebraic'])
+    debug_execute(gc.apply, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.apply, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['equal_angle_determination_algebraic'])
+    debug_execute(gc.apply, ['mirror_congruent_triangle_determination_asa'])
+    debug_execute(gc.apply, ['mirror_congruent_triangle_property_multiple_forms'])
+    debug_execute(gc.apply, ['mirror_congruent_triangle_property_multiple_forms'])
+    debug_execute(gc.apply, ['mirror_congruent_triangle_property_angle_equal'])
+    debug_execute(gc.apply, ['equal_angle_property_algebraic'])
+    debug_execute(gc.apply, ['line_property_adjacent_complementary_angle'])
+
+    # prove n ⊥ d
+    debug_execute(gc.apply, ['equal_distance_point_to_point_determination_algebraic'])
+    debug_execute(gc.apply, ['equal_distance_point_to_point_determination_algebraic'])
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['mirror_congruent_triangle_determination_sss'])
+    debug_execute(gc.apply, ['mirror_congruent_triangle_property_angle_equal'])
+    debug_execute(gc.apply, ['equal_angle_property_algebraic'])
+    debug_execute(gc.apply, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.apply, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['equal_angle_determination_algebraic'])
+    debug_execute(gc.apply, ['mirror_congruent_triangle_determination_asa'])
+    debug_execute(gc.apply, ['mirror_congruent_triangle_property_multiple_forms'])
+    debug_execute(gc.apply, ['mirror_congruent_triangle_property_multiple_forms'])
+    debug_execute(gc.apply, ['mirror_congruent_triangle_property_angle_equal'])
+    debug_execute(gc.apply, ['equal_angle_property_algebraic'])
+    debug_execute(gc.apply, ['line_property_adjacent_complementary_angle'])
+
+    # prove i // c
+    debug_execute(gc.apply, ['orthocenter_of_triangle_property_multiple_forms'])
+    debug_execute(gc.apply, ['orthocenter_of_triangle_property_perpendicular'])
+    debug_execute(gc.apply, ['perpendicular_between_line_property_angle'])
+    debug_execute(gc.apply, ['equal_angle_determination_algebraic'])
+    debug_execute(gc.apply, ['parallel_determination_angle_equal'])
+
+    # prove ∠xi = ∠ia
+    debug_execute(gc.apply, ['parallel_property_angle_equal'])
+    debug_execute(gc.apply, ['equal_angle_property_algebraic'])
+    debug_execute(gc.apply, ['line_property_angle_addition'])
+    debug_execute(gc.apply, ['parallel_property_angle_equal'])
+    debug_execute(gc.apply, ['equal_angle_property_algebraic'])
+    debug_execute(gc.apply, ['equal_angle_determination_algebraic'])
+    debug_execute(gc.apply, ['angle_bisector_determination_angle_equal'])
+
+    # prove j // d
+    debug_execute(gc.apply, ['orthocenter_of_triangle_property_multiple_forms'])
+    debug_execute(gc.apply, ['orthocenter_of_triangle_property_perpendicular'])
+    debug_execute(gc.apply, ['perpendicular_between_line_property_angle'])
+    debug_execute(gc.apply, ['equal_angle_determination_algebraic'])
+    debug_execute(gc.apply, ['parallel_determination_angle_equal'])
+
+    # prove ∠aj = ∠jy
+    debug_execute(gc.apply, ['parallel_property_angle_equal'])
+    debug_execute(gc.apply, ['equal_angle_property_algebraic'])
+    debug_execute(gc.apply, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.apply, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.apply, ['line_property_angle_addition'])
+    debug_execute(gc.apply, ['equal_angle_determination_algebraic'])
+    debug_execute(gc.apply, ['angle_bisector_determination_angle_equal'])
+
+    # prove ∠yt = ∠tx
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['incenter_of_triangle_determination_angle_bisector'])
+    debug_execute(gc.apply, ['incenter_of_triangle_property_angle_bisector'])
+    debug_execute(gc.apply, ['angle_bisector_property_equal_angle'])
+    debug_execute(gc.apply, ['equal_angle_property_algebraic'])
+
+    # prove t // p
+    debug_execute(gc.apply, ['line_property_angle_addition'])
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['triangle_property_angle_sum'])
+    debug_execute(gc.apply, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.apply, ['equal_angle_determination_algebraic'])
+    debug_execute(gc.apply, ['parallel_determination_angle_equal'])
+    debug_execute(gc.apply, ['parallel_property_multiple_forms'])
+
+    # prove b ⊥ p
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['triangle_determination'])
+    debug_execute(gc.apply, ['circle_property_radius_equal'])
+    debug_execute(gc.apply, ['circle_property_radius_equal'])
+    debug_execute(gc.apply, ['equal_distance_point_to_point_determination_algebraic'])
+    debug_execute(gc.apply, ['isosceles_triangle_determination_distance_equal'])
+    debug_execute(gc.apply, ['isosceles_triangle_property_angle_equal'])
+    debug_execute(gc.apply, ['equal_angle_property_algebraic'])
+    debug_execute(gc.apply, ['arc_property_central_angle_and_inscribed_angle'])
+    debug_execute(gc.apply, ['arc_property_central_angle_and_inscribed_angle'])
+    debug_execute(gc.apply, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.apply, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.apply, ['triangle_property_angle_sum'])
+    debug_execute(gc.apply, ['triangle_property_angle_sum'])
+    debug_execute(gc.apply, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.apply, ['parallel_property_angle_equal'])
+    debug_execute(gc.apply, ['equal_angle_property_algebraic'])
+
+    # prove t ⊥ p
+    debug_execute(gc.apply, ['perpendicular_between_line_determination_angle'])
+    debug_execute(gc.apply, ['perpendicular_between_line_property_multiple_forms'])
+    debug_execute(gc.apply, ['tangent_between_line_and_circle_determination_perpendicular'])
+
+    end_time = time.time()
+
+    if not timing:
+        gc.show_gc()
+        print(gc.get_gc())
+        gc.draw_sg(save_path='../outputs/', file_format='png')
+
+    return gc, end_time - start_time
+
+
+def backward_solving_automatic(timing=False):
+    """theorems: 204"""
+    gc, _ = construction(timing)
+
+    start_time = time.time()
+
+    debug_execute(gc.decompose, ['tangent_between_line_and_circle_determination_perpendicular'])
+    debug_execute(gc.decompose, ['perpendicular_between_line_property_multiple_forms'])
+    debug_execute(gc.decompose, ['perpendicular_between_line_determination_angle'])
+    debug_execute(gc.decompose, ['equal_angle_property_algebraic'])
+    debug_execute(gc.decompose, ['parallel_property_angle_equal'])
+    debug_execute(gc.decompose, ['parallel_property_multiple_forms'])
+    debug_execute(gc.decompose, ['parallel_determination_angle_equal'])
+    debug_execute(gc.decompose, ['equal_angle_determination_algebraic'])
+    debug_execute(gc.decompose, ['triangle_property_angle_sum'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+    debug_execute(gc.decompose, ['line_property_angle_addition'])
+    debug_execute(gc.decompose, ['equal_angle_property_algebraic'])
+    debug_execute(gc.decompose, ['angle_bisector_property_equal_angle'])
+    debug_execute(gc.decompose, ['incenter_of_triangle_property_angle_bisector'])
+    debug_execute(gc.decompose, ['incenter_of_triangle_determination_angle_bisector'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+    debug_execute(gc.decompose, ['angle_bisector_determination_angle_equal'])
+    debug_execute(gc.decompose, ['equal_angle_determination_algebraic'])
+    debug_execute(gc.decompose, ['line_property_angle_addition'])
+    debug_execute(gc.decompose, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.decompose, ['equal_angle_property_algebraic'])
+    debug_execute(gc.decompose, ['parallel_property_angle_equal'])
+    debug_execute(gc.decompose, ['parallel_determination_angle_equal'])
+    debug_execute(gc.decompose, ['equal_angle_determination_algebraic'])
+    debug_execute(gc.decompose, ['perpendicular_between_line_property_angle'])
+    debug_execute(gc.decompose, ['orthocenter_of_triangle_property_perpendicular'])
+    debug_execute(gc.decompose, ['orthocenter_of_triangle_property_multiple_forms'])
+    debug_execute(gc.decompose, ['angle_bisector_determination_angle_equal'])
+    debug_execute(gc.decompose, ['equal_angle_determination_algebraic'])
+    debug_execute(gc.decompose, ['line_property_angle_addition'])
+    debug_execute(gc.decompose, ['equal_angle_property_algebraic'])
+    debug_execute(gc.decompose, ['parallel_property_angle_equal'])
+    debug_execute(gc.decompose, ['parallel_determination_angle_equal'])
+    debug_execute(gc.decompose, ['equal_angle_determination_algebraic'])
+    debug_execute(gc.decompose, ['perpendicular_between_line_property_angle'])
+    debug_execute(gc.decompose, ['orthocenter_of_triangle_property_perpendicular'])
+    debug_execute(gc.decompose, ['orthocenter_of_triangle_property_multiple_forms'])
+    debug_execute(gc.decompose, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.decompose, ['equal_angle_property_algebraic'])
+    debug_execute(gc.decompose, ['mirror_congruent_triangle_property_angle_equal'])
+    debug_execute(gc.decompose, ['mirror_congruent_triangle_property_multiple_forms'])
+    debug_execute(gc.decompose, ['mirror_congruent_triangle_property_multiple_forms'])
+    debug_execute(gc.decompose, ['mirror_congruent_triangle_determination_asa'])
+    debug_execute(gc.decompose, ['equal_angle_determination_algebraic'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+    debug_execute(gc.decompose, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.decompose, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.decompose, ['equal_angle_property_algebraic'])
+    debug_execute(gc.decompose, ['mirror_congruent_triangle_property_angle_equal'])
+    debug_execute(gc.decompose, ['mirror_congruent_triangle_determination_sss'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+    debug_execute(gc.decompose, ['equal_distance_point_to_point_determination_algebraic'])
+    debug_execute(gc.decompose, ['equal_distance_point_to_point_determination_algebraic'])
+    debug_execute(gc.decompose, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.decompose, ['equal_angle_property_algebraic'])
+    debug_execute(gc.decompose, ['mirror_congruent_triangle_property_angle_equal'])
+    debug_execute(gc.decompose, ['mirror_congruent_triangle_property_multiple_forms'])
+    debug_execute(gc.decompose, ['mirror_congruent_triangle_property_multiple_forms'])
+    debug_execute(gc.decompose, ['mirror_congruent_triangle_determination_asa'])
+    debug_execute(gc.decompose, ['equal_angle_determination_algebraic'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+    debug_execute(gc.decompose, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.decompose, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.decompose, ['equal_angle_property_algebraic'])
+    debug_execute(gc.decompose, ['mirror_congruent_triangle_property_angle_equal'])
+    debug_execute(gc.decompose, ['mirror_congruent_triangle_determination_sss'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+    debug_execute(gc.decompose, ['equal_distance_point_to_point_determination_algebraic'])
+    debug_execute(gc.decompose, ['equal_distance_point_to_point_determination_algebraic'])
+    debug_execute(gc.decompose, ['point_on_circle_determination_concyclic'])
+    debug_execute(gc.decompose, ['concyclic_between_points_determination_inscribed_angle_sum'])
+    debug_execute(gc.decompose, ['circumcircle_of_triangle_property_point_on_circle'])
+    debug_execute(gc.decompose, ['circumcircle_of_triangle_property_point_on_circle'])
+    debug_execute(gc.decompose, ['circumcircle_of_triangle_property_point_on_circle'])
+    debug_execute(gc.decompose, ['circumcircle_of_triangle_property_multiple_forms'])
+    debug_execute(gc.decompose, ['circumcircle_of_triangle_property_multiple_forms'])
+    debug_execute(gc.decompose, ['triangle_property_angle_sum'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+    debug_execute(gc.decompose, ['equal_angle_property_algebraic'])
+    debug_execute(gc.decompose, ['parallel_property_angle_equal'])
+    debug_execute(gc.decompose, ['parallel_property_multiple_forms'])
+    debug_execute(gc.decompose, ['line_property_angle_addition'])
+    debug_execute(gc.decompose, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.decompose, ['triangle_property_angle_sum'])
+    debug_execute(gc.decompose, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.decompose, ['equal_angle_property_algebraic'])
+    debug_execute(gc.decompose, ['parallel_property_angle_equal'])
+    debug_execute(gc.decompose, ['concyclic_between_points_property_inscribed_angle_equal'])
+    debug_execute(gc.decompose, ['concyclic_between_points_determination_same_circle'])
+    debug_execute(gc.decompose, ['line_property_angle_addition'])
+    debug_execute(gc.decompose, ['triangle_property_angle_sum'])
+    debug_execute(gc.decompose, ['triangle_property_angle_sum'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+    debug_execute(gc.decompose, ['equal_angle_property_algebraic'])
+    debug_execute(gc.decompose, ['isosceles_triangle_property_angle_equal'])
+    debug_execute(gc.decompose, ['isosceles_triangle_determination_distance_equal'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+    debug_execute(gc.decompose, ['perpendicular_bisector_property_distance_equal'])
+    debug_execute(gc.decompose, ['perpendicular_bisector_property_multiple_forms'])
+    debug_execute(gc.decompose, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.decompose, ['concyclic_between_points_property_inscribed_angle_sum'])
+    debug_execute(gc.decompose, ['concyclic_between_points_determination_same_circle'])
+    debug_execute(gc.decompose, ['line_property_angle_addition'])
+    debug_execute(gc.decompose, ['triangle_property_angle_sum'])
+    debug_execute(gc.decompose, ['triangle_property_angle_sum'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+    debug_execute(gc.decompose, ['equal_angle_property_algebraic'])
+    debug_execute(gc.decompose, ['isosceles_triangle_property_angle_equal'])
+    debug_execute(gc.decompose, ['isosceles_triangle_determination_distance_equal'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+    debug_execute(gc.decompose, ['perpendicular_bisector_property_distance_equal'])
+    debug_execute(gc.decompose, ['perpendicular_between_line_property_angle'])
+    debug_execute(gc.decompose, ['perpendicular_between_line_property_angle'])
+    debug_execute(gc.decompose, ['perpendicular_between_line_property_multiple_forms'])
+    debug_execute(gc.decompose, ['perpendicular_bisector_property_perpendicular_between_line'])
+    debug_execute(gc.decompose, ['perpendicular_bisector_determination_center_line_and_common_chord'])
+    debug_execute(gc.decompose, ['parallel_determination_angle_equal'])
+    debug_execute(gc.decompose, ['equal_angle_determination_algebraic'])
+    debug_execute(gc.decompose, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.decompose, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.decompose, ['parallel_determination_angle_equal'])
+    debug_execute(gc.decompose, ['equal_angle_determination_algebraic'])
+    debug_execute(gc.decompose, ['line_property_angle_addition'])
+    debug_execute(gc.decompose, ['line_property_angle_addition'])
+    debug_execute(gc.decompose, ['line_property_angle_addition'])
+    debug_execute(gc.decompose, ['line_property_angle_addition'])
+    debug_execute(gc.decompose, ['equal_angle_property_algebraic'])
+    debug_execute(gc.decompose, ['isosceles_triangle_property_angle_equal'])
+    debug_execute(gc.decompose, ['isosceles_triangle_determination_distance_equal'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+    debug_execute(gc.decompose, ['equal_distance_point_to_point_determination_algebraic'])
+    debug_execute(gc.decompose, ['equal_angle_property_algebraic'])
+    debug_execute(gc.decompose, ['isosceles_triangle_property_angle_equal'])
+    debug_execute(gc.decompose, ['isosceles_triangle_determination_distance_equal'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+    debug_execute(gc.decompose, ['equal_distance_point_to_point_determination_algebraic'])
+    debug_execute(gc.decompose, ['circle_property_radius_equal'])
+    debug_execute(gc.decompose, ['circle_property_radius_equal'])
+    debug_execute(gc.decompose, ['circle_property_radius_equal'])
+    debug_execute(gc.decompose, ['equal_angle_property_algebraic'])
+    debug_execute(gc.decompose, ['isosceles_triangle_property_angle_equal'])
+    debug_execute(gc.decompose, ['isosceles_triangle_determination_distance_equal'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+    debug_execute(gc.decompose, ['equal_distance_point_to_point_determination_algebraic'])
+    debug_execute(gc.decompose, ['equal_angle_property_algebraic'])
+    debug_execute(gc.decompose, ['isosceles_triangle_property_angle_equal'])
+    debug_execute(gc.decompose, ['isosceles_triangle_determination_distance_equal'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+    debug_execute(gc.decompose, ['equal_distance_point_to_point_determination_algebraic'])
+    debug_execute(gc.decompose, ['circle_property_radius_equal'])
+    debug_execute(gc.decompose, ['circle_property_radius_equal'])
+    debug_execute(gc.decompose, ['circle_property_radius_equal'])
+    debug_execute(gc.decompose, ['equal_angle_property_algebraic'])
+    debug_execute(gc.decompose, ['isosceles_triangle_property_angle_equal'])
+    debug_execute(gc.decompose, ['isosceles_triangle_determination_distance_equal'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+    debug_execute(gc.decompose, ['equal_distance_point_to_point_determination_algebraic'])
+    debug_execute(gc.decompose, ['equal_angle_property_algebraic'])
+    debug_execute(gc.decompose, ['isosceles_triangle_property_angle_equal'])
+    debug_execute(gc.decompose, ['isosceles_triangle_determination_distance_equal'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+    debug_execute(gc.decompose, ['equal_distance_point_to_point_determination_algebraic'])
+    debug_execute(gc.decompose, ['equal_angle_property_algebraic'])
+    debug_execute(gc.decompose, ['isosceles_triangle_property_angle_equal'])
+    debug_execute(gc.decompose, ['isosceles_triangle_determination_distance_equal'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+    debug_execute(gc.decompose, ['equal_distance_point_to_point_determination_algebraic'])
+    debug_execute(gc.decompose, ['circle_property_radius_equal'])
+    debug_execute(gc.decompose, ['circle_property_radius_equal'])
+    debug_execute(gc.decompose, ['circle_property_radius_equal'])
+    debug_execute(gc.decompose, ['circumcircle_of_triangle_property_point_on_circle'])
+    debug_execute(gc.decompose, ['circumcircle_of_triangle_property_point_on_circle'])
+    debug_execute(gc.decompose, ['circumcircle_of_triangle_property_point_on_circle'])
+    debug_execute(gc.decompose, ['circumcircle_of_triangle_property_multiple_forms'])
+    debug_execute(gc.decompose, ['circumcircle_of_triangle_property_multiple_forms'])
+    debug_execute(gc.decompose, ['circumcenter_of_triangle_property_center_of_circle'])
+    debug_execute(gc.decompose, ['arc_property_central_angle_and_inscribed_angle'])
+    debug_execute(gc.decompose, ['arc_property_central_angle_and_inscribed_angle'])
+    debug_execute(gc.decompose, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.decompose, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.decompose, ['equal_angle_property_algebraic'])
+    debug_execute(gc.decompose, ['parallel_property_angle_equal'])
+    debug_execute(gc.decompose, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.decompose, ['triangle_property_angle_sum'])
+    debug_execute(gc.decompose, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.decompose, ['triangle_property_angle_sum'])
+    debug_execute(gc.decompose, ['triangle_property_angle_sum'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+    debug_execute(gc.decompose, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.decompose, ['line_property_adjacent_complementary_angle'])
+    debug_execute(gc.decompose, ['equal_angle_property_algebraic'])
+    debug_execute(gc.decompose, ['isosceles_triangle_property_angle_equal'])
+    debug_execute(gc.decompose, ['isosceles_triangle_determination_distance_equal'])
+    debug_execute(gc.decompose, ['equal_distance_point_to_point_determination_algebraic'])
+    debug_execute(gc.decompose, ['circle_property_radius_equal'])
+    debug_execute(gc.decompose, ['circle_property_radius_equal'])
+    debug_execute(gc.decompose, ['triangle_determination'])
+
+    end_time = time.time()
+
+    if not timing:
+        gc.show_gc()
+        print(gc.get_gc())
+        gc.draw_sg(save_path='../outputs/', file_format='png')
+
+    return gc, end_time - start_time
+
+
+def test(repeat=5, timeout=5400):
+    """timeout set 1.5h (IMO: solve 6 problems in 9h)."""
+    log = []
+
+    timing_list = []
+    for i in range(repeat):
+        print(f'test construction ({i + 1}/{repeat})...')
+        _, timing = construction(timing=True)
+        timing_list.append(timing)
+    log.append(f'construction: {round(sum(timing_list) / len(timing_list), 3)}s')
+    print('\n'.join(log))
+    print()
+
+    timing_list = []
+    for i in range(repeat):
+        print(f'test forward solving (interactive) ({i + 1}/{repeat})...')
+        _, timing = forward_solving_interactive(timing=True)
+        timing_list.append(timing)
+    log.append(f'forward solving (interactive): {round(sum(timing_list) / len(timing_list), 3)}s')
+    print('\n'.join(log))
+    print()
+
+    timing_list = []
+    for i in range(repeat):
+        print(f'test backward solving (interactive) ({i + 1}/{repeat})...')
+        _, timing = backward_solving_interactive(timing=True)
+        timing_list.append(timing)
+    log.append(f'backward solving (interactive): {round(sum(timing_list) / len(timing_list), 3)}s')
+    print('\n'.join(log))
+    print()
+
+    timing_list = []
+    solved = True
+    for i in range(repeat):
+        print(f'test forward solving (automatic) ({i + 1}/{repeat})...')
+        try:
+            _, timing = func_timeout(
+                timeout=timeout,
+                func=forward_solving_automatic,
+                args=(True,)
+            )
+            timing_list.append(timing)
+        except FunctionTimedOut:
+            solved = False
+            log.append(f'forward solving (automatic): >{timeout}s')
+            break
+    if solved:
+        log.append(f'forward solving (automatic): {round(sum(timing_list) / len(timing_list), 3)}s')
+    print('\n'.join(log))
+    print()
+
+    timing_list = []
+    solved = True
+    for i in range(repeat):
+        print(f'test backward solving (automatic) ({i + 1}/{repeat})...')
+        try:
+            _, timing = func_timeout(
+                timeout=timeout,
+                func=backward_solving_automatic,
+                args=(True,)
+            )
+            timing_list.append(timing)
+        except FunctionTimedOut:
+            solved = False
+            log.append(f'backward solving (automatic): >{timeout}s')
+            break
+    if solved:
+        log.append(f'backward solving (automatic): {round(sum(timing_list) / len(timing_list), 3)}s')
+    print('\n'.join(log))
+    print()
+
+    with open('../outputs/timing.txt', 'w', encoding="utf-8") as f:
+        f.write('\n'.join(log))
 
 
 if __name__ == '__main__':
-    # test_forward_solving()
-    test_backward_solving()
+    test()

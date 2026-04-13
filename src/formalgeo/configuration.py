@@ -13,6 +13,9 @@ import matplotlib.pyplot as plt
 import random
 import math
 
+plt.rcParams['font.family'] = 'STIXGeneral'  # temporary fix for bug 260413-02
+plt.rcParams['mathtext.fontset'] = 'stix'
+
 
 class GeometricConfiguration:
     def __init__(self, parsed_gdl, sample_max_epoch=500, sample_expansion_rate=1.2, timeout=5):
@@ -1925,13 +1928,17 @@ class GeometricConfiguration:
         edges = set()
         for fact_id in range(len(self.facts)):
             predicate, instance, premise_ids, entity_ids, operation_id = self.facts[fact_id]
-            if len(premise_ids) == 0:
+            if len(premise_ids | entity_ids) == 0:
                 if serialized_graph[-1] != '<init_fact>':
                     serialized_graph.append('&')
                 serialized_graph.extend(_serialize_fact(predicate, instance))
             else:
-                edge = (tuple(sorted(list(premise_ids))), operation_id,
-                        tuple(sorted(list(self.fact_groups[operation_id]))))
+                if len(premise_ids) > 0:  # temporary fix for bug 260413-01
+                    edge = (tuple(sorted(list(premise_ids))), operation_id,
+                            tuple(sorted(list(self.fact_groups[operation_id]))))
+                else:
+                    edge = (tuple(sorted(list(premise_ids | entity_ids))), operation_id,
+                            tuple(sorted(list(self.fact_groups[operation_id]))))
                 if edge in edges:
                     continue
 

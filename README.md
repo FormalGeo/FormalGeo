@@ -37,7 +37,7 @@ appropriately according to the citation information provided in the JSON file.
 We recommend using Conda to manage Python development environments. FormalGeo has been deployed to PyPi, allowing for
 easy installation via the `pip` command.
 
-    $ conda create -n <your_env_name> python=3.10
+    $ conda create -n <your_env_name> python=3.12.13
     $ conda activate <your_env_name>
     $ pip install formalgeo
 
@@ -49,7 +49,7 @@ project development and testing.
 
     $ git clone --depth 1 https://github.com/FormalGeo/FormalGeo.git
     $ cd FormalGeo
-    $ conda create -n <your_env_name> python=3.10
+    $ conda create -n <your_env_name> python=3.12.13
     $ conda activate <your_env_name>
     $ pip install -e .
 
@@ -690,6 +690,15 @@ requests. We look forward to having more people become part of this incredible j
 
 Our bug reporting platform is available at [here](https://github.com/FormalGeo/FormalGeo/issues). We encourage you to
 report any issues you encounter.
+
+## Updates
+
+Here is the main changelog. We have provided the runtime of the **IMO 2025 Problem 2** to serve as a benchmark reference
+for code optimization. All tests were conducted on an **AMD Ryzen 9 7950X**.
+
+| Version | Date          | Notes                                                     | Construction | Forward (Interactive) | Backward (Interactive) | Forward (Automatic) | Backward (Automatic) |
+|---------|---------------|-----------------------------------------------------------|--------------|-----------------------|------------------------|---------------------|----------------------|
+| 2.2.2   | April 8, 2026 | Official Release of the Stable Version of FormalGeo-beta. | 2.323s       | 31.736s               | 54.258s                | \> 5400s            | \> 5400s             |
 
 ## Citation
 

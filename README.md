@@ -730,6 +730,3 @@ A BibTeX entry for LaTeX users is:
 > primaryClass={cs.AI},  
 > url={https://arxiv.org/abs/2310.18021}  
 > }
-
-FormalGeo is MIT licensed, so you are free to use it whatever you like, be it academic, commercial, creating forks or
-derivatives. If it is convenient for you, please cite FormalGeo when using it in your work.

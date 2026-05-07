@@ -91,7 +91,7 @@ def debug_execute(func, args):
     timing = time.time()
     result = func(*args)
     msg = f"func: {func.__name__}, args: {str(args)}, return: {str(result)}, take: {round(time.time() - timing, 4)}s."
-    if isinstance(result, bool):
+    if isinstance(result, bool) or True in result:
         if result:
             print(f"\033[32m{msg}\033[0m")
         else:

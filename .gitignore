@@ -10,3 +10,6 @@ src/FormalGeo.egg-info
 
 # outputs
 outputs
+
+# tests
+tests/bug_report.py

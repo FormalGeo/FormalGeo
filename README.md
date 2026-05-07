@@ -1,7 +1,7 @@
 # FormalGeo
 
 [![Version](https://img.shields.io/badge/Version-2.2.2-brightgreen)](https://github.com/FormalGeo/FormalGeo)
-[![License](https://img.shields.io/badge/License-MIT-green)](https://opensource.org/licenses/MIT)
+[![License](https://img.shields.io/badge/License-GPL-yellow)](https://www.gnu.org/licenses)
 [![Survey](https://img.shields.io/badge/Survey-FormalGeo-blue)](https://github.com/FormalGeo/FormalGeo)
 
 **FormalGeo** is a framework for formal representation and solving of plane geometry, encompassing the entire workflow
@@ -696,9 +696,21 @@ report any issues you encounter.
 Here is the main changelog. We have provided the runtime of the **IMO 2025 Problem 2** to serve as a benchmark reference
 for code optimization. All tests were conducted on an **AMD Ryzen 9 7950X**.
 
-| Version | Date          | Notes                                                     | Construction | Forward (Interactive) | Backward (Interactive) | Forward (Automatic) | Backward (Automatic) |
-|---------|---------------|-----------------------------------------------------------|--------------|-----------------------|------------------------|---------------------|----------------------|
-| 2.2.2   | April 8, 2026 | Official Release of the Stable Version of FormalGeo-beta. | 2.323s       | 31.736s               | 54.258s                | \> 5400s            | \> 5400s             |
+| Version | Release Date   | Construction | Forward (Interactive) | Backward (Interactive) | Forward (Automatic) | Backward (Automatic) |
+|---------|----------------|--------------|-----------------------|------------------------|---------------------|----------------------|
+| 2.2.2   | April 08, 2026 | 2.323s       | 31.736s               | 54.258s                | \> 5400s            | \> 5400s             |
+
+**[2.2.2]** Official Release of the Stable Version of FormalGeo-beta.
+
+## License Change Notice
+
+Effective May 1, 2026, the license for the FormalGeo project will change from the MIT License to the GNU General Public
+License (GPL). Any code and data released before May 1, 2026 will remain under the MIT License. If you use any code or
+data released on or after May 1, 2026, you must ensure that your project is licensed under the GPL, which means your
+project must be open source. You must also retain and properly attribute the copyright notice of the FormalGeo project
+in your work. Additionally, any use of the new code or data for commercial purposes is strictly prohibited. If you find
+that the GPL imposes restrictions on your project development and you require an alternative arrangement, please do not
+hesitate to contact us.
 
 ## Citation
 

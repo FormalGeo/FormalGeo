@@ -31,8 +31,8 @@ problem-solving system that surpasses human performance is becoming a reality.
 The released open-source datasets can be found in the `datasets.json` file. If you use these datasets, please cite them
 appropriately according to the citation information provided in the JSON file.
 
-For Chinese researchers and developers, we have created a community. Scan the left QR code to join the WeChat group. If
-the QR code has expired, scan the QR code on the right to add the WeChat contact, and you will be invited to the group.
+For Chinese researchers and developers, we have created a community. Scan the QR code to join the WeChat group. If the
+QR code has expired, email **xiaokaizhang@shu.edu.cn** to get the latest QR code.
 
 ![wechat.png](files/wechat.png)
 
